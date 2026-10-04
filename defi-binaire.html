@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Défi binaire</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1c2230;--muted:#5d6678;--line:#d9dde5;--accent:#2457d6;--accent-ink:#fff;--ok:#1b7f4b;--okbg:#e3f4ea;--ko:#b3261e;--kobg:#fbe7e5}
+@media (prefers-color-scheme:dark){:root{--bg:#12151c;--card:#1b2029;--ink:#e8ebf2;--muted:#9aa3b5;--line:#2c3342;--accent:#6c93ff;--accent-ink:#0d1220;--ok:#5fd394;--okbg:#17301f;--ko:#ff8a80;--kobg:#3a1c1a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:640px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:1.5rem;margin:0 0 4px}
+.sub{color:var(--muted);margin:0 0 20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px}
+label.f{display:block;font-weight:600;margin:14px 0 6px}
+input[type=text],input[type=number]{width:100%;padding:10px 12px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px}
+.opts{display:grid;gap:8px}
+.opt{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:8px;cursor:pointer}
+.opt input{margin-top:4px}
+.opt small{display:block;color:var(--muted)}
+button{font:inherit;cursor:pointer}
+.primary{width:100%;margin-top:20px;padding:12px;border:0;border-radius:8px;background:var(--accent);color:var(--accent-ink);font-weight:600}
+.primary:hover{filter:brightness(1.08)}
+.top{display:flex;justify-content:space-between;color:var(--muted);font-size:.9rem;margin-bottom:6px}
+.bar{height:6px;background:var(--line);border-radius:3px;margin-bottom:20px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent)}
+.prompt{font-size:1.1rem;margin:0 0 16px}
+.big{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:2rem;letter-spacing:.06em;text-align:center;margin:8px 0 4px}
+.bits{display:flex;gap:6px;justify-content:center;flex-wrap:nowrap}
+.bit{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;max-width:64px}
+.bit span{font-size:.75rem;color:var(--muted);min-height:1.1em}
+.bit button{width:100%;aspect-ratio:1;border:2px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:700 1.4rem ui-monospace,Menlo,Consolas,monospace}
+.bit button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.bit button:disabled{cursor:default}
+.fb{margin-top:16px;padding:12px 14px;border-radius:8px;font-size:.95rem}
+.fb.ok{background:var(--okbg);color:var(--ok)}
+.fb.ko{background:var(--kobg);color:var(--ko)}
+.fb b{font-family:ui-monospace,Menlo,Consolas,monospace}
+.score{font-size:2.6rem;font-weight:700;margin:4px 0}
+.meta{color:var(--muted);margin:0 0 12px}
+table{width:100%;border-collapse:collapse;font-size:.9rem;margin-top:12px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+td.m{font-family:ui-monospace,Menlo,Consolas,monospace}
+tr.ko td{color:var(--ko)}
+.note{margin-top:14px;color:var(--muted);font-size:.9rem}
+.ghost{width:100%;margin-top:10px;padding:12px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--ink)}
+</style>
+</head>
+<body>
+<main>
+  <h1>Défi binaire</h1>
+  <p class="sub">Dix conversions entre binaire et décimal. Aucun compte, aucune donnée enregistrée.</p>
+  <div id="app" class="card"></div>
+</main>
+
+<script>
+const QN = 10;
+const app = document.getElementById('app');
+let cfg = { name: '', mode: 'mixte', bits: 8, weights: true };
+let best = null;      // meilleur score de la session (en mémoire seulement)
+let g = null;         // partie en cours
+let timerId = null;
+
+function group(s){
+  let r = '';
+  for (let i = 0; i < s.length; i++){
+    if (i > 0 && (s.length - i) % 4 === 0) r += ' ';
+    r += s[i];
+  }
+  return r;
+}
+const toBin = (n, bits) => group(n.toString(2).padStart(bits, '0'));
+function decomposition(n, bits){
+  const t = [];
+  for (let p = bits - 1; p >= 0; p--) if (n & (1 << p)) t.push(1 << p);
+  return n + ' = ' + t.join(' + ');
+}
+function makeQuestions(mode, bits){
+  const max = (1 << bits) - 1, set = new Set();
+  while (set.size < QN) set.add(1 + Math.floor(Math.random() * max));
+  return [...set].map(n => ({ n, dir: mode === 'mixte' ? (Math.random() < .5 ? 'd2b' : 'b2d') : mode }));
+}
+const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmtTime = ms => { const s = Math.round(ms / 1000); return Math.floor(s / 60) + ' min ' + String(s % 60).padStart(2, '0') + ' s'; };
+
+function renderStart(){
+  clearInterval(timerId);
+  app.innerHTML = `
+    <label class="f" for="name">Prénom (affiché sur l'écran final)</label>
+    <input type="text" id="name" maxlength="30" autocomplete="off" value="${esc(cfg.name)}">
+    <label class="f">Type d'exercice</label>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="mode" value="d2b" ${cfg.mode==='d2b'?'checked':''}><span>Décimal vers binaire<small>On donne un nombre, vous allumez les bons bits.</small></span></label>
+      <label class="opt"><input type="radio" name="mode" value="b2d" ${cfg.mode==='b2d'?'checked':''}><span>Binaire vers décimal<small>On donne des bits, vous écrivez la valeur.</small></span></label>
+      <label class="opt"><input type="radio" name="mode" value="mixte" ${cfg.mode==='mixte'?'checked':''}><span>Mélange des deux</span></label>
+    </div>
+    <label class="f">Nombre de bits</label>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="bits" value="4" ${cfg.bits===4?'checked':''}><span>4 bits<small>nombres de 1 à 15</small></span></label>
+      <label class="opt"><input type="radio" name="bits" value="6" ${cfg.bits===6?'checked':''}><span>6 bits<small>nombres de 1 à 63</small></span></label>
+      <label class="opt"><input type="radio" name="bits" value="8" ${cfg.bits===8?'checked':''}><span>8 bits (un octet)<small>nombres de 1 à 255</small></span></label>
+    </div>
+    <label class="opt" style="margin-top:14px"><input type="checkbox" id="weights" ${cfg.weights?'checked':''}><span>Afficher les puissances de 2 (128, 64, 32...)<small>À décocher quand vous n'en avez plus besoin.</small></span></label>
+    <button class="primary" id="go">Commencer</button>`;
+  document.getElementById('go').onclick = () => {
+    cfg.name = document.getElementById('name').value.trim();
+    cfg.mode = document.querySelector('input[name=mode]:checked').value;
+    cfg.bits = +document.querySelector('input[name=bits]:checked').value;
+    cfg.weights = document.getElementById('weights').checked;
+    startGame();
+  };
+}
+
+function startGame(){
+  g = { qs: makeQuestions(cfg.mode, cfg.bits), i: 0, res: [], t0: Date.now(), cur: [], done: false };
+  clearInterval(timerId);
+  timerId = setInterval(() => {
+    const el = document.getElementById('timer');
+    if (el) el.textContent = fmtTime(Date.now() - g.t0);
+  }, 1000);
+  renderQ();
+}
+
+function renderQ(){
+  const q = g.qs[g.i], bits = cfg.bits;
+  g.done = false;
+  g.cur = Array(bits).fill(0);
+  let body = '';
+  if (q.dir === 'd2b'){
+    body = `<p class="prompt">Écrivez <b>${q.n}</b> en binaire sur ${bits} bits : cliquez sur un bit pour le passer de 0 à 1.</p>
+      <div class="bits">${g.cur.map((_, k) => {
+        const p = bits - 1 - k;
+        return `<div class="bit"><span>${cfg.weights ? (1 << p) : ''}</span><button type="button" data-k="${k}" aria-pressed="false" aria-label="bit de poids ${1 << p}">0</button></div>`;
+      }).join('')}</div>`;
+  } else {
+    body = `<p class="prompt">Quelle est la valeur décimale de ce nombre binaire ?</p>
+      <div class="big">${toBin(q.n, bits)}</div>
+      ${cfg.weights ? `<div class="bits" style="margin:6px 0 14px">${[...Array(bits)].map((_, k) => `<div class="bit"><span>${1 << (bits - 1 - k)}</span></div>`).join('')}</div>` : '<div style="height:14px"></div>'}
+      <input type="number" id="ans" inputmode="numeric" min="0" placeholder="Votre réponse" autocomplete="off">`;
+  }
+  app.innerHTML = `
+    <div class="top"><span>Question ${g.i + 1} / ${QN}</span><span id="timer">${fmtTime(Date.now() - g.t0)}</span></div>
+    <div class="bar"><i style="width:${g.i / QN * 100}%"></i></div>
+    ${body}
+    <div id="fb"></div>
+    <button class="primary" id="action">Valider</button>`;
+  app.querySelectorAll('.bit button').forEach(b => b.onclick = () => {
+    if (g.done) return;
+    const k = +b.dataset.k;
+    g.cur[k] ^= 1;
+    b.textContent = g.cur[k];
+    b.setAttribute('aria-pressed', g.cur[k] ? 'true' : 'false');
+  });
+  const ans = document.getElementById('ans');
+  if (ans) ans.focus();
+  document.getElementById('action').onclick = onAction;
+}
+
+function onAction(){
+  const q = g.qs[g.i];
+  if (g.done){
+    if (g.i + 1 < QN){ g.i++; renderQ(); } else { renderEnd(); }
+    return;
+  }
+  let given, shown;
+  if (q.dir === 'd2b'){
+    given = parseInt(g.cur.join(''), 2);
+    shown = toBin(given, cfg.bits);
+  } else {
+    const v = document.getElementById('ans').value.trim();
+    if (v === ''){ document.getElementById('ans').focus(); return; }
+    given = parseInt(v, 10);
+    shown = String(given);
+  }
+  const ok = given === q.n;
+  const expected = q.dir === 'd2b' ? toBin(q.n, cfg.bits) : String(q.n);
+  g.res.push({ q, shown, expected, ok });
+  g.done = true;
+  app.querySelectorAll('.bit button').forEach(b => b.disabled = true);
+  const a = document.getElementById('ans'); if (a) a.readOnly = true;
+  document.getElementById('fb').innerHTML = ok
+    ? `<div class="fb ok"><b>Correct.</b> ${decomposition(q.n, cfg.bits)}</div>`
+    : `<div class="fb ko"><b>Pas tout à fait.</b> Vous avez ${q.dir === 'd2b' ? 'écrit' : 'trouvé'} <b>${shown}</b>, la réponse est <b>${expected}</b>.<br>${decomposition(q.n, cfg.bits)}</div>`;
+  document.getElementById('action').textContent = g.i + 1 < QN ? 'Question suivante' : 'Voir mon résultat';
+  document.getElementById('action').focus();
+}
+
+function renderEnd(){
+  clearInterval(timerId);
+  const score = g.res.filter(r => r.ok).length;
+  const elapsed = Date.now() - g.t0;
+  if (best === null || score > best) best = score;
+  const modeName = { d2b: 'Décimal vers binaire', b2d: 'Binaire vers décimal', mixte: 'Mélange' }[cfg.mode];
+  app.innerHTML = `
+    <p class="meta">${cfg.name ? esc(cfg.name) + ' · ' : ''}${new Date().toLocaleDateString('fr-FR')} · ${modeName} · ${cfg.bits} bits</p>
+    <div class="score">${score} / ${QN}</div>
+    <p class="meta">Temps : ${fmtTime(elapsed)} · Meilleur score de cette session : ${best} / ${QN}</p>
+    <table>
+      <thead><tr><th>Nombre</th><th>Votre réponse</th><th>Attendu</th></tr></thead>
+      <tbody>${g.res.map(r => `<tr class="${r.ok ? '' : 'ko'}"><td class="m">${r.q.dir === 'd2b' ? r.q.n : toBin(r.q.n, cfg.bits)}</td><td class="m">${r.shown}</td><td class="m">${r.expected}</td></tr>`).join('')}</tbody>
+    </table>
+    <p class="note">Faites une capture d'écran de cette page pour la rendre. Les nombres changent à chaque partie.</p>
+    <button class="primary" id="again">Rejouer avec de nouveaux nombres</button>
+    <button class="ghost" id="settings">Changer les réglages</button>`;
+  document.getElementById('again').onclick = startGame;
+  document.getElementById('settings').onclick = renderStart;
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || e.target.tagName === 'BUTTON') return;
+  const b = document.getElementById('action');
+  if (b) { e.preventDefault(); b.click(); }
+});
+
+renderStart();
+</script>
+</body>
+</html>
