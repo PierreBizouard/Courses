@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vocodeur à canaux</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  --bg:#eef1f4; --panel:#ffffff; --ink:#152030; --ink2:#4a5868; --line:#d3dae2; --soft:#e3e8ee;
+  --voice:#0c7a86; --carrier:#7046c8; --out:#d2581f; --accent:#d2581f;
+  --scope:#0b0d1f;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0f141b; --panel:#171e27; --ink:#e4eaf1; --ink2:#9aa8b8; --line:#2a3542; --soft:#1f2832;
+    --voice:#3cc3cf; --carrier:#a687f0; --out:#ff8a4c; --accent:#ff8a4c;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0f141b; --panel:#171e27; --ink:#e4eaf1; --ink2:#9aa8b8; --line:#2a3542; --soft:#1f2832;
+  --voice:#3cc3cf; --carrier:#a687f0; --out:#ff8a4c; --accent:#ff8a4c;
+}
+*{box-sizing:border-box} [hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;padding-inline:16px;padding-block:20px 48px}
+.wrap{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+header h1{font-family:var(--display);font-weight:700;font-size:clamp(26px,4vw,38px);line-height:1.1;margin:0;letter-spacing:-.01em;text-wrap:balance}
+header p{margin:6px 0 0;color:var(--ink2);max-width:70ch}
+.grid{display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.controls{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:18px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
+@media (max-width:860px){.controls{position:static}}
+fieldset{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+legend{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--ink2);font-weight:700;margin-bottom:8px;padding:0}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{font:inherit;font-size:13px;padding:5px 10px;border-radius:6px;border:1px solid var(--line);background:var(--soft);color:var(--ink);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.row{display:flex;flex-direction:column;gap:4px}
+.row label{display:flex;justify-content:space-between;font-size:13px;gap:8px}
+.row output{font-family:var(--mono);font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.drop{border:1.5px dashed var(--line);border-radius:8px;padding:10px;font-size:13px;color:var(--ink2);text-align:center;cursor:pointer}
+.drop.over{border-color:var(--accent);color:var(--ink)}
+.drop strong{color:var(--ink)}
+.recdot{width:10px;height:10px;border-radius:50%;background:#d23a3a;display:inline-block}
+#mic.rec{border-color:#d23a3a}
+#mic.rec .recdot{animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:.2}}
+@media (prefers-reduced-motion:reduce){#mic.rec .recdot{animation:none}}
+#micLabel{font-variant-numeric:tabular-nums}
+.srcname{font-size:12px;color:var(--ink2);font-family:var(--mono);word-break:break-all}
+.btn{font:inherit;font-size:14px;padding:8px 12px;border-radius:7px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.btn:hover{border-color:var(--ink2)}
+button:focus-visible,input:focus-visible,.drop:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.stage{display:flex;flex-direction:column;gap:14px;min-width:0}
+.track{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px 12px;display:flex;flex-direction:column;gap:8px}
+.track-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.track-head h2{font-family:var(--display);font-weight:500;font-size:17px;margin:0;display:flex;align-items:center;gap:8px}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.track-head .sub{font-size:13px;color:var(--ink2);flex:1;min-width:180px}
+.play{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:999px;padding:4px 12px 4px 9px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.play svg{width:12px;height:12px;fill:currentColor}
+.specbox{position:relative;display:grid;grid-template-columns:40px minmax(0,1fr);gap:4px}
+.yax{position:relative;font-family:var(--mono);font-size:10px;color:var(--ink2)}
+.yax span{position:absolute;right:2px;transform:translateY(-50%);white-space:nowrap}
+canvas.spec{width:100%;height:150px;display:block;border-radius:5px;background:var(--scope);cursor:crosshair}
+canvas.bands{height:110px}
+canvas.slice{width:100%;height:240px;display:block;cursor:crosshair}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--ink2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:18px;height:3px;border-radius:2px;display:inline-block}
+.note{font-size:12px;color:var(--ink2)}
+.explain{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px}
+.explain h3{font-family:var(--display);font-weight:500;font-size:17px;margin:0 0 6px}
+.explain p{margin:0 0 8px;font-size:14px;max-width:62ch}
+.explain em{font-style:normal;font-weight:700}
+.diagram{overflow-x:auto}
+.diagram svg{display:block;min-width:560px;width:100%;height:auto}
+.c-v{color:var(--voice)} .c-c{color:var(--carrier)} .c-o{color:var(--out)}
+.busy{font-family:var(--mono);font-size:12px;color:var(--ink2);min-height:1.2em}
+.xlab{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--ink2);margin-left:44px}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Vocodeur à canaux</h1>
+    <p>On découpe la voix en bandes de fréquence, on ne garde que l'<strong>enveloppe</strong> de chaque bande, et on s'en sert pour moduler un autre son (la <span class="c-c">porteuse</span>). Le timbre des voyelles survit ; la hauteur de la voix disparaît.</p>
+  </header>
+
+  <div class="grid">
+    <aside class="controls" aria-label="Réglages">
+      <fieldset>
+        <legend>Voix (modulante)</legend>
+        <div class="seg" id="srcSeg">
+          <button type="button" id="srcDemo" aria-pressed="true">Voix d'exemple</button>
+        </div>
+        <label class="drop" id="drop" tabindex="0">
+          <strong>Importer un enregistrement</strong><br>wav, mp3, m4a… (12 s max) — ou glisser-déposer ici
+          <input type="file" id="file" accept="audio/*" hidden>
+        </label>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <button type="button" class="btn" id="mic"><span class="recdot"></span><span id="micLabel">Enregistrer au micro</span></button>
+          <label class="btn" id="phoneRec" hidden>Enregistrer avec le téléphone<input type="file" id="fileCap" accept="audio/*" capture hidden></label>
+        </div>
+        <div class="note" id="micNote" hidden></div>
+        <div class="srcname" id="srcName">Exemple synthétique : « a – i – ou – é – o – sss – a – chh – i »</div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Porteuse</legend>
+        <div class="seg" id="carSeg">
+          <button type="button" data-car="saw" aria-pressed="true">Dents de scie</button>
+          <button type="button" data-car="square" aria-pressed="false">Carré</button>
+          <button type="button" data-car="chord" aria-pressed="false">Accord</button>
+          <button type="button" data-car="noise" aria-pressed="false">Bruit blanc</button>
+        </div>
+        <div class="row" id="pitchRow">
+          <label for="pitch">Fréquence fondamentale <output id="pitchOut">110 Hz</output></label>
+          <input type="range" id="pitch" min="40" max="440" step="1" value="110">
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Banc de filtres</legend>
+        <div class="row">
+          <label for="nb">Nombre de bandes <output id="nbOut">16</output></label>
+          <input type="range" id="nb" min="1" max="40" step="1" value="16">
+        </div>
+        <div class="row">
+          <label for="smooth">Lissage des enveloppes <output id="smoothOut">25 Hz</output></label>
+          <input type="range" id="smooth" min="2" max="200" step="1" value="25">
+        </div>
+        <div class="row">
+          <label for="flo">Plage analysée <output id="rangeOut">100 – 7000 Hz</output></label>
+          <input type="range" id="flo" min="50" max="500" step="10" value="100" aria-label="Fréquence basse">
+          <input type="range" id="fhi" min="2000" max="10000" step="100" value="7000" aria-label="Fréquence haute">
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Affichage</legend>
+        <div class="seg" id="axSeg">
+          <button type="button" data-ax="lin" aria-pressed="true">Fréquences linéaires</button>
+          <button type="button" data-ax="log" aria-pressed="false">Logarithmiques</button>
+        </div>
+      </fieldset>
+
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button type="button" class="btn" id="dl" hidden>Télécharger les 3 sons (.zip de WAV)</button>
+        <div class="busy" id="busy" aria-live="polite"></div>
+      </div>
+    </aside>
+
+    <main class="stage">
+      <section class="track" data-sig="voice">
+        <div class="track-head">
+          <h2><span class="dot" style="background:var(--voice)"></span>Voix</h2>
+          <span class="sub">Harmoniques fines (la hauteur) + grandes bosses (les formants)</span>
+          <button type="button" class="play" data-play="voice"><svg viewBox="0 0 12 12"><path d="M2 1l9 5-9 5z"/></svg>Écouter</button>
+        </div>
+        <div class="specbox"><div class="yax" data-yax></div><canvas class="spec" id="cvVoice"></canvas></div>
+      </section>
+
+      <section class="track" data-sig="bands">
+        <div class="track-head">
+          <h2><span class="dot" style="background:var(--ink2)"></span>Ce que le vocodeur retient</h2>
+          <span class="sub" id="bandsSub">16 enveloppes : un nombre par bande et par instant</span>
+        </div>
+        <div class="specbox"><div class="yax" data-yax></div><canvas class="spec bands" id="cvBands"></canvas></div>
+      </section>
+
+      <section class="track" data-sig="carrier">
+        <div class="track-head">
+          <h2><span class="dot" style="background:var(--carrier)"></span>Porteuse</h2>
+          <span class="sub" id="carSub">Riche en harmoniques, timbre plat, hauteur fixe</span>
+          <button type="button" class="play" data-play="carrier"><svg viewBox="0 0 12 12"><path d="M2 1l9 5-9 5z"/></svg>Écouter</button>
+        </div>
+        <div class="specbox"><div class="yax" data-yax></div><canvas class="spec" id="cvCarrier"></canvas></div>
+      </section>
+
+      <section class="track" data-sig="out">
+        <div class="track-head">
+          <h2><span class="dot" style="background:var(--out)"></span>Sortie vocodée</h2>
+          <span class="sub">Harmoniques de la porteuse, sculptées par l'enveloppe de la voix</span>
+          <button type="button" class="play" data-play="out"><svg viewBox="0 0 12 12"><path d="M2 1l9 5-9 5z"/></svg>Écouter</button>
+        </div>
+        <div class="specbox"><div class="yax" data-yax></div><canvas class="spec" id="cvOut"></canvas></div>
+        <div class="xlab" id="xlab"></div>
+      </section>
+
+      <section class="track">
+        <div class="track-head">
+          <h2>Coupe à l'instant <output id="tOut" style="font-family:var(--mono);font-size:15px">0,00 s</output></h2>
+          <span class="sub">Cliquez sur un spectrogramme pour choisir l'instant.</span>
+        </div>
+        <canvas class="slice" id="cvSlice"></canvas>
+        <div class="legend">
+          <span><i style="background:var(--voice)"></i>Voix</span>
+          <span><i style="background:var(--out)"></i>Sortie vocodée</span>
+          <span><i style="background:var(--ink)"></i>Enveloppe retenue (une marche par bande)</span>
+          <span><i style="background:var(--carrier);opacity:.6"></i>Porteuse</span>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <section class="explain">
+    <div class="diagram" style="grid-column:1/-1">
+      <svg viewBox="0 0 760 170" role="img" aria-label="Schéma du vocodeur : la voix passe dans un banc de filtres puis des détecteurs d'enveloppe ; la porteuse passe dans le même banc de filtres ; chaque bande de porteuse est multipliée par l'enveloppe correspondante, puis tout est additionné.">
+        <defs><marker id="ar" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8z" fill="var(--ink2)"/></marker></defs>
+        <g font-family="var(--body)" font-size="13" fill="var(--ink)">
+          <rect x="10" y="20" width="90" height="34" rx="6" fill="none" stroke="var(--voice)" stroke-width="2"/><text x="55" y="42" text-anchor="middle">Voix</text>
+          <rect x="10" y="116" width="90" height="34" rx="6" fill="none" stroke="var(--carrier)" stroke-width="2"/><text x="55" y="138" text-anchor="middle">Porteuse</text>
+          <rect x="140" y="12" width="130" height="50" rx="6" fill="var(--soft)" stroke="var(--line)"/><text x="205" y="34" text-anchor="middle">Banc de N</text><text x="205" y="51" text-anchor="middle">passe-bandes</text>
+          <rect x="140" y="108" width="130" height="50" rx="6" fill="var(--soft)" stroke="var(--line)"/><text x="205" y="130" text-anchor="middle">Même banc de N</text><text x="205" y="147" text-anchor="middle">passe-bandes</text>
+          <rect x="310" y="12" width="150" height="50" rx="6" fill="var(--soft)" stroke="var(--line)"/><text x="385" y="34" text-anchor="middle">Redressement</text><text x="385" y="51" text-anchor="middle">+ passe-bas (lissage)</text>
+          <circle cx="530" cy="133" r="18" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.5"/><text x="530" y="138" text-anchor="middle" font-size="17">×</text>
+          <circle cx="630" cy="133" r="18" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.5"/><text x="630" y="139" text-anchor="middle" font-size="17">Σ</text>
+          <rect x="672" y="116" width="80" height="34" rx="6" fill="none" stroke="var(--out)" stroke-width="2"/><text x="712" y="138" text-anchor="middle">Sortie</text>
+          <text x="485" y="84" fill="var(--ink2)" font-size="12">N enveloppes</text>
+          <text x="560" y="160" fill="var(--ink2)" font-size="12">×N</text>
+        </g>
+        <g stroke="var(--ink2)" stroke-width="1.5" fill="none" marker-end="url(#ar)">
+          <path d="M100 37H138"/><path d="M100 133H138"/><path d="M270 37H308"/>
+          <path d="M460 37H530V113"/><path d="M270 133H510"/><path d="M548 133H610"/><path d="M648 133H670"/>
+        </g>
+      </svg>
+    </div>
+    <div>
+      <h3>Ce qui disparaît : la hauteur</h3>
+      <p>Sur le spectrogramme de la voix, les fines rayures horizontales sont les harmoniques de la fondamentale (≈ 110 Hz ici). Dans la sortie, ces rayures sont <em>celles de la porteuse</em> : changez sa fréquence, la voix « chante » à une autre note, toujours la même. Avec le bruit blanc, il n'y a plus de hauteur du tout : on obtient un chuchotement.</p>
+    </div>
+    <div>
+      <h3>Ce qui survit : l'enveloppe spectrale</h3>
+      <p>Les zones claires larges (formants) qui distinguent « a », « i », « ou » se retrouvent dans la sortie. Dans la coupe, les harmoniques orange suivent la courbe en escalier : chaque bande reçoit le niveau mesuré sur la voix. C'est la décomposition <em>source × filtre</em> du conduit vocal.</p>
+    </div>
+    <div>
+      <h3>Combien de bandes faut-il ?</h3>
+      <p>Descendez à 4 bandes avec le bruit blanc : c'est la simulation classique d'un <em>implant cochléaire</em> (Shannon, 1995). La parole reste étonnamment compréhensible avec 4 à 8 canaux. À 1 bande, il ne reste que le rythme. Le lissage règle la résolution temporelle : trop faible, les consonnes s'effacent ; trop fort, on entend un grésillement.</p>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+"use strict";
+const SR = 22050, MAXDUR = 12;
+const FFTN = 1024, HOP = 128, ROWS = 256, DBRANGE = 70;
+const $ = id => document.getElementById(id);
+
+const state = {
+  voice: null, carrier: null, out: null,
+  car: "saw", pitch: 110, nb: 16, smooth: 25, flo: 100, fhi: 7000, ax: "lin",
+  t: 0.6, specs: {}, env: null, edges: null, frames: 0
+};
+
+/* ---------- synthèse de la voix d'exemple ---------- */
+function klatt(F, BW){ const T=1/SR, C=-Math.exp(-2*Math.PI*BW*T), B=2*Math.exp(-Math.PI*BW*T)*Math.cos(2*Math.PI*F*T); return [1-B-C,B,C]; }
+function makeDemoVoice(){
+  const V = { a:[700,1250,2550], i:[280,2250,2950], ou:[310,760,2300], e:[400,2000,2600], o:[460,820,2450] };
+  const seq = [["a",.5],["_",.07],["i",.45],["_",.07],["ou",.5],["_",.07],["e",.45],["_",.07],["o",.5],["_",.12],["s",.38],["a",.5],["_",.06],["ch",.36],["i",.6]];
+  const total = seq.reduce((s,x)=>s+x[1],0)+0.25;
+  const N = Math.round(total*SR), y = new Float32Array(N);
+  // pistes cibles
+  const tgtF = [new Float32Array(N),new Float32Array(N),new Float32Array(N)], vAmp=new Float32Array(N), nAmp=new Float32Array(N), nF=new Float32Array(N);
+  let pos = Math.round(0.1*SR), cur = V.a;
+  for (const [k,d] of seq){
+    const n = Math.round(d*SR);
+    for (let j=0;j<n && pos+j<N;j++){
+      const i=pos+j;
+      if (V[k]) { cur=V[k]; vAmp[i]=1; }
+      else if (k==="s"){ nAmp[i]=0.55; nF[i]=5500; }
+      else if (k==="ch"){ nAmp[i]=0.6; nF[i]=2900; }
+      tgtF[0][i]=cur[0]; tgtF[1][i]=cur[1]; tgtF[2][i]=cur[2];
+    }
+    pos += n;
+  }
+  for (let i=pos;i<N;i++){ tgtF[0][i]=cur[0]; tgtF[1][i]=cur[1]; tgtF[2][i]=cur[2]; }
+  // lissage (co-articulation) et enveloppes
+  const sm = (arr,tau)=>{ const a=Math.exp(-1/(tau*SR)); let s=arr[0]; for(let i=0;i<N;i++){ s=a*s+(1-a)*arr[i]; arr[i]=s; } };
+  tgtF.forEach(a=>sm(a,0.025)); sm(vAmp,0.012); sm(nAmp,0.012);
+  let s1=0,s2=0; for(let i=0;i<N;i++){ if(nF[i]) s1=nF[i]; else nF[i]=s1||5000; }
+  // source glottique
+  let ph=0, g1=0, g2=0; const gl=Math.exp(-2*Math.PI*120/SR);
+  const r = [[0,0],[0,0],[0,0]]; const rn=[0,0]; let prev=0, seed=12345;
+  const rnd = ()=>{ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x3fffffff-1; };
+  const BW=[90,110,170];
+  for (let i=0;i<N;i++){
+    const t=i/SR;
+    const f0 = 118 - 14*(t/total) + 9*Math.sin(2*Math.PI*0.7*t) + 1.5*Math.sin(2*Math.PI*5.3*t);
+    ph += f0/SR; let imp = 0; if (ph>=1){ ph-=1; imp=1; }
+    g1 = gl*g1 + (1-gl)*imp*40; g2 = gl*g2 + (1-gl)*g1;
+    let x = g2*vAmp[i] + 0.02*rnd()*vAmp[i];
+    for (let k=0;k<3;k++){ const [A,B,C]=klatt(tgtF[k][i],BW[k]); const o=A*x+B*r[k][0]+C*r[k][1]; r[k][1]=r[k][0]; r[k][0]=o; x=o; }
+    const [A,B,C]=klatt(nF[i], nF[i]>4000?1800:1200); const nz = A*rnd()*nAmp[i]+B*rn[0]+C*rn[1]; rn[1]=rn[0]; rn[0]=nz;
+    const v = x - prev; prev = x;           // rayonnement aux lèvres (+6 dB/oct)
+    y[i] = v*6 + nz*0.25;
+  }
+  return normalize(y,0.85);
+}
+function normalize(y,peak){ let m=0; for(const v of y) m=Math.max(m,Math.abs(v)); if(m>0){ const g=peak/m; for(let i=0;i<y.length;i++) y[i]*=g; } return y; }
+
+/* ---------- porteuse ---------- */
+function polyblep(t,dt){ if(t<dt){ t/=dt; return t+t-t*t-1; } if(t>1-dt){ t=(t-1)/dt; return t*t+t+t+1; } return 0; }
+function saw(N,f){ const y=new Float32Array(N), dt=f/SR; let p=0; for(let i=0;i<N;i++){ y[i]=2*p-1-polyblep(p,dt); p+=dt; if(p>=1)p-=1; } return y; }
+function square(N,f){ const y=new Float32Array(N), dt=f/SR; let p=0; for(let i=0;i<N;i++){ let v=p<.5?1:-1; v+=polyblep(p,dt); v-=polyblep((p+.5)%1,dt); y[i]=v; p+=dt; if(p>=1)p-=1; } return y; }
+function makeCarrier(N){
+  const f=state.pitch;
+  if (state.car==="saw") return normalize(saw(N,f),.8);
+  if (state.car==="square") return normalize(square(N,f),.8);
+  if (state.car==="noise"){ const y=new Float32Array(N); let s=987; for(let i=0;i<N;i++){ s=(s*1664525+1013904223)>>>0; y[i]=s/2147483648-1; } return normalize(y,.8); }
+  const y=new Float32Array(N); for(const m of [1,Math.pow(2,4/12),1.5,2]){ const s=saw(N,f*m); for(let i=0;i<N;i++) y[i]+=s[i]; } return normalize(y,.8);
+}
+
+/* ---------- vocodeur ---------- */
+function bpCoefs(fc,Q){ const w=2*Math.PI*fc/SR, al=Math.sin(w)/(2*Q), a0=1+al; return [al/a0,0,-al/a0,-2*Math.cos(w)/a0,(1-al)/a0]; }
+function bp4(x,c){ // deux biquads en cascade
+  const y=new Float32Array(x.length); const [b0,b1,b2,a1,a2]=c;
+  let x1=0,x2=0,y1=0,y2=0,u1=0,u2=0,z1=0,z2=0;
+  for(let i=0;i<x.length;i++){ const xi=x[i]; const v=b0*xi+b1*x1+b2*x2-a1*y1-a2*y2; x2=x1;x1=xi;y2=y1;y1=v;
+    const w=b0*v+b1*u1+b2*u2-a1*z1-a2*z2; u2=u1;u1=v;z2=z1;z1=w; y[i]=w; }
+  return y;
+}
+function vocode(){
+  const m=state.voice, c=state.carrier, N=m.length, nb=state.nb;
+  const lo=state.flo, hi=Math.min(state.fhi, SR*0.45);
+  const edges=[]; for(let k=0;k<=nb;k++) edges.push(lo*Math.pow(hi/lo,k/nb));
+  const out=new Float32Array(N);
+  const nF=Math.max(1,Math.floor((N-FFTN)/HOP)+1);
+  const env=[]; const a=Math.exp(-2*Math.PI*state.smooth/SR);
+  for(let k=0;k<nb;k++){
+    const f1=edges[k], f2=edges[k+1], fc=Math.sqrt(f1*f2), Q=fc/(f2-f1);
+    const co=bpCoefs(fc,Q);
+    const mb=bp4(m,co), cb=bp4(c,co);
+    let rc=0; for(let i=0;i<N;i++) rc+=cb[i]*cb[i]; rc=Math.sqrt(rc/N)||1;
+    let e1=0,e2=0; const fr=new Float32Array(nF);
+    for(let i=0;i<N;i++){ e1=a*e1+(1-a)*Math.abs(mb[i]); e2=a*e2+(1-a)*e1; out[i]+=cb[i]/rc*e2;
+      const j=(i-FFTN/2)/HOP; if(j>=0 && j<nF && (i-FFTN/2)%HOP===0) fr[j]=e2; }
+    env.push(fr);
+  }
+  state.env=env; state.edges=edges;
+  return normalize(out,.85);
+}
+
+/* ---------- FFT / spectrogramme ---------- */
+const win=new Float32Array(FFTN); for(let i=0;i<FFTN;i++) win[i]=0.5-0.5*Math.cos(2*Math.PI*i/(FFTN-1));
+const rev=new Uint32Array(FFTN); { const b=Math.log2(FFTN); for(let i=0;i<FFTN;i++){ let r=0; for(let j=0;j<b;j++) r|=((i>>j)&1)<<(b-1-j); rev[i]=r; } }
+function fft(re,im){ const n=re.length;
+  for(let i=0;i<n;i++){ const j=rev[i]; if(j>i){ let t=re[i];re[i]=re[j];re[j]=t; t=im[i];im[i]=im[j];im[j]=t; } }
+  for(let s=2;s<=n;s<<=1){ const h=s>>1, ang=-2*Math.PI/s, wr=Math.cos(ang), wi=Math.sin(ang);
+    for(let i=0;i<n;i+=s){ let cr=1,ci=0; for(let j=0;j<h;j++){ const a=i+j,b=a+h; const tr=re[b]*cr-im[b]*ci, ti=re[b]*ci+im[b]*cr; re[b]=re[a]-tr; im[b]=im[a]-ti; re[a]+=tr; im[a]+=ti; const nr=cr*wr-ci*wi; ci=cr*wi+ci*wr; cr=nr; } } } }
+function stft(x){
+  const nF=Math.max(1,Math.floor((x.length-FFTN)/HOP)+1), nb=FFTN/2+1;
+  const db=new Float32Array(nF*nb); const re=new Float64Array(FFTN), im=new Float64Array(FFTN); let mx=-1e9;
+  for(let f=0;f<nF;f++){ const o=f*HOP; for(let i=0;i<FFTN;i++){ re[i]=(x[o+i]||0)*win[i]; im[i]=0; } fft(re,im);
+    for(let k=0;k<nb;k++){ const v=10*Math.log10(re[k]*re[k]+im[k]*im[k]+1e-12); db[f*nb+k]=v; if(v>mx) mx=v; } }
+  return {db,nF,nb,max:mx};
+}
+
+/* ---------- axes ---------- */
+const FMAXLIN=8000, FMINLOG=60;
+function fMax(){ return state.ax==="lin"?FMAXLIN:SR/2; }
+function f2y(f){ // 0 (haut) .. 1 (bas)
+  if(state.ax==="lin") return 1-f/FMAXLIN;
+  return 1-Math.log(Math.max(f,FMINLOG)/FMINLOG)/Math.log((SR/2)/FMINLOG);
+}
+function y2f(y){ return state.ax==="lin" ? (1-y)*FMAXLIN : FMINLOG*Math.pow((SR/2)/FMINLOG,1-y); }
+function ticks(){ return state.ax==="lin"?[0,1000,2000,3000,4000,5000,6000,7000,8000]:[100,200,500,1000,2000,5000,10000]; }
+const fmtF=f=>f>=1000?(f/1000).toLocaleString("fr-FR")+" k":String(f);
+
+/* ---------- colormap ---------- */
+const STOPS=[[11,13,31],[59,26,107],[176,48,106],[240,138,60],[255,242,196]];
+const LUT=new Uint8Array(256*3); for(let i=0;i<256;i++){ const t=i/255*(STOPS.length-1), k=Math.min(STOPS.length-2,Math.floor(t)), u=t-k; for(let c=0;c<3;c++) LUT[i*3+c]=Math.round(STOPS[k][c]*(1-u)+STOPS[k+1][c]*u); }
+
+function specImage(sp){
+  const cv=document.createElement("canvas"); cv.width=sp.nF; cv.height=ROWS; const ctx=cv.getContext("2d"); const img=ctx.createImageData(sp.nF,ROWS);
+  const binHz=SR/FFTN;
+  for(let r=0;r<ROWS;r++){ const f=y2f((r+.5)/ROWS), kf=f/binHz, k0=Math.min(sp.nb-2,Math.floor(kf)), u=kf-k0;
+    for(let x=0;x<sp.nF;x++){ const v=sp.db[x*sp.nb+k0]*(1-u)+sp.db[x*sp.nb+k0+1]*u;
+      let q=Math.round(255*(v-(sp.max-DBRANGE))/DBRANGE); q=q<0?0:q>255?255:q; const p=(r*sp.nF+x)*4;
+      img.data[p]=LUT[q*3]; img.data[p+1]=LUT[q*3+1]; img.data[p+2]=LUT[q*3+2]; img.data[p+3]=255; } }
+  ctx.putImageData(img,0,0); return cv;
+}
+function bandsImage(){
+  const env=state.env, nF=env[0].length, cv=document.createElement("canvas"); cv.width=nF; cv.height=ROWS; const ctx=cv.getContext("2d"); const img=ctx.createImageData(nF,ROWS);
+  let mx=1e-12; for(const e of env) for(const v of e) if(v>mx) mx=v;
+  const bandOfRow=new Int16Array(ROWS); for(let r=0;r<ROWS;r++){ const f=y2f((r+.5)/ROWS); let b=-1; for(let k=0;k<env.length;k++) if(f>=state.edges[k]&&f<state.edges[k+1]) b=k; bandOfRow[r]=b; }
+  for(let r=0;r<ROWS;r++){ const b=bandOfRow[r];
+    for(let x=0;x<nF;x++){ const p=(r*nF+x)*4; let q=0;
+      if(b>=0){ const v=20*Math.log10(env[b][x]/mx+1e-9); q=Math.round(255*(v+DBRANGE*0.75)/(DBRANGE*0.75)); q=q<0?0:q>255?255:q; }
+      img.data[p]=LUT[q*3]; img.data[p+1]=LUT[q*3+1]; img.data[p+2]=LUT[q*3+2]; img.data[p+3]=255; } }
+  ctx.putImageData(img,0,0); return cv;
+}
+
+/* ---------- rendu ---------- */
+const canv={voice:$("cvVoice"),bands:$("cvBands"),carrier:$("cvCarrier"),out:$("cvOut")};
+const imgs={};
+let playing=null;
+function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+function fit(cv){ const d=window.devicePixelRatio||1, w=cv.clientWidth, h=cv.clientHeight; if(cv.width!==Math.round(w*d)||cv.height!==Math.round(h*d)){ cv.width=Math.round(w*d); cv.height=Math.round(h*d); } return [cv.getContext("2d"),cv.width,cv.height,d]; }
+function dur(){ return state.voice? state.voice.length/SR : 1; }
+function drawSpec(key){
+  const cv=canv[key], im=imgs[key]; if(!im) return; const [ctx,W,H,d]=fit(cv);
+  ctx.imageSmoothingEnabled=true; ctx.drawImage(im,0,0,W,H);
+  // la n-ième trame est centrée à n*HOP + FFTN/2
+  const tx = t=>{ const fr=(t*SR-FFTN/2)/HOP; return (fr/Math.max(1,im.width-1))*W; };
+  if(key==="out"||key==="bands"){ ctx.strokeStyle="rgba(255,255,255,.22)"; ctx.lineWidth=1*d; ctx.beginPath(); for(const e of state.edges){ const y=f2y(e)*H; if(y>=0&&y<=H){ ctx.moveTo(0,y); ctx.lineTo(W,y);} } ctx.stroke(); }
+  ctx.strokeStyle="rgba(255,255,255,.85)"; ctx.setLineDash([4*d,4*d]); ctx.lineWidth=1*d; const x=tx(state.t); ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); ctx.setLineDash([]);
+  if(playing && playing.key===key){ const px=tx(playing.pos()); ctx.strokeStyle="#ffffff"; ctx.lineWidth=2*d; ctx.beginPath(); ctx.moveTo(px,0); ctx.lineTo(px,H); ctx.stroke(); }
+}
+function drawYAxes(){
+  document.querySelectorAll("[data-yax]").forEach(el=>{
+    const h=el.nextElementSibling.clientHeight; el.style.height=h+"px";
+    el.innerHTML=ticks().map(f=>{ const y=f2y(f); if(y<0.02||y>0.98) return ""; return `<span style="top:${(y*100).toFixed(2)}%">${fmtF(f)}</span>`; }).join("")+`<span style="top:2%;opacity:.7">Hz</span>`;
+  });
+  const D=dur(), step=D>8?2:D>3?1:.5; let s=""; for(let t=0;t<=D+1e-6;t+=step) s+=`<span>${t.toLocaleString("fr-FR")} s</span>`; $("xlab").innerHTML=s;
+}
+function drawSlice(){
+  const cv=$("cvSlice"), [ctx,W,H,d]=fit(cv);
+  ctx.clearRect(0,0,W,H);
+  const padL=44*d, padR=10*d, padT=10*d, padB=24*d, w=W-padL-padR, h=H-padT-padB;
+  const fx = f=>padL + (1-f2y(f))*w; // l'axe vertical des spectrogrammes devient horizontal
+  const ink=css("--ink"), ink2=css("--ink2"), line=css("--line");
+  const fr=t=>Math.max(0,Math.min(Math.round((t*SR-FFTN/2)/HOP), state.specs.voice.nF-1));
+  const f=fr(state.t);
+  const top=Math.max(state.specs.voice.max,state.specs.out.max), lo=top-DBRANGE;
+  const fy=v=>padT+h*(1-(v-lo)/DBRANGE);
+  // grille
+  ctx.font=`${10*d}px ${css("--mono")||"monospace"}`; ctx.fillStyle=ink2; ctx.strokeStyle=line; ctx.lineWidth=1*d; ctx.textAlign="center";
+  for(const t of ticks()){ const x=fx(t); if(x<padL-1||x>W-padR+1) continue; ctx.beginPath(); ctx.moveTo(x,padT); ctx.lineTo(x,padT+h); ctx.stroke(); ctx.fillText(fmtF(t)+(t===ticks()[ticks().length-1]?" Hz":""),x,H-8*d); }
+  ctx.textAlign="right"; for(let v=0;v<=DBRANGE;v+=10){ const y=fy(top-v); ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(W-padR,y); ctx.stroke(); ctx.fillText(v===0?"0 dB":"−"+v,padL-6*d,y+3*d); }
+  // bornes des bandes
+  ctx.fillStyle=css("--soft"); state.edges.forEach((e,k)=>{ if(k%2===0 && k<state.edges.length-1){ const a=fx(e), b=fx(state.edges[k+1]); ctx.globalAlpha=.55; ctx.fillRect(a,padT,b-a,h); ctx.globalAlpha=1; } });
+  const binHz=SR/FFTN, fm=fMax();
+  const curve=(sp,color,offset,alpha,width)=>{ ctx.strokeStyle=color; ctx.globalAlpha=alpha; ctx.lineWidth=width*d; ctx.beginPath(); let st=false;
+    for(let k=1;k<sp.nb;k++){ const fq=k*binHz; if(fq>fm) break; if(state.ax==="log"&&fq<FMINLOG) continue; const x=fx(fq), y=Math.min(padT+h,Math.max(padT,fy(sp.db[f*sp.nb+k]-sp.max+top+offset))); st?ctx.lineTo(x,y):(ctx.moveTo(x,y),st=true); } ctx.stroke(); ctx.globalAlpha=1; };
+  curve(state.specs.carrier,css("--carrier"),-12,.45,1);
+  curve(state.specs.voice,css("--voice"),0,1,1.4);
+  curve(state.specs.out,css("--out"),0,1,1.4);
+  // escalier de l'enveloppe retenue
+  const fe=Math.min(f,state.env[0].length-1); let em=1e-12; for(const e of state.env) em=Math.max(em,e[fe]);
+  let gm=1e-12; for(const e of state.env) for(const v of e) gm=Math.max(gm,v);
+  ctx.strokeStyle=ink; ctx.lineWidth=2.2*d; ctx.beginPath();
+  state.env.forEach((e,k)=>{ const v=top+20*Math.log10(e[fe]/gm+1e-9)-3; const y=Math.min(padT+h,Math.max(padT,fy(v))); const a=fx(state.edges[k]), b=fx(state.edges[k+1]); k===0?ctx.moveTo(a,y):ctx.lineTo(a,y); ctx.lineTo(b,y); });
+  ctx.stroke();
+  $("tOut").textContent=state.t.toLocaleString("fr-FR",{minimumFractionDigits:2,maximumFractionDigits:2})+" s";
+}
+function drawAll(){ for(const k in canv) drawSpec(k); drawSlice(); }
+
+/* ---------- pipeline ---------- */
+let timer=0;
+function schedule(full){ clearTimeout(timer); $("busy").textContent="Calcul…"; timer=setTimeout(()=>recompute(full),60); }
+function recompute(full){
+  const t0=performance.now();
+  if(full || !imgs.voice){ state.specs.voice=stft(state.voice); imgs.voice=specImage(state.specs.voice); }
+  else if(full===null){ imgs.voice=specImage(state.specs.voice); }
+  state.carrier=makeCarrier(state.voice.length);
+  state.out=vocode();
+  state.specs.carrier=stft(state.carrier); imgs.carrier=specImage(state.specs.carrier);
+  state.specs.out=stft(state.out); imgs.out=specImage(state.specs.out);
+  imgs.bands=bandsImage();
+  state.t=Math.min(state.t,dur()-0.05);
+  drawYAxes(); drawAll();
+  $("busy").textContent=`Calculé en ${Math.round(performance.now()-t0)} ms · ${dur().toLocaleString("fr-FR",{maximumFractionDigits:1})} s à ${SR} Hz`;
+  $("bandsSub").textContent = state.nb===1 ? "1 seule enveloppe : il ne reste que le rythme" : `${state.nb} enveloppes : un nombre par bande et par instant`;
+}
+
+/* ---------- interactions ---------- */
+function bindRange(id,key,fmt,full){ const el=$(id); const upd=()=>{ state[key]=+el.value; $(id+"Out")&&( $(id+"Out").textContent=fmt(state[key]) ); }; el.addEventListener("input",()=>{ upd(); schedule(full); }); upd(); }
+bindRange("pitch","pitch",v=>v+" Hz");
+bindRange("nb","nb",v=>String(v));
+bindRange("smooth","smooth",v=>v+" Hz");
+const updRange=()=>{ state.flo=+$("flo").value; state.fhi=+$("fhi").value; $("rangeOut").textContent=`${state.flo} – ${state.fhi} Hz`; };
+["flo","fhi"].forEach(id=>$(id).addEventListener("input",()=>{ updRange(); schedule(); })); updRange();
+
+function seg(id,attr,key,after){ const box=$(id); box.addEventListener("click",e=>{ const b=e.target.closest("button[data-"+attr+"]"); if(!b) return; box.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",String(x===b))); state[key]=b.dataset[attr]; after&&after(); }); }
+const carDesc={saw:"Dents de scie : toutes les harmoniques, décroissance 1/n",square:"Carré : harmoniques impaires seulement",chord:"Accord majeur de 4 dents de scie : la voix chante en accord",noise:"Bruit blanc : pas de hauteur, toutes les fréquences"};
+seg("carSeg","car","car",()=>{ $("carSub").textContent=carDesc[state.car]; $("pitchRow").hidden=state.car==="noise"; schedule(); });
+seg("axSeg","ax","ax",()=>schedule(null));
+
+function setT(e){ const r=e.currentTarget.getBoundingClientRect(); const u=(e.clientX-r.left)/r.width; const im=imgs.voice; const fr=u*(im.width-1); state.t=Math.max(0,Math.min(dur(),(fr*HOP+FFTN/2)/SR)); drawAll(); }
+Object.values(canv).forEach(cv=>cv.addEventListener("click",setT));
+$("cvSlice").addEventListener("click",()=>{});
+
+/* lecture */
+let actx=null;
+function stopPlay(){ if(playing){ try{ playing.src.stop(); }catch(_){} const b=document.querySelector(`[data-play="${playing.key}"]`); b&&setPlayLabel(b,false); playing=null; drawAll(); } }
+function setPlayLabel(b,on){ b.innerHTML = on ? '<svg viewBox="0 0 12 12"><path d="M2 2h8v8H2z"/></svg>Arrêter' : '<svg viewBox="0 0 12 12"><path d="M2 1l9 5-9 5z"/></svg>Écouter'; }
+document.querySelectorAll("[data-play]").forEach(b=>b.addEventListener("click",async()=>{
+  const key=b.dataset.play; const was=playing&&playing.key===key; stopPlay(); if(was) return;
+  actx = actx || new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==="suspended") await actx.resume();
+  const data=state[key]; const buf=actx.createBuffer(1,data.length,SR); buf.copyToChannel(data,0);
+  const src=actx.createBufferSource(); src.buffer=buf; src.connect(actx.destination); const t0=actx.currentTime; src.start();
+  playing={key,src,pos:()=>actx.currentTime-t0}; setPlayLabel(b,true);
+  src.onended=()=>{ if(playing&&playing.src===src) stopPlay(); };
+  const loop=()=>{ if(!playing||playing.src!==src) return; drawSpec(key); requestAnimationFrame(loop); }; loop();
+}));
+
+/* import */
+async function loadFile(file,label){
+  if(!file) return;
+  $("busy").textContent="Décodage…";
+  try{
+    actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+    const ab=await file.arrayBuffer(); const dec=await actx.decodeAudioData(ab);
+    const len=Math.min(dec.duration,MAXDUR); const off=new OfflineAudioContext(1,Math.ceil(len*SR),SR);
+    const s=off.createBufferSource(); s.buffer=dec; s.connect(off.destination); s.start(0,0,len);
+    const rendered=await off.startRendering();
+    stopPlay();
+    state.voice=normalize(new Float32Array(rendered.getChannelData(0)),.85);
+    state.t=Math.min(dur()/2,dur()-.05);
+    $("srcDemo").setAttribute("aria-pressed","false");
+    $("srcName").textContent=`${label||file.name} —${len.toLocaleString("fr-FR",{maximumFractionDigits:1})} s${dec.duration>MAXDUR?" (coupé à 12 s)":""}`;
+    schedule(true);
+  }catch(err){ $("busy").textContent="Ce fichier n'a pas pu être décodé. Essayez un WAV ou un MP3."; }
+}
+$("file").addEventListener("change",e=>loadFile(e.target.files[0]));
+$("fileCap").addEventListener("change",e=>loadFile(e.target.files[0],"Enregistrement téléphone"));
+if(window.matchMedia("(pointer:coarse)").matches) $("phoneRec").hidden=false;
+
+/* micro : marche quand la page est ouverte en local ou sur un site https ;
+   la page publiée sur claude.ai n'a pas le droit d'accéder au micro */
+const micAllowed = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder)
+  && !(document.featurePolicy && !document.featurePolicy.allowsFeature("microphone"));
+const MIC_BLOCKED="Le micro n'est pas accessible dans la page publiée sur claude.ai. Ouvrez la version locale (fichier .html) ou importez un enregistrement.";
+if(!micAllowed){ $("mic").hidden=true; $("micNote").textContent=MIC_BLOCKED; $("micNote").hidden=false; }
+let rec=null;
+function stopRec(){ if(rec&&rec.mr.state!=="inactive") rec.mr.stop(); }
+$("mic").addEventListener("click",async()=>{
+  if(rec){ stopRec(); return; }
+  let stream;
+  try{
+    // pas de traitement automatique : on veut le vrai spectre de la voix
+    stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+  }catch(err){
+    $("micNote").textContent = err&&err.name==="NotAllowedError"&&window.self===window.top ? "Accès au micro refusé. Autorisez-le dans le navigateur (icône à gauche de l'adresse), ou importez un enregistrement." : (err&&err.name==="NotFoundError" ? "Aucun micro détecté." : MIC_BLOCKED);
+    $("micNote").hidden=false; return;
+  }
+  $("micNote").hidden=true; stopPlay();
+  const chunks=[]; const mr=new MediaRecorder(stream); const t0=performance.now();
+  rec={mr,stream};
+  mr.ondataavailable=e=>{ if(e.data.size) chunks.push(e.data); };
+  mr.onstop=()=>{ stream.getTracks().forEach(t=>t.stop()); clearInterval(rec.tick); rec=null;
+    $("mic").classList.remove("rec"); $("micLabel").textContent="Enregistrer au micro";
+    const blob=new Blob(chunks,{type:mr.mimeType||"audio/webm"}); if(blob.size) loadFile(blob,"Enregistrement micro"); };
+  mr.start();
+  $("mic").classList.add("rec");
+  rec.tick=setInterval(()=>{ const s=(performance.now()-t0)/1000; $("micLabel").textContent=`Arrêter (${s.toLocaleString("fr-FR",{minimumFractionDigits:1,maximumFractionDigits:1})} s / ${MAXDUR} s)`; if(s>=MAXDUR) stopRec(); },100);
+});
+const drop=$("drop");
+drop.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); $("file").click(); } });
+["dragenter","dragover"].forEach(ev=>drop.addEventListener(ev,e=>{ e.preventDefault(); drop.classList.add("over"); }));
+["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{ e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop",e=>loadFile(e.dataTransfer.files[0]));
+$("srcDemo").addEventListener("click",()=>{ stopPlay(); state.voice=makeDemoVoice(); state.t=0.6; $("srcDemo").setAttribute("aria-pressed","true"); $("srcName").textContent="Exemple synthétique : « a – i – ou – é – o – sss – a – chh – i »"; schedule(true); });
+
+/* export zip de WAV */
+function wav(data){ const n=data.length, b=new ArrayBuffer(44+n*2), v=new DataView(b); const w=(o,s)=>{ for(let i=0;i<s.length;i++) v.setUint8(o+i,s.charCodeAt(i)); };
+  w(0,"RIFF"); v.setUint32(4,36+n*2,true); w(8,"WAVE"); w(12,"fmt "); v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true); v.setUint32(24,SR,true); v.setUint32(28,SR*2,true); v.setUint16(32,2,true); v.setUint16(34,16,true); w(36,"data"); v.setUint32(40,n*2,true);
+  for(let i=0;i<n;i++){ const s=Math.max(-1,Math.min(1,data[i])); v.setInt16(44+i*2,s*32767,true); } return new Uint8Array(b); }
+const CRC=new Uint32Array(256); for(let i=0;i<256;i++){ let c=i; for(let k=0;k<8;k++) c=c&1?0xEDB88320^(c>>>1):c>>>1; CRC[i]=c>>>0; }
+const crc32=u=>{ let c=0xFFFFFFFF; for(let i=0;i<u.length;i++) c=CRC[(c^u[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0; };
+function zip(files){ const parts=[], cent=[]; let off=0; const enc=new TextEncoder();
+  for(const [name,data] of files){ const nm=enc.encode(name), crc=crc32(data);
+    const h=new DataView(new ArrayBuffer(30)); h.setUint32(0,0x04034b50,true); h.setUint16(4,20,true); h.setUint32(14,crc,true); h.setUint32(18,data.length,true); h.setUint32(22,data.length,true); h.setUint16(26,nm.length,true);
+    parts.push(new Uint8Array(h.buffer),nm,data);
+    const c=new DataView(new ArrayBuffer(46)); c.setUint32(0,0x02014b50,true); c.setUint16(4,20,true); c.setUint16(6,20,true); c.setUint32(16,crc,true); c.setUint32(20,data.length,true); c.setUint32(24,data.length,true); c.setUint16(28,nm.length,true); c.setUint32(42,off,true);
+    cent.push(new Uint8Array(c.buffer),nm); off+=30+nm.length+data.length; }
+  const csize=cent.reduce((s,u)=>s+u.length,0); const e=new DataView(new ArrayBuffer(22)); e.setUint32(0,0x06054b50,true); e.setUint16(8,files.length,true); e.setUint16(10,files.length,true); e.setUint32(12,csize,true); e.setUint32(16,off,true);
+  return new Blob([...parts,...cent,new Uint8Array(e.buffer)]); }
+const makeZip=tag=>zip([["1-voix.wav",wav(state.voice)],["2-porteuse.wav",wav(state.carrier)],[`3-vocodee-${tag}.wav`,wav(state.out)]]);
+const curTag=()=>`${state.car}-${state.car==="noise"?"":state.pitch+"Hz-"}${state.nb}bandes`;
+if(!window.claude && window.self===window.top){ // version locale : lien de téléchargement classique
+  const b=$("dl"); b.hidden=false;
+  b.addEventListener("click",()=>{ const tag=curTag(), a=document.createElement("a"); a.href=URL.createObjectURL(makeZip(tag)); a.download=`vocodeur-${tag}.zip`; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1000); });
+}
+(async()=>{ try{ const dl=await window.claude?.use?.("downloads"); if(!dl) return; const b=$("dl"); b.hidden=false;
+  b.addEventListener("click",async()=>{ const tag=curTag();
+    try{ await dl.save({filename:`vocodeur-${tag}.zip`,data:makeZip(tag)}); $("busy").textContent="Fichier enregistré."; }
+    catch(err){ if(err&&err.code==="declined") return; if(err&&["unavailable","not_granted","capability_disabled","capability_removed"].includes(err.code)) b.hidden=true; else $("busy").textContent="Le téléchargement n'a pas abouti."; } });
+} catch(_){} })();
+
+let rz=0; window.addEventListener("resize",()=>{ clearTimeout(rz); rz=setTimeout(()=>{ drawYAxes(); drawAll(); },100); });
+const mq=window.matchMedia("(prefers-color-scheme: dark)"); mq.addEventListener?.("change",drawAll);
+new MutationObserver(drawAll).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+
+state.voice=makeDemoVoice();
+recompute(true);
+})();
+</script>
+</body>
+</html>

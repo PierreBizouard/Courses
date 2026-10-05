@@ -1,0 +1,804 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Autotune en classe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  --bg:#eef1f4; --panel:#ffffff; --ink:#152030; --ink2:#4a5868; --line:#d3dae2; --soft:#e3e8ee; --faint:#eef1f5;
+  --voice:#0c7a86; --out:#d2581f; --target:#f3c9b0; --accent:#d2581f; --good:#2f8a4c;
+  --scope:#0b0d1f;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0f141b; --panel:#171e27; --ink:#e4eaf1; --ink2:#9aa8b8; --line:#2a3542; --soft:#1f2832; --faint:#1b232c;
+    --voice:#3cc3cf; --out:#ff8a4c; --target:#5a3424; --accent:#ff8a4c; --good:#5cc47e;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0f141b; --panel:#171e27; --ink:#e4eaf1; --ink2:#9aa8b8; --line:#2a3542; --soft:#1f2832; --faint:#1b232c;
+  --voice:#3cc3cf; --out:#ff8a4c; --target:#5a3424; --accent:#ff8a4c; --good:#5cc47e;
+}
+*{box-sizing:border-box} [hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;padding-inline:16px;padding-block:20px 48px}
+.wrap{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+header h1{font-family:var(--display);font-weight:700;font-size:clamp(26px,4vw,38px);line-height:1.1;margin:0;letter-spacing:-.01em;text-wrap:balance}
+header p{margin:6px 0 0;color:var(--ink2);max-width:72ch}
+.grid{display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.controls{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:18px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
+@media (max-width:860px){.controls{position:static}}
+fieldset{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;min-width:0}
+legend{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--ink2);font-weight:700;margin-bottom:8px;padding:0}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{font:inherit;font-size:13px;padding:5px 10px;border-radius:6px;border:1px solid var(--line);background:var(--soft);color:var(--ink);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.keys{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
+.keys button{font:inherit;font-size:12px;padding:4px 0;border-radius:5px;border:1px solid var(--line);background:var(--soft);color:var(--ink);cursor:pointer}
+.keys button[aria-pressed="true"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+.row{display:flex;flex-direction:column;gap:4px}
+.row label{display:flex;justify-content:space-between;font-size:13px;gap:8px}
+.row output{font-family:var(--mono);font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.hint{font-size:12px;color:var(--ink2)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.drop{border:1.5px dashed var(--line);border-radius:8px;padding:10px;font-size:13px;color:var(--ink2);text-align:center;cursor:pointer}
+.drop.over{border-color:var(--accent);color:var(--ink)}
+.drop strong{color:var(--ink)}
+.btn{font:inherit;font-size:14px;padding:8px 12px;border-radius:7px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.btn:hover{border-color:var(--ink2)}
+.recdot{width:10px;height:10px;border-radius:50%;background:#d23a3a;display:inline-block}
+#mic.rec{border-color:#d23a3a}
+#mic.rec .recdot{animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:.2}}
+@media (prefers-reduced-motion:reduce){#mic.rec .recdot{animation:none}}
+#micLabel{font-variant-numeric:tabular-nums}
+.srcname{font-size:12px;color:var(--ink2);font-family:var(--mono);word-break:break-all}
+.note{font-size:12px;color:var(--ink2)}
+button:focus-visible,input:focus-visible,.drop:focus-visible,label.btn:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.stage{display:flex;flex-direction:column;gap:14px;min-width:0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.stat .k{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--ink2);font-weight:700}
+.stat .v{font-family:var(--mono);font-size:20px;font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.stat .v .a{color:var(--voice)} .stat .v .b{color:var(--out)} .stat .v .arr{color:var(--ink2);font-size:14px}
+.track{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px 12px;display:flex;flex-direction:column;gap:8px}
+.track-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.track-head h2{font-family:var(--display);font-weight:500;font-size:17px;margin:0;display:flex;align-items:center;gap:8px}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.track-head .sub{font-size:13px;color:var(--ink2);flex:1;min-width:180px}
+.play{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:999px;padding:4px 12px 4px 9px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.play svg{width:12px;height:12px;fill:currentColor}
+canvas{display:block;width:100%;cursor:crosshair}
+#cvRoll{height:320px}
+#cvMarks{height:300px;cursor:default}
+.specbox{display:grid;grid-template-columns:40px minmax(0,1fr);gap:4px}
+.yax{position:relative;font-family:var(--mono);font-size:10px;color:var(--ink2)}
+.yax span{position:absolute;right:2px;transform:translateY(-50%);white-space:nowrap}
+canvas.spec{height:150px;border-radius:5px;background:var(--scope)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--ink2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:18px;height:3px;border-radius:2px;display:inline-block}
+.legend i.bar{height:8px;border-radius:3px}
+.explain{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px}
+.explain h3{font-family:var(--display);font-weight:500;font-size:17px;margin:0 0 6px}
+.explain p{margin:0 0 8px;font-size:14px;max-width:62ch}
+.explain em{font-style:normal;font-weight:700}
+.busy{font-family:var(--mono);font-size:12px;color:var(--ink2);min-height:1.2em}
+.c-v{color:var(--voice)} .c-o{color:var(--out)}
+.diag{padding:16px 16px 14px;gap:14px}
+.diag-head{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:20px;align-items:end}
+@media (max-width:760px){.diag-head{grid-template-columns:minmax(0,1fr)}}
+.diag-title{font-family:var(--display);font-weight:500;font-size:20px;margin:0 0 6px;text-wrap:balance}
+.diag-lead{margin:0;font-size:14px;max-width:78ch;color:var(--ink)}
+.diag-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:760px){.diag-grid{grid-template-columns:minmax(0,1fr)}}
+.diag figure{margin:0;display:flex;flex-direction:column;gap:6px;min-width:0}
+.diag figcaption{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--ink2);font-weight:700}
+canvas.diagcv{height:390px;cursor:default;background:var(--faint);border-radius:6px}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Autotune</h1>
+    <p>L'autotune mesure la hauteur de la voix à chaque instant, l'arrondit à la note la plus proche de la gamme choisie, puis déplace la hauteur <strong>sans changer le timbre</strong>. Plus la correction est rapide, plus l'effet devient « robot ».</p>
+  </header>
+
+  <div class="grid">
+    <aside class="controls" aria-label="Réglages">
+      <fieldset>
+        <legend>Voix chantée</legend>
+        <div class="seg"><button type="button" id="srcDemo" aria-pressed="true">Voix d'exemple</button></div>
+        <label class="drop" id="drop" tabindex="0">
+          <strong>Importer un enregistrement</strong><br>wav, mp3, m4a… (12 s max) — ou glisser-déposer ici
+          <input type="file" id="file" accept="audio/*" hidden>
+        </label>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <button type="button" class="btn" id="mic"><span class="recdot"></span><span id="micLabel">Enregistrer au micro</span></button>
+          <label class="btn" id="phoneRec" hidden>Enregistrer avec le téléphone<input type="file" id="fileCap" accept="audio/*" capture hidden></label>
+        </div>
+        <div class="note" id="micNote" hidden></div>
+        <div class="srcname" id="srcName">Exemple synthétique : « Frère Jacques », chanté un peu faux, avec vibrato</div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Gamme visée</legend>
+        <div class="seg" id="scaleSeg">
+          <button type="button" data-scale="major" aria-pressed="true">Majeure</button>
+          <button type="button" data-scale="minor" aria-pressed="false">Mineure</button>
+          <button type="button" data-scale="penta" aria-pressed="false">Pentatonique</button>
+          <button type="button" data-scale="chrom" aria-pressed="false">Chromatique</button>
+        </div>
+        <div class="keys" id="keys" aria-label="Tonalité"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Correction</legend>
+        <div class="row">
+          <label for="speed">Vitesse de correction <output id="speedOut">0 ms</output></label>
+          <input type="range" id="speed" min="0" max="400" step="5" value="0">
+          <span class="hint">0 ms = saut instantané (effet robot) · 150 ms et plus = correction discrète</span>
+        </div>
+        <div class="row">
+          <label for="amount">Force <output id="amountOut">100 %</output></label>
+          <input type="range" id="amount" min="0" max="100" step="5" value="100">
+        </div>
+        <div class="row">
+          <label for="trans">Transposition <output id="transOut">0 demi-ton</output></label>
+          <input type="range" id="trans" min="-7" max="7" step="1" value="0">
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Marques de période (PSOLA)</legend>
+        <div class="seg" id="methSeg">
+          <button type="button" data-method="cc" aria-pressed="true">Corrélation</button>
+          <button type="button" data-method="sed" aria-pressed="false">SEDREAMS</button>
+        </div>
+        <span class="hint" id="methHint"></span>
+      </fieldset>
+
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button type="button" class="btn" id="dl" hidden>Télécharger les 2 sons (.zip de WAV)</button>
+        <div class="busy" id="busy" aria-live="polite"></div>
+      </div>
+    </aside>
+
+    <main class="stage">
+      <div class="stats">
+        <div class="stat"><div class="k">Écart moyen à la gamme</div><div class="v"><span class="a" id="devA">–</span><span class="arr">→</span><span class="b" id="devB">–</span></div></div>
+        <div class="stat"><div class="k">Instants justes (± 15 cents)</div><div class="v"><span class="a" id="okA">–</span><span class="arr">→</span><span class="b" id="okB">–</span></div></div>
+        <div class="stat"><div class="k">Instant choisi</div><div class="v" id="nowV" style="font-size:15px">–</div></div>
+      </div>
+
+      <section class="track">
+        <div class="track-head">
+          <h2>Hauteur au cours du temps</h2>
+          <span class="sub">Lignes : notes de la gamme. Cliquez pour choisir un instant.</span>
+          <button type="button" class="play" data-play="voice"><svg viewBox="0 0 12 12"><path d="M2 1l9 5-9 5z"/></svg>Original</button>
+          <button type="button" class="play" data-play="out"><svg viewBox="0 0 12 12"><path d="M2 1l9 5-9 5z"/></svg>Corrigé</button>
+        </div>
+        <canvas id="cvRoll"></canvas>
+        <div class="legend">
+          <span><i style="background:var(--voice)"></i>Hauteur mesurée sur la voix</span>
+          <span><i style="background:var(--out)"></i>Hauteur mesurée après correction</span>
+          <span><i class="bar" style="background:var(--target)"></i>Note visée</span>
+        </div>
+      </section>
+
+      <section class="track">
+        <div class="track-head">
+          <h2><span class="dot" style="background:var(--voice)"></span>Spectrogramme original</h2>
+          <span class="sub">Chaque rayure est un harmonique : f₀, 2f₀, 3f₀… Elles ondulent avec le vibrato.</span>
+        </div>
+        <div class="specbox"><div class="yax" data-yax></div><canvas class="spec" id="cvA"></canvas></div>
+      </section>
+      <section class="track">
+        <div class="track-head">
+          <h2><span class="dot" style="background:var(--out)"></span>Spectrogramme corrigé</h2>
+          <span class="sub">Les harmoniques sautent en marches d'escalier ; les zones claires larges (formants) restent en place.</span>
+        </div>
+        <div class="specbox"><div class="yax" data-yax></div><canvas class="spec" id="cvB"></canvas></div>
+      </section>
+
+      <section class="track" id="marksPanel">
+        <div class="track-head">
+          <h2>Marques de période · zoom sur l'instant choisi</h2>
+          <span class="sub" id="marksSub">Cliquez sur la courbe de hauteur ou un spectrogramme pour déplacer le zoom.</span>
+        </div>
+        <canvas id="cvMarks"></canvas>
+        <div class="legend">
+          <span><i style="background:var(--out)"></i>Marques utilisées (<span id="methName">corrélation</span>)</span>
+          <span><i style="background:var(--ink2)"></i>Marques de l'autre méthode</span>
+          <span><i class="bar" style="background:var(--target)"></i>Intervalles de recherche SEDREAMS</span>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <section class="explain">
+    <div>
+      <h3>1 · Mesurer la hauteur</h3>
+      <p>Sur un son voisé, le signal se répète avec une période T. L'algorithme YIN compare le signal à une copie décalée de τ et cherche le décalage qui ressemble le plus : c'est T, et f₀ = 1/T. Sur un « s » ou un silence, rien ne se répète : pas de hauteur (la courbe s'interrompt).</p>
+    </div>
+    <div>
+      <h3>2 · Choisir la note visée</h3>
+      <p>Un demi-ton multiplie la fréquence par 2<sup>1/12</sup> ≈ 1,059, soit 100 <em>cents</em>. On convertit f₀ en numéro de note, on l'arrondit à la note de la gamme la plus proche, et on lisse l'écart avec la constante de temps choisie. À 0 ms, l'écart est corrigé instantanément : le vibrato et les glissés disparaissent, d'où le son robotique.</p>
+    </div>
+    <div>
+      <h3>3 · Déplacer la hauteur, pas le timbre</h3>
+      <p>Accélérer un enregistrement monte la hauteur mais aussi les formants : voix de « Chipmunk ». La méthode PSOLA découpe le signal en grains d'une période et les recolle un peu plus serrés (plus aigu) ou plus espacés (plus grave). Chaque grain garde la forme du conduit vocal, donc les formants ne bougent pas. Essayez la transposition à ±7 demi-tons.</p>
+    </div>
+    <div>
+      <h3>4 · Poser une marque par période</h3>
+      <p><em>Corrélation</em> : on prend le pic du signal lissé sur la première période, puis chaque marque suivante est placée là où la période ressemble le plus à la précédente. Régulier, mais la position dans le cycle est arbitraire et change si le signal est inversé.</p>
+      <p><em>SEDREAMS</em> (Drugman et Dutoit, 2009) : le résidu de prédiction linéaire montre une pointe à chaque fermeture de la glotte ; une moyenne glissante sur 1,75 période donne une quasi-sinusoïde dont chaque montée (d'un minimum au maximum suivant) délimite où chercher la pointe. Les marques tombent sur les vraies fermetures, mais la méthode souffre davantage du bruit.</p>
+    </div>
+  </section>
+
+  <section class="track diag" id="psola" aria-labelledby="psolaTitle">
+    <div class="diag-head">
+      <div>
+        <h2 id="psolaTitle" class="diag-title">Et les harmoniques ? On ne les déplace pas une par une</h2>
+        <p class="diag-lead">Une voix voisée, c'est la même « bouffée » qui revient toutes les T secondes : une impulsion de la glotte, filtrée par le conduit vocal. Le spectre d'une bouffée isolée est une courbe continue, l'<strong>enveloppe</strong>, avec ses bosses (les formants). Comme la bouffée se répète tous les T, le spectre ne garde que des raies à f₀ = 1/T, 2f₀, 3f₀… et la hauteur de chaque raie est lue sur l'enveloppe. PSOLA ne touche qu'à T : <strong>toutes les harmoniques suivent d'un coup</strong>, et l'enveloppe reste en place.</p>
+      </div>
+      <div class="row diag-ctl">
+        <label for="dShift">Correction demandée <output id="dShiftOut">+3 demi-tons</output></label>
+        <input type="range" id="dShift" min="-7" max="7" step="1" value="3">
+        <span class="hint" id="dShiftInfo"></span>
+      </div>
+    </div>
+    <div class="diag-grid">
+      <figure>
+        <figcaption>Dans le temps</figcaption>
+        <canvas id="cvDiagT" class="diagcv"></canvas>
+      </figure>
+      <figure>
+        <figcaption>Dans les fréquences</figcaption>
+        <canvas id="cvDiagF" class="diagcv"></canvas>
+      </figure>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--voice)"></i>Original</span>
+      <span><i style="background:var(--out)"></i>Après déplacement</span>
+      <span><i style="background:var(--ink2)"></i>Enveloppe (formants) du conduit vocal</span>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+"use strict";
+const SR=22050, MAXDUR=12;
+const HOP=128, YW=512, TMAX=Math.floor(SR/70), TMIN=Math.floor(SR/900), YC=YW/2+100;   // YIN
+const FFTN=2048, SHOP=128, ROWS=220, DBRANGE=70, FMAX=3000;                         // spectrogramme
+const $=id=>document.getElementById(id);
+const NOTES=["Do","Do♯","Ré","Ré♯","Mi","Fa","Fa♯","Sol","Sol♯","La","La♯","Si"];
+const SCALES={major:[0,2,4,5,7,9,11],minor:[0,2,3,5,7,8,10],penta:[0,2,4,7,9],chrom:[0,1,2,3,4,5,6,7,8,9,10,11]};
+const noteName=n=>NOTES[((n%12)+12)%12]+(Math.floor(n/12)-2);   // convention française : La3 = 440 Hz
+const state={voice:null,out:null,det:null,detOut:null,plan:null,scale:"major",key:0,speed:0,amount:100,trans:0,t:1.0,imgs:{},method:"cc",marks:null,sed:null,reg:null};
+
+/* ---------- voix chantée d'exemple ---------- */
+function klatt(F,BW){ const T=1/SR,C=-Math.exp(-2*Math.PI*BW*T),B=2*Math.exp(-Math.PI*BW*T)*Math.cos(2*Math.PI*F*T); return [1-B-C,B,C]; }
+function makeDemo(){
+  const V={e1:[550,1800,2500],e:[500,1450,2450],a:[700,1250,2550],o:[460,820,2450],eh:[400,2000,2600],ou:[310,760,2300]};
+  // Frère Jacques en Do : Do Ré Mi Do ×2, Mi Fa Sol ×2  (Do2 = 130,8 Hz)
+  const notes=[[48,"e1",.42],[50,"e",.42],[52,"a",.42],[48,"e",.42],[48,"e1",.42],[50,"e",.42],[52,"a",.42],[48,"e",.42],
+               [52,"o",.42],[53,"eh",.42],[55,"ou",.8],[52,"o",.42],[53,"eh",.42],[55,"ou",.9]];
+  const cents=[38,-30,42,-18,25,-42,30,-26,45,-32,22,-38,35,-24];
+  const total=notes.reduce((s,n)=>s+n[2],0)+.35, N=Math.round(total*SR), y=new Float32Array(N);
+  const F=[new Float32Array(N),new Float32Array(N),new Float32Array(N)], amp=new Float32Array(N), mid=new Float32Array(N);
+  let pos=Math.round(.12*SR);
+  notes.forEach(([m,v,d],k)=>{ const n=Math.round(d*SR), base=m+cents[k]/100;
+    for(let j=0;j<n&&pos+j<N;j++){ const i=pos+j, t=j/SR;
+      const scoop=-.7*Math.exp(-t/.06);                                   // attaque par en dessous
+      const vib=.35*Math.min(1,Math.max(0,(t-.22)/.2))*Math.sin(2*Math.PI*5.6*t);
+      mid[i]=base+scoop+vib;
+      F[0][i]=V[v][0]; F[1][i]=V[v][1]; F[2][i]=V[v][2];
+      amp[i]=t<.05?.35+.65*t/.05:1; }
+    pos+=n; });
+  for(let i=0;i<N;i++){ if(!mid[i]) mid[i]=i>0?mid[i-1]:48; if(!F[0][i]){ for(let k=0;k<3;k++) F[k][i]=i>0?F[k][i-1]:V.e1[k]; } }
+  const sm=(a,tau)=>{ const c=Math.exp(-1/(tau*SR)); let s=a[0]; for(let i=0;i<N;i++){ s=c*s+(1-c)*a[i]; a[i]=s; } };
+  F.forEach(a=>sm(a,.03)); sm(amp,.015);
+  // source : impulsion glottique de Rosenberg (ouverture douce, fermeture brusque) ; on utilise sa dérivée,
+  // qui inclut le rayonnement aux lèvres. La fermeture donne une pointe nette à chaque période.
+  const OP=.4, CL=.16;
+  const flow=p=>p<OP?.5*(1-Math.cos(Math.PI*p/OP)):p<OP+CL?Math.cos(Math.PI*(p-OP)/(2*CL)):0;
+  let ph=0,prevU=0,seed=4242; const r=[[0,0],[0,0],[0,0]], BW=[90,110,170];
+  const rnd=()=>{ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x3fffffff-1; };
+  for(let i=0;i<N;i++){ const f0=440*Math.pow(2,(mid[i]-69)/12);
+    ph+=f0/SR; if(ph>=1) ph-=1;
+    const U=flow(ph); let x=((U-prevU)*8+.004*rnd())*amp[i]; prevU=U;
+    for(let k=0;k<3;k++){ const [A,B,C]=klatt(F[k][i],BW[k]); const o=A*x+B*r[k][0]+C*r[k][1]; r[k][1]=r[k][0]; r[k][0]=o; x=o; }
+    y[i]=x; }
+  return normalize(y,.85);
+}
+function normalize(y,p){ let m=0; for(const v of y) m=Math.max(m,Math.abs(v)); if(m>0){ const g=p/m; for(let i=0;i<y.length;i++) y[i]*=g; } return y; }
+
+/* ---------- détection de hauteur (YIN) ---------- */
+function yin(x){
+  const nF=Math.max(1,Math.floor((x.length-YW-TMAX)/HOP)+1);
+  const f0=new Float32Array(nF), rms=new Float32Array(nF), d=new Float32Array(TMAX+2);
+  let maxR=0;
+  for(let f=0;f<nF;f++){ const o=f*HOP; let e=0; for(let j=0;j<YW;j++) e+=x[o+j]*x[o+j]; rms[f]=Math.sqrt(e/YW); if(rms[f]>maxR) maxR=rms[f]; }
+  for(let f=0;f<nF;f++){
+    if(rms[f]<maxR*.04){ f0[f]=0; continue; }
+    const o=f*HOP;
+    for(let tau=1;tau<=TMAX+1;tau++){ let s=0; for(let j=0;j<YW;j++){ const df=x[o+j]-x[o+j+tau]; s+=df*df; } d[tau]=s; }
+    let run=0; d[0]=1; for(let tau=1;tau<=TMAX+1;tau++){ run+=d[tau]; d[tau]=run>0?d[tau]*tau/run:1; }
+    let best=-1;
+    for(let tau=TMIN;tau<=TMAX;tau++){ if(d[tau]<.15){ while(tau+1<=TMAX&&d[tau+1]<d[tau]) tau++; best=tau; break; } }
+    if(best<0){ let mv=1e9; for(let tau=TMIN;tau<=TMAX;tau++) if(d[tau]<mv){ mv=d[tau]; best=tau; } if(mv>.3){ f0[f]=0; continue; } }
+    const a=d[best-1],b=d[best],c=d[best+1], den=a-2*b+c, sh=den!==0?(a-c)/(2*den):0;
+    f0[f]=SR/(best+Math.max(-1,Math.min(1,sh)));
+  }
+  // médiane sur 5 trames voisées pour supprimer les sauts d'octave isolés
+  const out=new Float32Array(nF);
+  for(let f=0;f<nF;f++){ if(!f0[f]){ out[f]=0; continue; } const w=[]; for(let k=-2;k<=2;k++){ const v=f0[f+k]; if(v) w.push(v); } w.sort((p,q)=>p-q); out[f]=w[w.length>>1]; }
+  // erreurs d'octave plus longues : comparer à la médiane sur ±12 trames
+  const ref=new Float32Array(nF);
+  for(let f=0;f<nF;f++){ if(!out[f]) continue; const w=[]; for(let k=-12;k<=12;k++){ const v=out[f+k]; if(v) w.push(v); } w.sort((p,q)=>p-q); ref[f]=w[w.length>>1]; }
+  for(let f=0;f<nF;f++){ if(!out[f]) continue; const q=out[f]/ref[f]; if(q>1.75&&q<2.3) out[f]/=2; else if(q>.43&&q<.57) out[f]*=2; }
+  // boucher les petits trous non voisés (< 8 trames ≈ 46 ms) au milieu d'une note
+  for(let f=1;f<nF;){ if(out[f]||!out[f-1]){ f++; continue; } let g=f; while(g<nF&&!out[g]) g++;
+    if(g<nF&&g-f<8){ const a=Math.log(out[f-1]), b=Math.log(out[g]); for(let k=f;k<g;k++) out[k]=Math.exp(a+(b-a)*(k-f+1)/(g-f+1)); } f=g; }
+  // retirer les îlots voisés trop courts (< 4 trames)
+  for(let f=0;f<nF;){ if(!out[f]){ f++; continue; } let g=f; while(g<nF&&out[g]) g++; if(g-f<4) for(let k=f;k<g;k++) out[k]=0; f=g; }
+  return {f0:out,nF};
+}
+const toMidi=f=>69+12*Math.log2(f/440);
+const frameTime=f=>(f*HOP+YC)/SR;
+
+/* ---------- note visée ---------- */
+function inScale(n){ return SCALES[state.scale].includes((((n-state.key)%12)+12)%12); }
+function nearest(m){ let best=null,bd=1e9; for(let n=Math.floor(m)-3;n<=Math.ceil(m)+3;n++){ if(inScale(n)&&Math.abs(n-m)<bd){ bd=Math.abs(n-m); best=n; } } return best; }
+function plan(det){
+  const nF=det.nF, ratio=new Float32Array(nF).fill(1), target=new Float32Array(nF);
+  const alpha=state.speed===0?1:1-Math.exp(-(HOP/SR)/(state.speed/1000));
+  let s=null, prevT=null;
+  for(let f=0;f<nF;f++){
+    if(!det.f0[f]){ s=null; prevT=null; target[f]=NaN; continue; }
+    const m=toMidi(det.f0[f]), mt=m+state.trans;
+    let tg=nearest(mt);
+    if(prevT!==null && inScale(prevT) && Math.abs(mt-prevT)<.62) tg=prevT;   // hystérésis : pas de bascule sur la frontière
+    prevT=tg; target[f]=tg;
+    const delta=tg-mt; s = s===null ? delta : s+alpha*(delta-s);
+    const outM=mt+state.amount/100*s;
+    ratio[f]=Math.pow(2,(outM-m)/12);
+  }
+  return {ratio,target};
+}
+
+/* ---------- marques de période ---------- */
+const UNV=Math.round(SR/200);   // espacement des marques hors zones voisées (≈ 5 ms)
+const frOf=(det,n)=>Math.max(0,Math.min(det.nF-1,Math.round((n-YC)/HOP)));
+// méthode 1 : pic du signal lissé, puis ressemblance avec la période précédente
+function marksCorr(x,det){
+  const N=x.length;
+  // signal lissé (passe-bas 900 Hz) pour caler les marques sans se laisser piéger par les pics secondaires
+  const xl=new Float32Array(N); { const a=Math.exp(-2*Math.PI*900/SR); let s1=0,s2=0; for(let i=0;i<N;i++){ s1=a*s1+(1-a)*x[i]; s2=a*s2+(1-a)*s1; xl[i]=s2; } }
+  const pos=[],voi=[];
+  let n=0;
+  while(n<N){ const f=det.f0[frOf(det,n)];
+    if(f>0){ const T=SR/f; let m=n;
+      if(!(voi.length&&voi[voi.length-1])){        // début d'une zone voisée : pic du signal lissé
+        let mv=-1e9; for(let k=n;k<Math.min(N,n+T);k++) if(xl[k]>mv){ mv=xl[k]; m=k; }
+      } else {                                     // ensuite : la période suivante est celle qui ressemble le plus à la précédente
+        const p=pos[pos.length-1], pred=Math.round(p+T), R=Math.max(2,Math.round(.12*T)), H=Math.round(T/2); let best=-1e18; m=pred;
+        for(let dl=-R;dl<=R;dl++){ const c=pred+dl; if(c+H>=N) break; let s=0; for(let k=-H;k<H;k++){ if(p+k>=0) s+=xl[p+k]*xl[c+k]; } if(s>best){ best=s; m=c; } }
+      }
+      if(pos.length&&m<=pos[pos.length-1]) m=pos[pos.length-1]+1;
+      pos.push(m); voi.push(true); n=Math.round(m+T);
+    } else { pos.push(n); voi.push(false); n+=UNV; }
+  }
+  return {pos,voi};
+}
+
+// méthode 2 : SEDREAMS (Drugman & Dutoit, 2009)
+// a) résidu de prédiction linéaire : ce que le filtre du conduit vocal ne sait pas prévoir → une pointe par fermeture de la glotte
+function lpcResidual(x){
+  const N=x.length, W=Math.round(.025*SR), H=Math.round(.01*SR), P=18;
+  const pre=new Float32Array(N); pre[0]=x[0]; for(let n=1;n<N;n++) pre[n]=x[n]-.97*x[n-1];
+  const hw=new Float32Array(W); for(let i=0;i<W;i++) hw[i]=.5-.5*Math.cos(2*Math.PI*i/(W-1));
+  const e=new Float32Array(N), fw=new Float64Array(W), r=new Float64Array(P+1), a=new Float64Array(P+1), tmp=new Float64Array(P+1);
+  for(let s=0;s<N;s+=H){
+    const c=s+Math.round(H/2-W/2);
+    for(let i=0;i<W;i++){ const j=c+i; fw[i]=j>=0&&j<N?pre[j]*hw[i]:0; }
+    for(let k=0;k<=P;k++){ let v=0; for(let i=0;i+k<W;i++) v+=fw[i]*fw[i+k]; r[k]=v; }
+    if(r[0]<1e-10){ continue; }
+    r[0]*=1.0001;
+    a.fill(0); a[0]=1; let err=r[0];
+    for(let i=1;i<=P;i++){ let acc=r[i]; for(let j=1;j<i;j++) acc+=a[j]*r[i-j]; const k=-acc/err; tmp.set(a); a[i]=k; for(let j=1;j<i;j++) a[j]=tmp[j]+k*tmp[i-j]; err*=(1-k*k); if(err<=0) break; }
+    const end=Math.min(N,s+H);
+    for(let n=s;n<end;n++){ let v=pre[n]; for(let j=1;j<=P;j++) if(n-j>=0) v+=a[j]*pre[n-j]; e[n]=v; }
+  }
+  return e;
+}
+// b) signal moyen : moyenne glissante (fenêtre de Blackman de 1,75 × T0) → presque une sinusoïde à f0
+function meanBased(x,T0){
+  const N=x.length, L=(Math.round(1.75*T0)|1), h=L>>1, w=new Float32Array(L); let sw=0;
+  for(let i=0;i<L;i++){ w[i]=.42-.5*Math.cos(2*Math.PI*i/(L-1))+.08*Math.cos(4*Math.PI*i/(L-1)); sw+=w[i]; }
+  const hp=new Float32Array(N); { const a=Math.exp(-2*Math.PI*40/SR); let px=0,py=0; for(let n=0;n<N;n++){ py=a*(py+x[n]-px); px=x[n]; hp[n]=py; } }
+  const y=new Float32Array(N);
+  for(let n=0;n<N;n++){ let s=0; const o=n-h; for(let i=0;i<L;i++){ const j=o+i; if(j>=0&&j<N) s+=w[i]*hp[j]; } y[n]=s/sw; }
+  return y;
+}
+// c) dans chaque intervalle [minimum → maximum suivant] du signal moyen, la fermeture est la plus forte pointe du résidu
+function sedreams(x,det){
+  const N=x.length, vo=n=>det.f0[frOf(det,n)]>0;
+  const fs=[...det.f0].filter(v=>v).sort((p,q)=>p-q), T0=fs.length?SR/fs[fs.length>>1]:SR/150;
+  const e=lpcResidual(x), y=meanBased(x,T0);
+  const intervals=[];
+  for(let n=1;n<N-1;n++){ if(!vo(n)) continue; if(y[n]<y[n-1]&&y[n]<=y[n+1]){ let m=n+1; while(m<N-1&&!(y[m]>y[m-1]&&y[m]>=y[m+1])) m++; if(m-n<1.2*T0) intervals.push([n,m]); } }
+  // polarité : selon le micro, le signal peut être inversé. On garde le sens où les pointes trouvées sont les plus franches.
+  const pick=sg=>{ const g=[]; let sc=0; const iv=sg>0?intervals:intervalsFlip();
+    for(const [a,b] of iv){ let bm=a, bv=-1e9; for(let k=a;k<=b;k++){ const v=sg*e[k]; if(v>bv){ bv=v; bm=k; } } g.push(bm); sc+=bv; } return {g,sc}; };
+  function intervalsFlip(){ const out=[]; for(let n=1;n<N-1;n++){ if(!vo(n)) continue; if(y[n]>y[n-1]&&y[n]>=y[n+1]){ let m=n+1; while(m<N-1&&!(y[m]<y[m-1]&&y[m]<=y[m+1])) m++; if(m-n<1.2*T0) out.push([n,m]); } } return out; }
+  const P=pick(1), Q=pick(-1), useP=P.sc>=Q.sc, G=useP?P.g:Q.g;
+  return {G, e:useP?e:e.map(v=>-v), y:useP?y:y.map(v=>-v), intervals:useP?intervals:intervalsFlip(), T0};
+}
+// les fermetures détectées deviennent les marques ; un trou (fermeture manquée) est bouché par une marque prédite
+function marksFromGci(G,det,N){
+  const vo=n=>det.f0[frOf(det,n)]>0, Tn=n=>SR/det.f0[frOf(det,n)];
+  const pos=[],voi=[]; let n=0, gi=0, last=null;
+  while(n<N){
+    if(!vo(n)){ pos.push(n); voi.push(false); last=null; n+=UNV; continue; }
+    const t=Tn(n), lo=last===null?n:last+.5*t, hi=last===null?n+1.5*t:last+1.5*t;
+    while(gi<G.length&&G[gi]<lo) gi++;
+    let m; if(gi<G.length&&G[gi]<=hi){ m=G[gi]; gi++; } else m=last===null?n:Math.round(last+t);
+    if(m>=N) break;
+    pos.push(m); voi.push(true); last=m; n=Math.max(n+1,Math.round(m+.5*t));
+  }
+  return {pos,voi};
+}
+// régularité : écart moyen entre l'intervalle de deux marques et la période mesurée par YIN
+function regularity(mk,det){ let s=0,c=0; for(let i=1;i<mk.pos.length;i++){ if(!mk.voi[i]||!mk.voi[i-1]) continue; const T=SR/det.f0[frOf(det,mk.pos[i])]; if(!isFinite(T)) continue; s+=Math.abs(mk.pos[i]-mk.pos[i-1]-T)/T; c++; } return c?s/c:0; }
+
+/* ---------- PSOLA ---------- */
+function psola(x,det,ratio,mk){
+  const N=x.length, U=UNV, fr=n=>frOf(det,n), pos=mk.pos, voi=mk.voi;
+  const M=pos.length; if(!M) return x.slice();
+  // fenêtres de Hann asymétriques : à gauche jusqu'à la marque précédente, à droite jusqu'à la suivante.
+  // Sans correction (rapport 1), les grains retombent exactement à leur place : le signal est reconstruit à l'identique.
+  const Lr=i=>i<M-1?pos[i+1]-pos[i]:U, Ll=i=>i>0?pos[i]-pos[i-1]:Lr(i);
+  const y=new Float32Array(N), w=new Float32Array(N);
+  let ts=pos[0], i=0;
+  while(ts<N){
+    while(i+1<M && Math.abs(pos[i+1]-ts)<=Math.abs(pos[i]-ts)) i++;
+    const c=pos[i], tsi=Math.round(ts), L1=Math.max(1,Ll(i)), L2=Math.max(1,Lr(i));
+    for(let k=-L1;k<=L2;k++){ const s=c+k, d=tsi+k; if(s<0||s>=N||d<0||d>=N) continue; const h=.5+.5*Math.cos(Math.PI*k/(k<0?L1:L2)); y[d]+=h*x[s]; w[d]+=h; }
+    const r=voi[i]?ratio[fr(c)]:1;
+    ts+=L2/r;
+  }
+  for(let k=0;k<N;k++){ y[k]/=Math.max(w[k],.15); if(y[k]>1) y[k]=1; else if(y[k]<-1) y[k]=-1; }
+  return y;
+}
+
+/* ---------- spectrogramme ---------- */
+const win=new Float32Array(FFTN); for(let i=0;i<FFTN;i++) win[i]=.5-.5*Math.cos(2*Math.PI*i/(FFTN-1));
+const rev=new Uint32Array(FFTN); { const b=Math.log2(FFTN); for(let i=0;i<FFTN;i++){ let r=0; for(let j=0;j<b;j++) r|=((i>>j)&1)<<(b-1-j); rev[i]=r; } }
+function fft(re,im){ const n=re.length;
+  for(let i=0;i<n;i++){ const j=rev[i]; if(j>i){ let t=re[i];re[i]=re[j];re[j]=t; t=im[i];im[i]=im[j];im[j]=t; } }
+  for(let s=2;s<=n;s<<=1){ const h=s>>1, ang=-2*Math.PI/s, wr=Math.cos(ang), wi=Math.sin(ang);
+    for(let i=0;i<n;i+=s){ let cr=1,ci=0; for(let j=0;j<h;j++){ const a=i+j,b=a+h; const tr=re[b]*cr-im[b]*ci, ti=re[b]*ci+im[b]*cr; re[b]=re[a]-tr; im[b]=im[a]-ti; re[a]+=tr; im[a]+=ti; const nr=cr*wr-ci*wi; ci=cr*wi+ci*wr; cr=nr; } } } }
+const STOPS=[[11,13,31],[59,26,107],[176,48,106],[240,138,60],[255,242,196]];
+const LUT=new Uint8Array(768); for(let i=0;i<256;i++){ const t=i/255*4, k=Math.min(3,Math.floor(t)), u=t-k; for(let c=0;c<3;c++) LUT[i*3+c]=Math.round(STOPS[k][c]*(1-u)+STOPS[k+1][c]*u); }
+function specImage(x){
+  const nF=Math.max(1,Math.floor((x.length-FFTN)/SHOP)+1), kMax=Math.ceil(FMAX*FFTN/SR)+1;
+  const db=new Float32Array(nF*kMax); const re=new Float64Array(FFTN), im=new Float64Array(FFTN); let mx=-1e9;
+  for(let f=0;f<nF;f++){ const o=f*SHOP; for(let i=0;i<FFTN;i++){ re[i]=(x[o+i]||0)*win[i]; im[i]=0; } fft(re,im);
+    for(let k=0;k<kMax;k++){ const v=10*Math.log10(re[k]*re[k]+im[k]*im[k]+1e-12); db[f*kMax+k]=v; if(v>mx) mx=v; } }
+  const cv=document.createElement("canvas"); cv.width=nF; cv.height=ROWS; const ctx=cv.getContext("2d"), img=ctx.createImageData(nF,ROWS);
+  for(let r=0;r<ROWS;r++){ const kf=(1-(r+.5)/ROWS)*FMAX*FFTN/SR, k0=Math.min(kMax-2,Math.floor(kf)), u=kf-k0;
+    for(let f=0;f<nF;f++){ const v=db[f*kMax+k0]*(1-u)+db[f*kMax+k0+1]*u; let q=Math.round(255*(v-mx+DBRANGE)/DBRANGE); q=q<0?0:q>255?255:q; const p=(r*nF+f)*4;
+      img.data[p]=LUT[q*3]; img.data[p+1]=LUT[q*3+1]; img.data[p+2]=LUT[q*3+2]; img.data[p+3]=255; } }
+  ctx.putImageData(img,0,0); return cv;
+}
+
+/* ---------- dessin ---------- */
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+function fit(cv){ const d=window.devicePixelRatio||1, w=cv.clientWidth, h=cv.clientHeight; if(cv.width!==Math.round(w*d)||cv.height!==Math.round(h*d)){ cv.width=Math.round(w*d); cv.height=Math.round(h*d); } return [cv.getContext("2d"),cv.width,cv.height,d]; }
+const dur=()=>state.voice.length/SR;
+let playing=null;
+const PADL=58;
+function drawRoll(){
+  const cv=$("cvRoll"), [ctx,W,H,d]=fit(cv); ctx.clearRect(0,0,W,H);
+  const pl=PADL*d, pr=8*d, pt=8*d, pb=22*d, w=W-pl-pr, h=H-pt-pb;
+  const ms=[]; for(const det of [state.det,state.detOut]) for(const f of det.f0) if(f) ms.push(toMidi(f));
+  let lo=48,hi=60; if(ms.length){ ms.sort((a,b)=>a-b); lo=Math.floor(ms[Math.floor(ms.length*.01)])-1; hi=Math.ceil(ms[Math.floor(ms.length*.99)])+1; }
+  if(hi-lo<8){ const c=(hi+lo)/2; lo=Math.floor(c-4); hi=Math.ceil(c+4); }
+  const ty=m=>pt+h*(1-(m-lo)/(hi-lo)), tx=t=>pl+w*t/dur();
+  ctx.font=`${11*d}px ${css("--mono")}`; ctx.textAlign="right"; ctx.textBaseline="middle";
+  for(let n=Math.ceil(lo);n<=hi;n++){ const y=ty(n), ins=inScale(n), tonic=(((n-state.key)%12)+12)%12===0;
+    ctx.strokeStyle=ins?css("--line"):css("--faint"); ctx.lineWidth=(tonic?2:1)*d; ctx.beginPath(); ctx.moveTo(pl,y); ctx.lineTo(W-pr,y); ctx.stroke();
+    if(ins){ ctx.fillStyle=tonic?css("--ink"):css("--ink2"); ctx.fillText(noteName(n),pl-6*d,y); } }
+  // notes visées
+  const tg=state.plan.target; ctx.fillStyle=css("--target");
+  for(let f=0;f<tg.length;){ if(isNaN(tg[f])){ f++; continue; } let g=f; while(g<tg.length&&tg[g]===tg[f]) g++;
+    const x0=tx(frameTime(f)), x1=tx(frameTime(g-1)), y=ty(tg[f]); const bh=Math.max(4*d,h/(hi-lo)*.42);
+    ctx.beginPath(); ctx.roundRect?ctx.roundRect(x0,y-bh/2,Math.max(2,x1-x0),bh,3*d):ctx.rect(x0,y-bh/2,Math.max(2,x1-x0),bh); ctx.fill(); f=g; }
+  const curve=(det,col,lw)=>{ ctx.strokeStyle=col; ctx.lineWidth=lw*d; ctx.lineJoin="round"; ctx.beginPath(); let on=false;
+    for(let f=0;f<det.nF;f++){ if(!det.f0[f]){ on=false; continue; } const x=tx(frameTime(f)), y=ty(toMidi(det.f0[f])); on?ctx.lineTo(x,y):ctx.moveTo(x,y); on=true; } ctx.stroke(); };
+  curve(state.det,css("--voice"),1.8); curve(state.detOut,css("--out"),2.2);
+  // axe du temps
+  ctx.fillStyle=css("--ink2"); ctx.textAlign="center"; ctx.textBaseline="alphabetic";
+  const D=dur(), step=D>8?2:D>3?1:.5; for(let t=0;t<=D+1e-6;t+=step) ctx.fillText(t.toLocaleString("fr-FR")+" s",Math.min(W-pr-12*d,Math.max(pl+10*d,tx(t))),H-5*d);
+  cursor(ctx,tx,pt,pt+h,d);
+}
+function cursor(ctx,tx,y0,y1,d,light){
+  ctx.setLineDash([4*d,4*d]); ctx.lineWidth=d; ctx.strokeStyle=light?"rgba(255,255,255,.85)":css("--ink2"); ctx.beginPath(); ctx.moveTo(tx(state.t),y0); ctx.lineTo(tx(state.t),y1); ctx.stroke(); ctx.setLineDash([]);
+  if(playing){ const x=tx(playing.pos()); ctx.lineWidth=2*d; ctx.strokeStyle=light?"#fff":(playing.key==="out"?css("--out"):css("--voice")); ctx.beginPath(); ctx.moveTo(x,y0); ctx.lineTo(x,y1); ctx.stroke(); }
+}
+function drawSpec(id,img){
+  const cv=$(id), [ctx,W,H,d]=fit(cv); ctx.fillStyle="#0b0d1f"; ctx.fillRect(0,0,W,H);
+  const pl=(PADL-44)*d, w=W-pl-8*d;   // aligné sur la zone tracée de la courbe de hauteur
+  const tx=t=>pl+w*t/dur();
+  const t0=FFTN/2/SR, t1=(FFTN/2+(img.width-1)*SHOP)/SR;
+  ctx.imageSmoothingEnabled=true; ctx.drawImage(img,tx(t0),0,tx(t1)-tx(t0),H);
+  cursor(ctx,tx,0,H,d,true);
+}
+function drawYAxes(){
+  document.querySelectorAll("[data-yax]").forEach(el=>{ el.style.height=el.nextElementSibling.clientHeight+"px";
+    el.innerHTML=[500,1000,1500,2000,2500].map(f=>`<span style="top:${((1-f/FMAX)*100).toFixed(1)}%">${f>=1000?(f/1000).toLocaleString("fr-FR")+" k":f}</span>`).join("")+`<span style="top:4%;opacity:.7">Hz</span>`; });
+  // la marge gauche des spectrogrammes vaut 40px + 4px ; on décale la zone image pour l'aligner sur la portée
+}
+function drawNow(){
+  const f=Math.max(0,Math.min(state.det.nF-1,Math.round((state.t*SR-YC)/HOP)));
+  const a=state.det.f0[f], b=state.detOut.f0[Math.min(f,state.detOut.nF-1)];
+  const fmt=v=>{ if(!v) return "non voisé"; const m=toMidi(v), n=Math.round(m), c=Math.round((m-n)*100); return `${v.toFixed(1).replace(".",",")} Hz · ${noteName(n)} ${c>=0?"+":"−"}${Math.abs(c)} c`; };
+  $("nowV").innerHTML=`<span style="color:var(--ink2);font-size:13px">${state.t.toFixed(2).replace(".",",")} s</span><span class="a">${fmt(a)}</span><span class="b">${fmt(b)}</span>`;
+}
+function drawMarks(){
+  const cv=$("cvMarks"), [ctx,W,H,d]=fit(cv); ctx.clearRect(0,0,W,H);
+  const x=state.voice, N=x.length, sed=state.sed, det=state.det;
+  const f=det.f0[frOf(det,Math.round(state.t*SR))], T=f?SR/f:sed.T0, span=Math.round(5*T);
+  let a=Math.round(state.t*SR-span/2); a=Math.max(0,Math.min(N-span,a)); const b=a+span;
+  const pl=10*d, pr=10*d, lanes=3, lh=H/lanes, tx=n=>pl+(n-a)/span*(W-pl-pr);
+  const ink=css("--ink"), ink2=css("--ink2"), line=css("--line"), cV=css("--voice"), cO=css("--out"), tgt=css("--target"), body=css("--body"), mono=css("--mono");
+  const title=(l,t)=>{ ctx.fillStyle=ink; ctx.font=`600 ${12*d}px ${body}`; ctx.textAlign="left"; ctx.textBaseline="top"; ctx.fillText(t,pl,l*lh+5*d); };
+  const plot=(arr,l,col,lw)=>{ let m=1e-9; for(let n=a;n<b;n++) m=Math.max(m,Math.abs(arr[n])); const yc=l*lh+lh*.58, k=lh*.36/m;
+    ctx.strokeStyle=col; ctx.lineWidth=lw*d; ctx.beginPath(); for(let n=a;n<b;n++){ const X=tx(n), Y=yc-arr[n]*k; n===a?ctx.moveTo(X,Y):ctx.lineTo(X,Y); } ctx.stroke(); };
+  // intervalles de recherche SEDREAMS (lignes 2 et 3)
+  ctx.fillStyle=tgt; for(const [p,q] of sed.intervals){ if(q<a||p>b) continue; for(const l of [1,2]) ctx.fillRect(tx(p),l*lh+18*d,tx(q)-tx(p),lh-22*d); }
+  title(0,"Signal de voix"); plot(x,0,cV,1.4);
+  title(1,"Résidu de prédiction linéaire : une pointe par fermeture de la glotte"); plot(sed.e,1,ink2,1.1);
+  title(2,"Signal moyen (moyenne glissante sur 1,75 période)"); plot(sed.y,2,ink,1.4);
+  const act=state.marks[state.method], oth=state.marks[state.method==="cc"?"sed":"cc"];
+  ctx.strokeStyle=ink2; ctx.lineWidth=1.2*d; ctx.setLineDash([3*d,3*d]);
+  for(let i=0;i<oth.pos.length;i++){ const p=oth.pos[i]; if(!oth.voi[i]||p<a||p>b) continue; ctx.beginPath(); ctx.moveTo(tx(p),18*d); ctx.lineTo(tx(p),lh-4*d); ctx.stroke(); }
+  ctx.setLineDash([]); ctx.strokeStyle=cO; ctx.lineWidth=1.8*d;
+  for(let i=0;i<act.pos.length;i++){ const p=act.pos[i]; if(!act.voi[i]||p<a||p>b) continue; ctx.beginPath(); ctx.moveTo(tx(p),18*d); ctx.lineTo(tx(p),H-4*d); ctx.stroke();
+    ctx.fillStyle=cO; ctx.beginPath(); ctx.arc(tx(p),18*d,3*d,0,7); ctx.fill(); }
+  ctx.strokeStyle=line; ctx.lineWidth=d; for(let l=1;l<lanes;l++){ ctx.beginPath(); ctx.moveTo(pl,l*lh); ctx.lineTo(W-pr,l*lh); ctx.stroke(); }
+  ctx.fillStyle=ink2; ctx.font=`${10*d}px ${mono}`; ctx.textAlign="right"; ctx.textBaseline="top";
+  ctx.fillText(`${(a/SR).toFixed(3).replace(".",",")} – ${(b/SR).toFixed(3).replace(".",",")} s · ${f?"T = "+(1000/f).toFixed(1).replace(".",",")+" ms":"non voisé"}`,W-pr,5*d);
+}
+function drawAll(){ if(!state.detOut) return; drawRoll(); drawSpec("cvA",state.imgs.a); drawSpec("cvB",state.imgs.b); drawNow(); drawMarks(); }
+function stats(det){ let s=0,n=0,ok=0; for(const f of det.f0){ if(!f) continue; const m=toMidi(f), t=nearest(m); if(t===null) continue; const c=Math.abs(m-t)*100; s+=c; n++; if(c<=15) ok++; } return n?{dev:s/n,ok:ok/n}:null; }
+
+/* ---------- pipeline ---------- */
+let timer=0;
+function schedule(newSource){ clearTimeout(timer); $("busy").textContent="Calcul…"; timer=setTimeout(()=>run(newSource),150); }
+function run(newSource){
+  const t0=performance.now();
+  if(newSource||!state.det){
+    state.det=yin(state.voice); state.imgs.a=specImage(state.voice);
+    state.sed=sedreams(state.voice,state.det);
+    state.marks={cc:marksCorr(state.voice,state.det), sed:marksFromGci(state.sed.G,state.det,state.voice.length)};
+    state.reg={cc:regularity(state.marks.cc,state.det), sed:regularity(state.marks.sed,state.det)};
+  }
+  state.plan=plan(state.det);
+  state.out=psola(state.voice,state.det,state.plan.ratio,state.marks[state.method]);
+  state.detOut=yin(state.out);
+  state.imgs.b=specImage(state.out);
+  const A=stats(state.det), B=stats(state.detOut);
+  $("devA").textContent=A?Math.round(A.dev)+" c":"–"; $("devB").textContent=B?Math.round(B.dev)+" c":"–";
+  $("okA").textContent=A?Math.round(A.ok*100)+" %":"–"; $("okB").textContent=B?Math.round(B.ok*100)+" %":"–";
+  state.t=Math.min(state.t,dur()-.05);
+  const pc=v=>(v*100).toLocaleString("fr-FR",{maximumFractionDigits:1})+" %";
+  $("methHint").textContent=`Irrégularité des marques (écart moyen à la période YIN) : corrélation ${pc(state.reg.cc)} · SEDREAMS ${pc(state.reg.sed)}`;
+  $("methName").textContent=state.method==="cc"?"corrélation":"SEDREAMS";
+  drawYAxes(); drawAll();
+  $("busy").textContent=`Calculé en ${Math.round(performance.now()-t0)} ms · ${dur().toLocaleString("fr-FR",{maximumFractionDigits:1})} s`;
+}
+
+/* ---------- réglages ---------- */
+const keys=$("keys"); NOTES.forEach((n,i)=>{ const b=document.createElement("button"); b.type="button"; b.textContent=n; b.dataset.key=i; b.setAttribute("aria-pressed",String(i===0)); keys.appendChild(b); });
+keys.addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) return; keys.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",String(x===b))); state.key=+b.dataset.key; schedule(); });
+$("scaleSeg").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) return; $("scaleSeg").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",String(x===b))); state.scale=b.dataset.scale; keys.hidden=state.scale==="chrom"; schedule(); });
+$("methSeg").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) return; $("methSeg").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",String(x===b))); state.method=b.dataset.method; schedule(); });
+function bind(id,key,fmt){ const el=$(id), upd=()=>{ state[key]=+el.value; $(id+"Out").textContent=fmt(state[key]); }; el.addEventListener("input",()=>{ upd(); schedule(); }); upd(); }
+bind("speed","speed",v=>v+" ms");
+bind("amount","amount",v=>v+" %");
+bind("trans","trans",v=>(v>0?"+":v<0?"−":"")+Math.abs(v)+(Math.abs(v)>1?" demi-tons":" demi-ton"));
+
+function setT(e){ const r=e.currentTarget.getBoundingClientRect(); const pl=e.currentTarget.id==="cvRoll"?PADL:PADL-44; const u=(e.clientX-r.left-pl)/(r.width-pl-8); state.t=Math.max(0,Math.min(dur(),u*dur())); drawAll(); }
+["cvRoll","cvA","cvB"].forEach(id=>$(id).addEventListener("click",setT));
+
+/* ---------- lecture ---------- */
+let actx=null;
+function setPlayLabel(b,on,txt){ b.innerHTML=(on?'<svg viewBox="0 0 12 12"><path d="M2 2h8v8H2z"/></svg>Arrêter':'<svg viewBox="0 0 12 12"><path d="M2 1l9 5-9 5z"/></svg>'+txt); }
+const labels={voice:"Original",out:"Corrigé"};
+function stopPlay(){ if(!playing) return; try{ playing.src.stop(); }catch(_){} setPlayLabel(document.querySelector(`[data-play="${playing.key}"]`),false,labels[playing.key]); playing=null; drawAll(); }
+document.querySelectorAll("[data-play]").forEach(b=>b.addEventListener("click",async()=>{
+  const key=b.dataset.play, was=playing&&playing.key===key; stopPlay(); if(was) return;
+  actx=actx||new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==="suspended") await actx.resume();
+  const data=state[key], buf=actx.createBuffer(1,data.length,SR); buf.copyToChannel(data,0);
+  const src=actx.createBufferSource(); src.buffer=buf; src.connect(actx.destination); const t0=actx.currentTime; src.start();
+  playing={key,src,pos:()=>actx.currentTime-t0}; setPlayLabel(b,true);
+  src.onended=()=>{ if(playing&&playing.src===src) stopPlay(); };
+  const loop=()=>{ if(!playing||playing.src!==src) return; drawRoll(); drawSpec("cvA",state.imgs.a); drawSpec("cvB",state.imgs.b); requestAnimationFrame(loop); }; loop();
+}));
+
+/* ---------- sources ---------- */
+async function loadFile(file,label){
+  if(!file) return; $("busy").textContent="Décodage…";
+  try{
+    actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    const dec=await actx.decodeAudioData(await file.arrayBuffer());
+    const len=Math.min(dec.duration,MAXDUR), off=new OfflineAudioContext(1,Math.ceil(len*SR),SR);
+    const s=off.createBufferSource(); s.buffer=dec; s.connect(off.destination); s.start(0,0,len);
+    const rendered=await off.startRendering(); stopPlay();
+    state.voice=normalize(new Float32Array(rendered.getChannelData(0)),.85); state.t=Math.min(1,dur()/2);
+    $("srcDemo").setAttribute("aria-pressed","false");
+    $("srcName").textContent=`${label||file.name} — ${len.toLocaleString("fr-FR",{maximumFractionDigits:1})} s${dec.duration>MAXDUR?" (coupé à 12 s)":""}`;
+    schedule(true);
+  }catch(err){ $("busy").textContent="Ce fichier n'a pas pu être décodé. Essayez un WAV ou un MP3."; }
+}
+$("file").addEventListener("change",e=>loadFile(e.target.files[0]));
+$("fileCap").addEventListener("change",e=>loadFile(e.target.files[0],"Enregistrement téléphone"));
+if(window.matchMedia("(pointer:coarse)").matches) $("phoneRec").hidden=false;
+const drop=$("drop");
+drop.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); $("file").click(); } });
+["dragenter","dragover"].forEach(ev=>drop.addEventListener(ev,e=>{ e.preventDefault(); drop.classList.add("over"); }));
+["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{ e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop",e=>loadFile(e.dataTransfer.files[0]));
+$("srcDemo").addEventListener("click",()=>{ stopPlay(); state.voice=makeDemo(); state.t=1; $("srcDemo").setAttribute("aria-pressed","true"); $("srcName").textContent="Exemple synthétique : « Frère Jacques », chanté un peu faux, avec vibrato"; schedule(true); });
+
+/* micro : marche quand la page est ouverte en local ou sur un site https ;
+   la page publiée sur claude.ai n'a pas le droit d'accéder au micro */
+const micAllowed=!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&window.MediaRecorder)
+  && !(document.featurePolicy&&!document.featurePolicy.allowsFeature("microphone"));
+const MIC_BLOCKED="Le micro n'est pas accessible dans la page publiée sur claude.ai. Ouvrez la version locale (fichier .html) ou importez un enregistrement.";
+if(!micAllowed){ $("mic").hidden=true; $("micNote").textContent=MIC_BLOCKED; $("micNote").hidden=false; }
+let rec=null;
+function stopRec(){ if(rec&&rec.mr.state!=="inactive") rec.mr.stop(); }
+$("mic").addEventListener("click",async()=>{
+  if(rec){ stopRec(); return; }
+  let stream;
+  try{ stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}}); }
+  catch(err){ $("micNote").textContent=err&&err.name==="NotAllowedError"&&window.self===window.top?"Accès au micro refusé. Autorisez-le dans le navigateur (icône à gauche de l'adresse), ou importez un enregistrement.":(err&&err.name==="NotFoundError"?"Aucun micro détecté.":MIC_BLOCKED); $("micNote").hidden=false; return; }
+  $("micNote").hidden=true; stopPlay();
+  const chunks=[], mr=new MediaRecorder(stream), t0=performance.now(); rec={mr,stream};
+  mr.ondataavailable=e=>{ if(e.data.size) chunks.push(e.data); };
+  mr.onstop=()=>{ stream.getTracks().forEach(t=>t.stop()); clearInterval(rec.tick); rec=null; $("mic").classList.remove("rec"); $("micLabel").textContent="Enregistrer au micro";
+    const blob=new Blob(chunks,{type:mr.mimeType||"audio/webm"}); if(blob.size) loadFile(blob,"Enregistrement micro"); };
+  mr.start(); $("mic").classList.add("rec");
+  rec.tick=setInterval(()=>{ const s=(performance.now()-t0)/1000; $("micLabel").textContent=`Arrêter (${s.toLocaleString("fr-FR",{minimumFractionDigits:1,maximumFractionDigits:1})} s / ${MAXDUR} s)`; if(s>=MAXDUR) stopRec(); },100);
+});
+
+/* ---------- export ---------- */
+function wav(data){ const n=data.length, b=new ArrayBuffer(44+n*2), v=new DataView(b), w=(o,s)=>{ for(let i=0;i<s.length;i++) v.setUint8(o+i,s.charCodeAt(i)); };
+  w(0,"RIFF"); v.setUint32(4,36+n*2,true); w(8,"WAVE"); w(12,"fmt "); v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true); v.setUint32(24,SR,true); v.setUint32(28,SR*2,true); v.setUint16(32,2,true); v.setUint16(34,16,true); w(36,"data"); v.setUint32(40,n*2,true);
+  for(let i=0;i<n;i++) v.setInt16(44+i*2,Math.max(-1,Math.min(1,data[i]))*32767,true); return new Uint8Array(b); }
+const CRC=new Uint32Array(256); for(let i=0;i<256;i++){ let c=i; for(let k=0;k<8;k++) c=c&1?0xEDB88320^(c>>>1):c>>>1; CRC[i]=c>>>0; }
+const crc32=u=>{ let c=0xFFFFFFFF; for(let i=0;i<u.length;i++) c=CRC[(c^u[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0; };
+function zip(files){ const parts=[],cent=[]; let off=0; const enc=new TextEncoder();
+  for(const [name,data] of files){ const nm=enc.encode(name), crc=crc32(data);
+    const h=new DataView(new ArrayBuffer(30)); h.setUint32(0,0x04034b50,true); h.setUint16(4,20,true); h.setUint32(14,crc,true); h.setUint32(18,data.length,true); h.setUint32(22,data.length,true); h.setUint16(26,nm.length,true);
+    parts.push(new Uint8Array(h.buffer),nm,data);
+    const c=new DataView(new ArrayBuffer(46)); c.setUint32(0,0x02014b50,true); c.setUint16(4,20,true); c.setUint16(6,20,true); c.setUint32(16,crc,true); c.setUint32(20,data.length,true); c.setUint32(24,data.length,true); c.setUint16(28,nm.length,true); c.setUint32(42,off,true);
+    cent.push(new Uint8Array(c.buffer),nm); off+=30+nm.length+data.length; }
+  const cs=cent.reduce((s,u)=>s+u.length,0), e=new DataView(new ArrayBuffer(22)); e.setUint32(0,0x06054b50,true); e.setUint16(8,files.length,true); e.setUint16(10,files.length,true); e.setUint32(12,cs,true); e.setUint32(16,off,true);
+  return new Blob([...parts,...cent,new Uint8Array(e.buffer)]); }
+const curTag=()=>`${state.scale==="chrom"?"chromatique":NOTES[state.key].replace("♯","d")+"-"+state.scale}-${state.speed}ms`;
+const makeZip=tag=>zip([["1-original.wav",wav(state.voice)],[`2-autotune-${tag}.wav`,wav(state.out)]]);
+if(!window.claude&&window.self===window.top){ const b=$("dl"); b.hidden=false;
+  b.addEventListener("click",()=>{ const tag=curTag(), a=document.createElement("a"); a.href=URL.createObjectURL(makeZip(tag)); a.download=`autotune-${tag}.zip`; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1000); }); }
+(async()=>{ try{ const dl=await window.claude?.use?.("downloads"); if(!dl) return; const b=$("dl"); b.hidden=false;
+  b.addEventListener("click",async()=>{ const tag=curTag();
+    try{ await dl.save({filename:`autotune-${tag}.zip`,data:makeZip(tag)}); $("busy").textContent="Fichier enregistré."; }
+    catch(err){ if(err&&err.code==="declined") return; if(err&&["unavailable","not_granted","capability_disabled","capability_removed"].includes(err.code)) b.hidden=true; else $("busy").textContent="Le téléchargement n'a pas abouti."; } });
+}catch(_){} })();
+
+/* ---------- diagramme PSOLA ---------- */
+const D={f0:125, n:3};
+const DG=(()=>{ // une « bouffée » : petite impulsion glottique filtrée par le conduit vocal (voyelle « a »)
+  const L=1200, g=new Float32Array(L), F=[[700,130],[1220,150],[2600,200]];
+  for(let i=0;i<12;i++) g[i]=Math.sin(Math.PI*i/12);
+  let x=g; for(const [f,bw] of F){ const [A,B,C]=klatt(f,bw), y=new Float32Array(L); let y1=0,y2=0; for(let i=0;i<L;i++){ const v=A*x[i]+B*y1+C*y2; y2=y1; y1=v; y[i]=v; } x=y; }
+  let m=0; for(const v of x) m=Math.max(m,Math.abs(v)); for(let i=0;i<L;i++) x[i]/=m;
+  // enveloppe = spectre de la bouffée seule
+  const re=new Float64Array(FFTN), im=new Float64Array(FFTN); for(let i=0;i<L;i++) re[i]=x[i]; fft(re,im);
+  const env=new Float32Array(FFTN/2); let mx=-1e9; for(let k=0;k<FFTN/2;k++){ env[k]=10*Math.log10(re[k]*re[k]+im[k]*im[k]+1e-12); mx=Math.max(mx,env[k]); } for(let k=0;k<FFTN/2;k++) env[k]-=mx;
+  return {g:x,env};
+})();
+const envAt=f=>{ const kf=f*FFTN/SR, k=Math.floor(kf); if(k<0||k>=FFTN/2-1) return -99; return DG.env[k]+(DG.env[k+1]-DG.env[k])*(kf-k); };
+function drawPsolaDiag(){
+  const r=Math.pow(2,D.n/12), T=SR/D.f0, T2=T/r, sign=D.n>0?"+":D.n<0?"−":"";
+  $("dShiftOut").textContent=`${sign}${Math.abs(D.n)} demi-ton${Math.abs(D.n)>1?"s":""}`;
+  const nf=v=>v.toLocaleString("fr-FR",{maximumFractionDigits:v<10?2:0});
+  $("dShiftInfo").textContent=`r = 2^(${D.n}/12) = ${r.toFixed(3).replace(".",",")} · f₀ : ${D.f0} → ${nf(D.f0*r)} Hz · T : ${nf(1000/D.f0)} → ${nf(1000/(D.f0*r))} ms`;
+  const ink=css("--ink"), ink2=css("--ink2"), line=css("--line"), cV=css("--voice"), cO=css("--out"), mono=css("--mono");
+
+  /* --- dans le temps --- */
+  { const [ctx,W,H,d]=fit($("cvDiagT")); ctx.clearRect(0,0,W,H);
+    const span=Math.round(5.6*T), x0=-Math.round(.4*T), padX=10*d, lanes=4, lh=H/lanes;
+    const tx=n=>padX+(n-x0)/span*(W-2*padX);
+    const sig=n=>{ let s=0; for(let k=-3;k<12;k++){ const j=Math.round(n-k*T); if(j>=0&&j<DG.g.length) s+=DG.g[j]; } return s; };
+    const hann=(n,c,L)=>{ const u=(n-c)/L; return Math.abs(u)<1?.5+.5*Math.cos(Math.PI*u):0; };
+    const plot=(fn,lane,col,lw,amp,alpha,dy)=>{ const yc=lane*lh+lh*.6+(dy||0)*lh; ctx.strokeStyle=col; ctx.lineWidth=lw*d; ctx.globalAlpha=alpha||1; ctx.beginPath();
+      for(let p=0;p<=W-2*padX;p+=1.5*d){ const n=x0+p/(W-2*padX)*span; const y=yc-fn(n)*lh*.28*amp; p?ctx.lineTo(padX+p,y):ctx.moveTo(padX+p,y); } ctx.stroke(); ctx.globalAlpha=1; };
+    const title=(lane,txt)=>{ ctx.fillStyle=ink; ctx.font=`600 ${12*d}px ${css("--body")}`; ctx.textAlign="left"; ctx.textBaseline="top"; ctx.fillText(txt,padX,lane*lh+6*d); };
+    const marks=[]; for(let k=0;k*T<x0+span+T;k++) marks.push(k*T);
+    const colK=k=>k%2?ink2:cV;
+    // ① signal
+    title(0,"① La voix : la même bouffée revient toutes les T");
+    plot(sig,0,cV,1.6,1);
+    ctx.strokeStyle=ink2; ctx.fillStyle=ink2; ctx.lineWidth=d; ctx.font=`${11*d}px ${mono}`; ctx.textAlign="center";
+    { const y=lh*.95; ctx.beginPath(); ctx.moveTo(tx(marks[1]),y); ctx.lineTo(tx(marks[2]),y); ctx.moveTo(tx(marks[1]),y-4*d); ctx.lineTo(tx(marks[1]),y+4*d); ctx.moveTo(tx(marks[2]),y-4*d); ctx.lineTo(tx(marks[2]),y+4*d); ctx.stroke(); ctx.textBaseline="bottom"; ctx.fillText("T = "+nf(1000/D.f0)+" ms",(tx(marks[1])+tx(marks[2]))/2,y-3*d); }
+    // ② marques + fenêtres
+    title(1,"② Une marque par période, une fenêtre de Hann sur 2 périodes");
+    plot(sig,1,ink2,1,1,.45);
+    marks.forEach((c,k)=>{ plot(n=>hann(n,c,T)*1.15,1,colK(k),1.2,1,.8); const x=tx(c); ctx.fillStyle=colK(k); ctx.beginPath(); ctx.arc(x,lh+lh*.6,3*d,0,7); ctx.fill(); });
+    // ③ grains
+    title(2,"③ On découpe les grains : chacun contient une bouffée entière");
+    marks.forEach((c,k)=>plot(n=>sig(n)*hann(n,c,T),2,colK(k),1.4,.75,1,k%2?.13:-.08));
+    // ④ recollage
+    title(3,`④ On les recolle tous les T′ = T / r${D.n>0?" (grains dupliqués)":D.n<0?" (grains sautés)":""}, puis on additionne`);
+    const outMarks=[]; for(let j=0;j*T2<x0+span+T2;j++){ const k=Math.round(j*T2/T); outMarks.push([j*T2,k]); }
+    outMarks.forEach(([t,k])=>plot(n=>{ const src=n-t+k*T; return sig(src)*hann(src,k*T,T); },3,colK(k),1,1,.5));
+    plot(n=>{ let s=0; for(const [t,k] of outMarks){ const src=n-t+k*T; s+=sig(src)*hann(src,k*T,T); } return s; },3,cO,2,1);
+    outMarks.forEach(([t,k])=>{ ctx.fillStyle=colK(k); ctx.beginPath(); ctx.arc(tx(t),3*lh+lh*.6,3*d,0,7); ctx.fill(); });
+    ctx.strokeStyle=line; ctx.lineWidth=d; for(let l=1;l<lanes;l++){ ctx.beginPath(); ctx.moveTo(padX,l*lh); ctx.lineTo(W-padX,l*lh); ctx.stroke(); }
+  }
+
+  /* --- dans les fréquences --- */
+  { const [ctx,W,H,d]=fit($("cvDiagF")); ctx.clearRect(0,0,W,H);
+    const FM=3600, RNG=60, pl=34*d, pr=10*d, lh=H/2;
+    const fx=f=>pl+f/FM*(W-pl-pr);
+    const lane=(i,title)=>{ const top=i*lh+44*d, bot=(i+1)*lh-22*d; ctx.fillStyle=ink; ctx.font=`600 ${12*d}px ${css("--body")}`; ctx.textAlign="left"; ctx.textBaseline="top"; ctx.fillText(title,10*d,i*lh+6*d);
+      ctx.strokeStyle=line; ctx.lineWidth=d; ctx.beginPath(); ctx.moveTo(pl,bot); ctx.lineTo(W-pr,bot); ctx.stroke();
+      ctx.fillStyle=ink2; ctx.font=`${10*d}px ${mono}`; ctx.textAlign="center"; ctx.textBaseline="top";
+      for(let f=0;f<=3000;f+=1000) ctx.fillText(f?(f/1000)+" kHz":"0",fx(f),bot+4*d);
+      ctx.textAlign="right"; ctx.textBaseline="middle"; ctx.fillText("0 dB",pl-4*d,top); ctx.fillText("−"+RNG,pl-4*d,bot);
+      return v=>bot-(Math.max(-RNG,v)+RNG)/RNG*(bot-top); };
+    const envCurve=(fy,stretch,col,dash,lw)=>{ ctx.strokeStyle=col; ctx.lineWidth=lw*d; ctx.setLineDash(dash.map(v=>v*d)); ctx.beginPath(); for(let f=0;f<=FM;f+=8){ const y=fy(envAt(f/stretch)); f?ctx.lineTo(fx(f),y):ctx.moveTo(fx(f),y); } ctx.stroke(); ctx.setLineDash([]); };
+    const sticks=(fy,f0,amp,col,lw,alpha,dx)=>{ ctx.strokeStyle=col; ctx.lineWidth=lw*d; ctx.globalAlpha=alpha; ctx.beginPath(); for(let k=1;k*f0<=FM;k++){ const x=fx(k*f0)+(dx||0)*d; ctx.moveTo(x,fy(-RNG)); ctx.lineTo(x,fy(amp(k))); } ctx.stroke(); ctx.globalAlpha=1; };
+    const fLabels=(fy,stretch)=>{ ctx.fillStyle=ink2; ctx.font=`${10*d}px ${mono}`; ctx.textAlign="center"; ctx.textBaseline="bottom"; [["F1",700],["F2",1220],["F3",2600]].forEach(([n,f])=>ctx.fillText(n,fx(f*stretch),fy(envAt(f))-5*d)); };
+    // PSOLA
+    let fy=lane(0,"PSOLA : nouvelles raies k·f₀′, lues sur la même enveloppe");
+    sticks(fy,D.f0,k=>envAt(k*D.f0),cV,1.2,.45,-1.2);
+    sticks(fy,D.f0*r,k=>envAt(k*D.f0*r),cO,1.6,1,1.2);
+    envCurve(fy,1,ink2,[],1.6); fLabels(fy,1);
+    // accélération
+    fy=lane(1,`Pour comparer : lire le son ${r>=1?"plus vite":"plus lentement"} (× ${r.toFixed(2).replace(".",",")})`);
+    sticks(fy,D.f0,k=>envAt(k*D.f0),cV,1.2,.45,-1.2);
+    sticks(fy,D.f0*r,k=>envAt(k*D.f0),cO,1.6,1,1.2);
+    envCurve(fy,1,ink2,[4,4],1.2); envCurve(fy,r,cO,[],1.6); fLabels(fy,r);
+    if(D.n!==0){ ctx.fillStyle=cO; ctx.font=`${11*d}px ${css("--body")}`; ctx.textAlign="right"; ctx.textBaseline="top"; ctx.fillText(r>1?"les formants montent : voix de Chipmunk":"les formants descendent : voix de géant",W-pr,lh+24*d); }
+  }
+}
+$("dShift").addEventListener("input",e=>{ D.n=+e.target.value; drawPsolaDiag(); });
+const _drawAll=drawAll; drawAll=function(){ _drawAll(); drawPsolaDiag(); };
+
+let rz=0; window.addEventListener("resize",()=>{ clearTimeout(rz); rz=setTimeout(()=>{ drawYAxes(); drawAll(); },100); });
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change",drawAll);
+new MutationObserver(drawAll).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+
+state.voice=makeDemo();
+run(true);
+})();
+</script>
+</body>
+</html>
