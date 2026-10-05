@@ -98,6 +98,8 @@ button,select,input{font:inherit;color:inherit}
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;margin-top:16px}
 .card{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface);display:flex;flex-direction:column}
 .card.off{opacity:.62}
+.card.flash{outline:3px solid var(--trace);outline-offset:2px}
+@media (prefers-reduced-motion:no-preference){.card{transition:outline-color .4s}}
 .card canvas{width:100%;height:auto;display:block;background:#fff;border-bottom:1px solid var(--line)}
 .card .body{padding:10px 12px;display:flex;flex-direction:column;gap:8px;flex:1}
 .card .t{display:flex;gap:8px;align-items:center;min-width:0}
@@ -223,8 +225,9 @@ details.pad summary{cursor:pointer;font-weight:500}
           <canvas id="pad" width="948" height="576" aria-label="Zone de dessin d'une période"></canvas>
           <div class="row" style="margin-top:8px">
             <button class="btn small" id="padClear" type="button">Effacer</button>
+            <button class="btn small" id="padPlay" type="button">▶ Écouter ce dessin</button>
             <button class="btn small primary" id="padAdd" type="button">Ajouter comme feuille A</button>
-            <span class="note">Le tracé suit votre geste colonne par colonne, comme une vraie fonction.</span>
+            <span class="note">Le tracé suit votre geste colonne par colonne, comme une vraie fonction. La feuille ajoutée apparaît dans la liste ci-dessus.</span>
           </div>
         </div>
       </details>
@@ -290,6 +293,17 @@ details.pad summary{cursor:pointer;font-weight:500}
         <div class="field">
           <span>Tirage du bruit</span>
           <button class="btn small" id="reseed" type="button" style="align-self:flex-start">Nouveau tirage</button>
+        </div>
+        <div class="field">
+          <span>Saturation (douce) <span class="v" id="satV"></span></span>
+          <input type="range" id="sat" min="0" max="30" step="1" value="0">
+        </div>
+        <div class="field">
+          <span>Écrêtage (dur) <span class="v" id="clipV"></span></span>
+          <input type="range" id="clip" min="0" max="90" step="1" value="0">
+        </div>
+        <div class="field checks" style="justify-content:flex-end">
+          <label><input type="checkbox" id="asym">Distorsion asymétrique (harmoniques pairs)</label>
         </div>
         <div class="field checks" style="grid-column:1/-1;flex-direction:row;flex-wrap:wrap;gap:6px 18px">
           <label><input type="checkbox" id="aa" checked>Filtre anti-repliement</label>
@@ -707,6 +721,19 @@ function analyzeHand(p, G, w, h, manual){
   extractPiece(p);
 }
 function analyzeAny(p,G,w,h,manual){ p.hand ? analyzeHand(p,G,w,h,manual) : analyze(p,G,w,h,manual); }
+// The first sheet of the user's own takes over from the examples (they stay listed, unticked).
+function userPieceAdded(){
+  const ex=pieces.filter(p=>p.example&&p.include);
+  if (!ex.length) return;
+  ex.forEach(p=>p.include=false);
+  toast('Les exemples sont décochés : vous entendez maintenant votre feuille.');
+}
+function showCard(p){
+  const el=document.querySelector('#cards .card[data-id="'+p.id+'"]');
+  if (!el) return;
+  el.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'});
+  el.classList.add('flash'); setTimeout(()=>el.classList.remove('flash'),1800);
+}
 function newPiece(name, ex){ const p={id:nextId++,name,example:!!ex,include:true,type:'A',bands:[],ok:false}; pieces.push(p); return p; }
 
 async function addFiles(files){
@@ -720,7 +747,8 @@ async function addFiles(files){
       const {G,w,h}=grayFrom(bmp,bmp.width,bmp.height); bmp.close&&bmp.close();
       analyzeAny(p,G,w,h);
     }catch(e){ p.fail='Image illisible par le navigateur (format HEIC ?).'; }
-    renderCards(); rebuild();
+    if (!p.fail) userPieceAdded();
+    renderCards(); rebuild(); showCard(p);
     await new Promise(r=>setTimeout(r,0));
   }
 }
@@ -751,7 +779,7 @@ function renderCards(){
   const box=$('#cards'); box.textContent='';
   if (!pieces.length){ const e=document.createElement('p'); e.className='empty'; e.textContent='Aucune feuille pour l’instant.'; box.append(e); }
   pieces.forEach((p,idx)=>{
-    const card=document.createElement('article'); card.className='card'+(p.include&&!p.fail?'':' off');
+    const card=document.createElement('article'); card.className='card'+(p.include&&!p.fail?'':' off'); card.dataset.id=p.id;
     const cv=document.createElement('canvas'); cv.width=594; cv.height=420; card.append(cv);
     const body=document.createElement('div'); body.className='body';
     const t=document.createElement('div'); t.className='t';
@@ -842,7 +870,10 @@ function settings(){
     dur:+$('#dur').value, fs:+$('#fs').value, bits:+$('#bits').value,
     aa:$('#aa').checked, dc:$('#dc').checked, seam:$('#seam').checked,
     nDraw:+$('#nDraw').value/100,                                   // σ relative to the drawing's peak
-    snr:+$('#nSig').value>0 ? 55-+$('#nSig').value : Infinity        // signal-to-noise ratio, dB
+    snr:+$('#nSig').value>0 ? 55-+$('#nSig').value : Infinity,       // signal-to-noise ratio, dB
+    sat:+$('#sat').value,                                             // drive, dB (0 = off)
+    clip:+$('#clip').value/100,                                       // fraction of the peak cut off
+    asym:$('#asym').checked
   };
 }
 // Seeded noise: the same settings always give the same noise, until "Nouveau tirage".
@@ -851,6 +882,24 @@ function rng(seed){
   let a=seed>>>0;
   const u=()=>{ a=(a+0x6D2B79F5)>>>0; let t=a; t=Math.imul(t^(t>>>15),t|1); t^=t+Math.imul(t^(t>>>7),t|61); return ((t^(t>>>14))>>>0)/4294967296; };
   return ()=>Math.sqrt(-2*Math.log(u()+1e-12))*Math.cos(2*Math.PI*u());   // Gaussian, σ = 1
+}
+// Transfer curve of an overdriven amplifier, for a signal whose peak is 1.
+//   clip: hard clipping at level 1-clip;  sat: tanh soft saturation, drive in dB;  asym: offset → even harmonics.
+function makeDist(S){
+  if (!(S.sat>0||S.clip>0)) return x=>x;
+  const c=1-S.clip, g=10**(S.sat/20), tg=Math.tanh(g), b=S.asym?0.35:0;
+  const f=x=>{ let y=Math.max(-c,Math.min(c,x))/c; if (S.sat>0) y=Math.tanh(g*y)/tg; return y; };
+  const f0=f(b);
+  return x=>f(x+b)-f0;
+}
+function lowpassTaps(n,fcN){                      // windowed-sinc FIR (Blackman), unit DC gain
+  const h=new Float64Array(n), m=(n-1)/2; let s=0;
+  for (let i=0;i<n;i++){
+    const x=i-m, sinc=x===0?2*fcN:Math.sin(2*Math.PI*fcN*x)/(Math.PI*x);
+    h[i]=sinc*(0.42-0.5*Math.cos(2*Math.PI*i/(n-1))+0.08*Math.cos(4*Math.PI*i/(n-1))); s+=h[i];
+  }
+  for (let i=0;i<n;i++) h[i]/=s;
+  return h;
 }
 function synth(S, list){
   const use=list.filter(p=>p.R&&!p.fail&&p.ok);
@@ -866,7 +915,11 @@ function synth(S, list){
     W=new Float64Array(total); let o=0;
     for (const p of wav) for (const b of p.bands){ W.set(b.values,o); o+=b.values.length; }
     if (S.dc){ let m=0; for (const v of W) m+=v; m/=W.length; for (let i=0;i<W.length;i++) W[i]-=m; }
-    if (S.seam && W.length>1){ const d=W[W.length-1]-W[0], M1=W.length-1; for (let i=0;i<W.length;i++) W[i]-=d*i/M1; }
+    // Join the end onto the start over the last 3 % only, so the drawn shape itself is untouched.
+    if (S.seam && W.length>8){
+      const M1=W.length, k=Math.max(4,Math.round(0.03*M1)), d=W[0]-W[M1-1];
+      for (let j=0;j<k;j++){ const t=(j+1)/k, s=t*t*(3-2*t); W[M1-k+j]+=d*s; }
+    }
     let pk=0; for (const v of W) pk=Math.max(pk,Math.abs(v)); if (pk>0) for (let i=0;i<W.length;i++) W[i]/=pk;
   }
   if (S.nDraw>0){ const g=rng(noiseSeed); for (let i=0;i<W.length;i++) W[i]+=S.nDraw*g(); }
@@ -882,19 +935,43 @@ function synth(S, list){
     for (let k=kmax+1;k<L-kmax;k++){ re[k]=0; im[k]=0; }
     fft(re,im,true); T=re;
   }
-  const out=new Float32Array(Ns), inc=fc/fs; let ph=0;
-  for (let n=0;n<Ns;n++){
-    let v;
-    if (T){ const x=ph*L, i0=Math.floor(x), fr=x-i0; v=T[i0]*(1-fr)+T[(i0+1)%L]*fr; }
-    else v=W[Math.min(M-1,Math.floor(ph*M))];
-    out[n]=v; ph+=inc; if (ph>=1) ph-=Math.floor(ph);
-  }
   let E=null;
   const envAt=n=>{ const Ne=E.length, x=Math.min(1,Math.max(0,n/(Ns-1)))*(Ne-1), i0=Math.floor(x), fr=x-i0; return E[i0]*(1-fr)+E[Math.min(Ne-1,i0+1)]*fr; };
-  if (env.length){
-    E=[]; for (const p of env) for (const v of p.bands[0].values) E.push(v);
-    for (let n=0;n<Ns;n++) out[n]*=envAt(n);
+  if (env.length){ E=[]; for (const p of env) for (const v of p.bands[0].values) E.push(v); }
+  const readT=ph=>{ const x=ph*L, i0=Math.floor(x), fr=x-i0; return T[i0]*(1-fr)+T[(i0+1)%L]*fr; };
+  const readW=ph=>{ const x=ph*M, i0=Math.floor(x), fr=x-i0; return W[i0]*(1-fr)+W[(i0+1)%M]*fr; };
+  const dist=makeDist(S), distOn=S.sat>0||S.clip>0;
+  const out=new Float32Array(Ns);
+  let analogPre;
+  if (distOn && S.aa){
+    // The amplifier distorts the analog signal: compute it 4× oversampled, then low-pass before sampling,
+    // so the new harmonics above fe/2 are filtered out instead of folding back.
+    const OS=4, R=fs*OS, Nh=Ns*OS, x=new Float32Array(Nh), incH=fc/R; let ph=0;
+    for (let n=0;n<Nh;n++){ let v=readT(ph); if (E) v*=envAt(n/OS); x[n]=dist(v); ph+=incH; if (ph>=1) ph-=Math.floor(ph); }
+    const taps=lowpassTaps(191,0.43/OS), H=taps.length, half=(H-1)>>1;
+    const conv=i=>{ let s=0; const a=Math.max(0,half-i), b=Math.min(H,Nh+half-i); for (let k=a;k<b;k++) s+=taps[k]*x[i+k-half]; return s; };
+    for (let n=0;n<Ns;n++) out[n]=conv(n*OS);
+    analogPre=t=>{ const p=Math.min(Nh-2,Math.max(0,t*R)), i0=Math.floor(p), fr=p-i0; return conv(i0)*(1-fr)+conv(i0+1)*fr; };
+  } else {
+    const inc=fc/fs; let ph=0;
+    for (let n=0;n<Ns;n++){
+      let v=T?readT(ph):W[Math.min(M-1,Math.floor(ph*M))];
+      if (E) v*=envAt(n);
+      out[n]=dist(v); ph+=inc; if (ph>=1) ph-=Math.floor(ph);
+    }
+    analogPre=t=>{ const ph=(fc*t)%1; let v=T?readT(ph):readW(ph); if (E) v*=envAt(t*fs); return dist(v); };
   }
+  // An asymmetric curve shifts the mean, following the envelope: remove it with a 20 Hz high-pass
+  // (the coupling capacitor of a real amplifier). `dcTrack` keeps what was removed, for the scope.
+  let dcTrack=null;
+  if (distOn && S.asym){
+    dcTrack=new Float32Array(Ns);
+    const a=1-2*Math.PI*20/fs; let xp=out[0], yp=0, m=0;
+    for (let n=0;n<Math.min(Ns,Math.round(0.02*fs));n++) m+=out[n]; m/=Math.min(Ns,Math.round(0.02*fs));
+    xp=m;                                                  // start settled on the initial offset
+    for (let n=0;n<Ns;n++){ const x=out[n], y=x-xp+a*yp; xp=x; yp=y; dcTrack[n]=x-y; out[n]=y; }
+  }
+  const dcAt=t=>{ if (!dcTrack) return 0; const p=Math.min(Ns-1,Math.max(0,t*fs)), i0=Math.floor(p), fr=p-i0; return dcTrack[i0]*(1-fr)+dcTrack[Math.min(Ns-1,i0+1)]*fr; };
   if (isFinite(S.snr)){
     let e=0; for (const v of out) e+=v*v;
     const sigma=Math.sqrt(e/Ns)*10**(-S.snr/20), g=rng(noiseSeed*7919+3);
@@ -911,13 +988,7 @@ function synth(S, list){
   }
   // Continuous signal entering the converter (after the anti-aliasing filter if on), same scale as the samples.
   const gain=pk>0?0.89*0.9999/pk:0;
-  const analog=t=>{
-    const ph=(fc*t)%1; let v;
-    if (T){ const x=ph*L, i0=Math.floor(x), fr=x-i0; v=T[i0]*(1-fr)+T[(i0+1)%L]*fr; }
-    else { const x=ph*M, i0=Math.floor(x), fr=x-i0; v=W[i0]*(1-fr)+W[(i0+1)%M]*fr; }
-    if (E) v*=envAt(t*fs);
-    return v*gain;
-  };
+  const analog=t=>(analogPre(t)-dcAt(t))*gain;
   return {data:out,fs,W,N,segs,fc,S,levels,analog,envCount:env.length,wavCount:wav.length};
 }
 
@@ -1109,6 +1180,9 @@ function rebuildNow(){
   $('#thrV').textContent=Math.round(+thrEl.value*100)+' %';
   $('#nDrawV').textContent=S.nDraw>0?'σ = '+Math.round(S.nDraw*100)+' % (figé dans la période)':'aucun';
   $('#nSigV').textContent=isFinite(S.snr)?'RSB '+S.snr+' dB':'aucun';
+  $('#satV').textContent=S.sat>0?'gain +'+S.sat+' dB':'aucune';
+  $('#clipV').textContent=S.clip>0?'coupé à '+Math.round((1-S.clip)*100)+' % de la crête':'aucun';
+  $('#asym').disabled=!(S.sat>0||S.clip>0);
   $('#dur').disabled=S.mode==='once';
   const r=synth(S,pieces.filter(p=>p.include));
   const info=$('#info'); info.textContent='';
@@ -1121,6 +1195,7 @@ function rebuildNow(){
   add('échantillons',r.data.length.toLocaleString('fr-FR'));
   add('débit',(r.fs*S.bits/1000).toLocaleString('fr-FR',{maximumFractionDigits:1})+' kbit/s');
   if (isFinite(S.snr)) add('rapport signal/bruit',S.snr+' dB');
+  if (S.sat>0||S.clip>0) add('distorsion',[S.sat>0?'saturation':'',S.clip>0?'écrêtage':'',S.asym?'asymétrique':''].filter(Boolean).join(' + '));
   if (r.envCount) add('enveloppe',r.envCount+' feuille'+(r.envCount>1?'s':''));
   if (S.mode==='once' && dur<0.1) { info.append(document.createElement('br')); info.append('Très court : ajoutez des feuilles C ou passez en « Boucler ».'); }
   drawAll();
@@ -1153,13 +1228,18 @@ function drawPad(){
   const up=()=>{ down=false; lastC=null; };
   cv.addEventListener('pointerup',up); cv.addEventListener('pointercancel',up);
   $('#padClear').onclick=()=>{ pad.vals.fill(NaN); drawPad(); };
-  $('#padAdd').onclick=()=>{
+  const padPiece=name=>{
     const filled=pad.vals.filter(v=>!isNaN(v)).length;
-    if (filled<pad.n*0.3){ toast('Tracez la courbe sur au moins un tiers de la largeur.'); return; }
-    const p=newPiece('Dessin à la souris '+(pieces.filter(q=>q.name.startsWith('Dessin à la souris')).length+1));
-    const c=virtualSheet('A',[c0=>{ return pad.vals; }]);
-    p.type='A'; p.typeLocked=true; p.R=c.R; p.bg=localBg(p.R,SW*SCALE,SH*SCALE,10*SCALE); p.base=makeBase(p.R); extractPiece(p);
-    renderCards(); rebuild(); toast('Feuille ajoutée.');
+    if (filled<pad.n*0.3){ toast('Tracez la courbe sur au moins un tiers de la largeur.'); return null; }
+    const p={id:nextId++,name,include:true,type:'A',typeLocked:true,bands:[],ok:false};
+    p.R=virtualSheet('A',[()=>pad.vals]).R; p.bg=localBg(p.R,SW*SCALE,SH*SCALE,10*SCALE); p.base=makeBase(p.R); extractPiece(p);
+    return p;
+  };
+  $('#padPlay').onclick=()=>{ const p=padPiece('dessin'); if (!p) return; const r=synth(settings(),[p]); if (r.data) playData(r); else toast(r.msg); };
+  $('#padAdd').onclick=()=>{
+    const p=padPiece('Dessin à la souris '+(pieces.filter(q=>q.name.startsWith('Dessin à la souris')).length+1));
+    if (!p) return;
+    pieces.push(p); userPieceAdded(); renderCards(); rebuild(); showCard(p);
   };
   drawPad();
 })();
