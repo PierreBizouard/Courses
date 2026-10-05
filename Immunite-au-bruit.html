@@ -1,0 +1,857 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Immunité au bruit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#F3F6F9; --surface:#FFFFFF; --sunk:#EAF0F5;
+  --ink:#18212C; --muted:#5A6676; --line:#D5DEE8; --grid:#E1E8F0; --grid-strong:#B7C4D3;
+  --ana:#C25A00; --ana-soft:rgba(194,90,0,.14);
+  --dig:#1C58B5; --dig-soft:rgba(28,88,181,.12);
+  --orig:#3A4350; --err:#D3243A; --ok:#1E8757;
+  --focus:#1C58B5;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --paper:#0E131A; --surface:#151C26; --sunk:#1B2430;
+    --ink:#E5EBF2; --muted:#94A2B4; --line:#2A3647; --grid:#212C3A; --grid-strong:#3A4A60;
+    --ana:#FF9B45; --ana-soft:rgba(255,155,69,.16);
+    --dig:#72A9FF; --dig-soft:rgba(114,169,255,.15);
+    --orig:#C8D2DE; --err:#FF5D6C; --ok:#4CC68E; --focus:#72A9FF;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --paper:#0E131A; --surface:#151C26; --sunk:#1B2430;
+  --ink:#E5EBF2; --muted:#94A2B4; --line:#2A3647; --grid:#212C3A; --grid-strong:#3A4A60;
+  --ana:#FF9B45; --ana-soft:rgba(255,155,69,.16);
+  --dig:#72A9FF; --dig-soft:rgba(114,169,255,.15);
+  --orig:#C8D2DE; --err:#FF5D6C; --ok:#4CC68E; --focus:#72A9FF;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font:15px/1.5 "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:1280px;margin:0 auto;padding-inline:16px;padding-block:20px 48px}
+h1,h2,h3{font-family:Archivo,"IBM Plex Sans",system-ui,sans-serif;font-stretch:82%;text-wrap:balance;margin:0}
+h1{font-size:clamp(28px,4vw,40px);font-weight:800;letter-spacing:-.01em;line-height:1.05}
+h2{font-size:21px;font-weight:700}
+h3{font-size:16px;font-weight:700}
+.mono{font-family:"IBM Plex Mono",ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums}
+.lede{color:var(--muted);max-width:68ch;margin:8px 0 0}
+header{display:flex;flex-wrap:wrap;gap:12px 32px;align-items:end;justify-content:space-between;margin-bottom:20px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:18px;height:0;border-top:2.5px solid currentColor;display:inline-block}
+.sw.dash{border-top-style:dashed}
+.c-ana{color:var(--ana)} .c-dig{color:var(--dig)} .c-orig{color:var(--orig)} .c-err{color:var(--err)} .c-ok{color:var(--ok)}
+
+.layout{display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:900px){.layout{grid-template-columns:minmax(0,1fr)}}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.controls{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);padding:16px;display:flex;flex-direction:column;gap:18px}
+@media (max-width:900px){.controls{position:static}}
+.ctl{display:flex;flex-direction:column;gap:6px}
+.ctl-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.ctl label,.ctl .lbl{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.ctl .val{font-size:14px;font-weight:600}
+.ctl .hint{font-size:12.5px;color:var(--muted)}
+.noise-val{font-size:26px;font-weight:600;color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--dig);margin:0}
+#sigma{accent-color:var(--err)}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--sunk);padding:3px;border-radius:8px}
+.seg button{border:0;background:transparent;color:var(--ink);font:500 13px "IBM Plex Sans",system-ui,sans-serif;padding:7px 6px;border-radius:6px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.12);font-weight:600}
+.presets{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--surface);color:var(--ink);font:500 12.5px "IBM Plex Sans",system-ui,sans-serif;padding:4px 10px;border-radius:999px;cursor:pointer}
+.chip:hover{border-color:var(--grid-strong)}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.btn{flex:1 1 auto;border:1px solid var(--line);background:var(--sunk);color:var(--ink);font:600 13px "IBM Plex Sans",system-ui,sans-serif;padding:9px 10px;border-radius:8px;cursor:pointer}
+.btn[aria-pressed="true"]{background:var(--err);border-color:var(--err);color:#fff}
+.check{display:flex;gap:8px;align-items:flex-start;font-size:13.5px;cursor:pointer}
+.check input{margin-top:3px;accent-color:var(--ana)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+main{display:flex;flex-direction:column;gap:20px;min-width:0}
+
+/* chaîne */
+.chain{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.lane{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.lane-name{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;width:92px;flex:none}
+.lane-name.a{color:var(--ana)} .lane-name.d{color:var(--dig)}
+.st{font-size:12.5px;padding:4px 9px;border-radius:6px;background:var(--sunk);border:1px solid var(--line);white-space:nowrap}
+.st.noise{background:transparent;border:1.5px dashed var(--err);color:var(--err);font-weight:600}
+.st b{font-family:"IBM Plex Mono",monospace;font-weight:600}
+.st .n{font-family:"IBM Plex Mono",monospace;font-weight:600;color:var(--dig);margin-right:4px}
+.arr{color:var(--grid-strong);font-size:13px}
+
+.sec-title{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.sec-title .tag{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.card{padding:14px 16px 12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.card-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px 16px;flex-wrap:wrap}
+.card-head p{margin:0;font-size:13px;color:var(--muted)}
+.step{font-family:"IBM Plex Mono",monospace;font-weight:600;color:var(--dig);margin-right:6px}
+canvas{display:block;width:100%;height:220px}
+canvas.tall{height:250px}
+canvas.click{cursor:crosshair}
+.digi-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+.nav{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--muted)}
+.nav button{border:1px solid var(--line);background:var(--sunk);color:var(--ink);border-radius:6px;width:30px;height:28px;cursor:pointer;font-size:14px}
+.decode{overflow-x:auto}
+.decode table{border-collapse:collapse;font-size:13px;width:100%;min-width:460px}
+.decode th{font:600 11.5px "IBM Plex Sans",sans-serif;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);text-align:left;padding:4px 8px;border-bottom:1px solid var(--line)}
+.decode td{padding:4px 8px;border-bottom:1px solid var(--grid)}
+.decode .bad{color:var(--err);font-weight:600}
+.decode .bits i{font-style:normal}
+.decode .bits i.x{color:var(--err);text-decoration:underline;font-weight:700}
+
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+@media (max-width:760px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tile{background:var(--surface);padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.tile .k{font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.tile .v{font-family:"IBM Plex Mono",monospace;font-size:24px;font-weight:600;font-variant-numeric:tabular-nums}
+.tile .s{font-size:12.5px;color:var(--muted)}
+.verdict{display:inline-block;margin-top:4px;font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;align-self:flex-start}
+.verdict.ok{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
+.verdict.warn{background:color-mix(in srgb,#D19A00 20%,transparent);color:#B07F00}
+.verdict.bad{background:color-mix(in srgb,var(--err) 15%,transparent);color:var(--err)}
+.obs{margin:0;padding:12px 14px;border-left:3px solid var(--dig);background:var(--dig-soft);border-radius:0 8px 8px 0;font-size:14.5px;max-width:none}
+.two{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:20px}
+@media (max-width:1100px){.two{grid-template-columns:minmax(0,1fr)}}
+.players{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:1200px){.players{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.players{grid-template-columns:minmax(0,1fr)}}
+.seg3{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:560px){.seg3{grid-template-columns:minmax(0,1fr)}}
+.play[data-k="ab"] .ico{background:linear-gradient(90deg,var(--ana) 50%,var(--dig) 50%)}
+.play{display:flex;align-items:center;gap:10px;text-align:left;border:1px solid var(--line);background:var(--sunk);color:var(--ink);font:600 14px "IBM Plex Sans",system-ui,sans-serif;padding:11px 12px;border-radius:8px;cursor:pointer}
+.play .ico{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:12px}
+.play small{display:block;font-weight:400;font-size:12px;color:var(--muted)}
+.play[data-k="orig"] .ico{background:var(--orig);color:var(--surface)}
+.play[data-k="ana"] .ico{background:var(--ana)}
+.play[data-k="dig"] .ico{background:var(--dig)}
+.play[aria-pressed="true"]{background:var(--surface);border-color:currentColor;box-shadow:0 0 0 2px var(--dig-soft)}
+.play[data-k="ana"][aria-pressed="true"]{color:var(--ana)} .play[data-k="dig"][aria-pressed="true"]{color:var(--dig)}
+.play[aria-pressed="true"] small{color:inherit}
+.audio-row{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;font-size:13px;color:var(--muted)}
+.audio-row label{display:flex;align-items:center;gap:8px}
+.audio-row input[type=range]{width:160px}
+.notes{padding:16px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 24px}
+@media (max-width:900px){.notes{grid-template-columns:minmax(0,1fr)}}
+.notes p{margin:4px 0 0;font-size:14px;color:var(--muted);max-width:60ch}
+.notes h3{color:var(--ink)}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Immunité au bruit</h1>
+      <p class="lede">Le même signal 0–5 V voyage sur deux lignes soumises au même bruit : l’une le transporte tel quel (analogique), l’autre le transporte sous forme de bits 0 V / 5 V (numérique). Faites monter le bruit et comparez ce qui arrive.</p>
+    </div>
+    <div class="legend" aria-label="Légende des courbes">
+      <span class="c-orig"><i class="sw dash"></i>signal d’origine</span>
+      <span class="c-ana"><i class="sw"></i>voie analogique</span>
+      <span class="c-dig"><i class="sw"></i>voie numérique</span>
+      <span class="c-err">● bit / échantillon faux</span>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="panel controls" aria-label="Réglages">
+      <div class="ctl">
+        <span class="lbl">Signal à transmettre</span>
+        <div class="seg" id="shape" role="group" aria-label="Forme du signal">
+          <button type="button" data-v="voix" aria-pressed="true">Mélange (« voix »)</button>
+          <button type="button" data-v="sinus" aria-pressed="false">Sinus</button>
+          <button type="button" data-v="triangle" aria-pressed="false">Triangle</button>
+          <button type="button" data-v="scie" aria-pressed="false">Dent de scie</button>
+        </div>
+        <span class="hint">f = 100 Hz, deux périodes affichées (20 ms).</span>
+      </div>
+
+      <div class="ctl">
+        <div class="ctl-head"><label for="sigma">Niveau de bruit (σ)</label></div>
+        <div class="noise-val mono" id="sigmaVal">0,60 V</div>
+        <input type="range" id="sigma" min="0" max="2.5" step="0.05" value="0.6">
+        <div class="presets">
+          <button type="button" class="chip" data-sigma="0">Aucun</button>
+          <button type="button" class="chip" data-sigma="0.25">Faible</button>
+          <button type="button" class="chip" data-sigma="0.7">Fort</button>
+          <button type="button" class="chip" data-sigma="1.3">Extrême</button>
+        </div>
+        <span class="hint" id="snrHint">—</span>
+      </div>
+
+      <div class="btns">
+        <button type="button" class="btn" id="reroll">Nouveau tirage du bruit</button>
+        <button type="button" class="btn" id="live" aria-pressed="false">Bruit en direct</button>
+      </div>
+
+      <div class="ctl">
+        <div class="ctl-head"><label for="nbits">Résolution du CAN</label><span class="val mono" id="nbitsVal">4 bits</span></div>
+        <input type="range" id="nbits" min="2" max="8" step="1" value="4">
+        <span class="hint mono" id="qHint">—</span>
+      </div>
+
+      <div class="ctl">
+        <div class="ctl-head"><label for="spp">Échantillonnage</label><span class="val mono" id="sppVal">16 / période</span></div>
+        <input type="range" id="spp" min="0" max="9" step="1" value="4">
+        <span class="hint mono" id="feHint">—</span>
+      </div>
+
+      <div class="ctl">
+        <div class="ctl-head"><label for="th">Seuil du comparateur</label><span class="val mono" id="thVal">2,50 V</span></div>
+        <input type="range" id="th" min="0.5" max="4.5" step="0.1" value="2.5">
+        <span class="hint">Au-dessus du seuil le récepteur lit « 1 », en dessous « 0 ». Le milieu (2,5 V) laisse la même marge aux deux.</span>
+      </div>
+
+      <label class="check"><input type="checkbox" id="filt"> <span>Filtrer aussi la voie analogique (passe-bas, f<sub>c</sub> = 400 Hz)</span></label>
+    </aside>
+
+    <main>
+      <section class="panel chain" aria-label="Chaîne de transmission">
+        <div class="lane">
+          <span class="lane-name a">Analogique</span>
+          <span class="st">Capteur 0–5 V</span><span class="arr">→</span>
+          <span class="st noise">Ligne + bruit</span><span class="arr">→</span>
+          <span class="st" id="chainFilt">Récepteur</span><span class="arr">→</span>
+          <span class="st">Signal reçu</span>
+        </div>
+        <div class="lane">
+          <span class="lane-name d">Numérique</span>
+          <span class="st">Capteur 0–5 V</span><span class="arr">→</span>
+          <span class="st"><span class="n">1</span>CAN <b id="chainN">4 bits</b></span><span class="arr">→</span>
+          <span class="st"><span class="n">2</span>Trame série 0 / 5 V</span><span class="arr">→</span>
+          <span class="st noise">Ligne + bruit</span><span class="arr">→</span>
+          <span class="st"><span class="n">2</span>Comparateur <b id="chainTh">2,5 V</b></span><span class="arr">→</span>
+          <span class="st"><span class="n">3</span>CNA</span><span class="arr">→</span>
+          <span class="st"><span class="n">3</span>Lissage</span><span class="arr">→</span>
+          <span class="st">Signal reçu</span>
+        </div>
+      </section>
+
+      <section class="panel card">
+        <div class="card-head">
+          <h2 class="sec-title"><span class="tag c-ana">Voie analogique</span> Le bruit s’ajoute directement au signal</h2>
+          <p id="anaNote">Tension reçue = signal + bruit. Le récepteur ne peut pas savoir quelle part est du bruit.</p>
+        </div>
+        <canvas id="cvA" aria-label="Signal analogique reçu, comparé au signal d'origine"></canvas>
+      </section>
+
+      <section class="digi-grid">
+        <div class="panel card">
+          <div class="card-head">
+            <h2 class="sec-title"><span class="tag c-dig">Voie numérique</span> <span><span class="step">1</span>Échantillonnage et quantification (CAN)</span></h2>
+            <p>Cliquez sur la courbe pour choisir les échantillons détaillés à l’étape 2.</p>
+          </div>
+          <canvas id="cvD1" class="click" aria-label="Échantillons quantifiés"></canvas>
+        </div>
+
+        <div class="panel card">
+          <div class="card-head">
+            <h2><span class="step">2</span>Transmission des bits et décision par le comparateur</h2>
+            <div class="nav"><button type="button" id="prev" aria-label="Échantillons précédents">◀</button><span class="mono" id="winLbl">éch. 0–3</span><button type="button" id="next" aria-label="Échantillons suivants">▶</button></div>
+          </div>
+          <p style="margin:0;font-size:13px;color:var(--muted)">Chaque code est envoyé bit par bit (poids fort en premier). Le récepteur mesure la tension au milieu de chaque bit et la compare au seuil : seule compte la question « au-dessus ou en dessous ? ».</p>
+          <canvas id="cvD2" class="tall" aria-label="Trame série émise et reçue avec bruit"></canvas>
+          <div class="decode" id="decode"></div>
+        </div>
+
+        <div class="panel card">
+          <div class="card-head">
+            <h2><span class="step">3</span>Reconstruction : CNA puis lissage</h2>
+            <p>Le CNA transforme chaque code reçu en tension (marches), le filtre de lissage arrondit les marches.</p>
+          </div>
+          <canvas id="cvD3" class="click" aria-label="Signal reconstruit par le CNA et lissé"></canvas>
+        </div>
+      </section>
+
+      <section class="panel card">
+        <div class="card-head">
+          <h2>À l’arrivée : les deux signaux récupérés</h2>
+          <p>Même bruit sur les deux lignes, deux résultats très différents.</p>
+        </div>
+        <canvas id="cvF" class="tall" aria-label="Comparaison des signaux récupérés"></canvas>
+        <div class="tiles" id="tiles"></div>
+        <p class="obs" id="obs"></p>
+      </section>
+
+      <section class="panel card" aria-label="Écouter les signaux">
+        <div class="card-head">
+          <h2>Écouter les signaux</h2>
+          <p>Même chaîne (CAN, bits, bruit, comparateur, CNA), appliquée à un vrai son. Les réglages s’appliquent pendant l’écoute.</p>
+        </div>
+        <div class="ctl">
+          <span class="lbl">Son à transmettre</span>
+          <div class="seg seg3" id="asrc" role="group" aria-label="Son à transmettre">
+            <button type="button" data-v="lune" aria-pressed="true">Au clair de la lune</button>
+            <button type="button" data-v="boucle" aria-pressed="false">Petite boucle</button>
+            <button type="button" data-v="tone" aria-pressed="false">Signal affiché</button>
+          </div>
+        </div>
+        <div class="players">
+          <button type="button" class="play" data-k="orig" aria-pressed="false"><span class="ico">▶</span><span>Signal d’origine<small>ce que capte le capteur</small></span></button>
+          <button type="button" class="play" data-k="ana" aria-pressed="false"><span class="ico">▶</span><span>Reçu en analogique<small>signal + bruit</small></span></button>
+          <button type="button" class="play" data-k="dig" aria-pressed="false"><span class="ico">▶</span><span>Reçu en numérique<small>après comparateur, CNA, lissage</small></span></button>
+          <button type="button" class="play" data-k="ab" aria-pressed="false"><span class="ico">▶</span><span>Les deux, en alternance<small id="abSub">le morceau en analogique, puis en numérique</small></span></button>
+        </div>
+        <div class="audio-row">
+          <label for="vol">Volume <input type="range" id="vol" min="0" max="1" step="0.01" value="0.4"></label>
+          <span class="mono" id="feAudio"></span><span>Attention : avec un bruit fort, le souffle est puissant. Baissez le volume avant d’écouter.</span>
+        </div>
+        <p class="obs" id="audioObs">Écoutez d’abord l’original, puis passez d’une voie à l’autre en faisant monter le bruit : souffle sur l’analogique ; son propre sur le numérique… jusqu’aux craquements quand les bits basculent. Avec 2 ou 3 bits, on entend la distorsion de quantification ; avec peu d’échantillons par période, le son devient étouffé et métallique (repliement de spectre).</p>
+      </section>
+
+      <section class="panel card">
+        <div class="card-head">
+          <h2>Erreur en fonction du bruit : la « falaise numérique »</h2>
+          <p>Erreur efficace entre signal récupéré et signal d’origine (moyenne de 4 tirages par point).</p>
+        </div>
+        <canvas id="cvS" class="tall" aria-label="Erreur efficace en fonction du niveau de bruit"></canvas>
+      </section>
+
+      <section class="panel notes" aria-label="À retenir">
+        <div><h3>Une seule question par bit</h3><p>Le récepteur numérique ne cherche pas à mesurer la tension exacte : il décide seulement 0 ou 1. Tant que le bruit ne fait pas franchir le seuil (2,5 V de marge ici), l’information arrive intacte.</p></div>
+        <div><h3>Le prix : la quantification</h3><p>Même sans bruit, le signal numérique n’est jamais parfait : chaque échantillon est arrondi au niveau le plus proche (erreur ≤ q/2). Plus de bits et plus d’échantillons réduisent cette erreur.</p></div>
+        <div><h3>La limite : la falaise</h3><p>Quand le bruit devient trop fort, les bits basculent, et un bit de poids fort faux provoque un saut de 2,5 V. C’est là qu’interviennent les codes correcteurs d’erreurs, ou les répéteurs qui régénèrent le signal en chemin.</p></div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+(() => {
+  const P = 2, G = 960, NG = P * G, T = 10;   // 2 périodes, 960 pts/période, T = 10 ms
+  const LB = 16;                               // points par bit sur la ligne
+  const SPP = [6, 8, 10, 12, 16, 20, 24, 32, 40, 48];
+  const st = { shape: 'voix', sigma: 0.6, nbits: 4, spp: 16, th: 2.5, filt: false, audioSrc: 'lune', seed: 7, sel: 0, live: false };
+  const $ = id => document.getElementById(id);
+  const fr = (x, d = 2) => x.toFixed(d).replace('.', ',');
+
+  // ---------- signal ----------
+  function src(shape, ph) {
+    const x = ph - Math.floor(ph), w = 2 * Math.PI;
+    switch (shape) {
+      case 'sinus': return 2.5 + 2 * Math.sin(w * x);
+      case 'triangle': return 0.5 + 4 * (x < 0.5 ? 2 * x : 2 - 2 * x);
+      case 'scie': return 0.5 + 4 * x;
+      default: return 2.5 + 1.25 * Math.sin(w * x) + 0.55 * Math.sin(3 * w * x + 0.6) + 0.3 * Math.sin(5 * w * x + 1.3);
+    }
+  }
+  // ---------- aléa reproductible ----------
+  function mulberry(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  function gauss(seed) { const r = mulberry(seed); let sp = null; return () => { if (sp !== null) { const s = sp; sp = null; return s; } let u = 0; while (u === 0) u = r(); const m = Math.sqrt(-2 * Math.log(u)), v = 2 * Math.PI * r(); sp = m * Math.sin(v); return m * Math.cos(v); }; }
+
+  // filtre passe-bas 1er ordre, aller-retour (sans déphasage), signal périodique
+  const lowpass = (x, fcPerPeriod) => lowpassA(x, 1 - Math.exp(-2 * Math.PI * fcPerPeriod / G));
+  function lowpassA(x, a) {
+    const n = x.length, y = new Float64Array(n);
+    let s = x[0];
+    for (let lap = 0; lap < 2; lap++) for (let i = 0; i < n; i++) { s += a * (x[i] - s); y[i] = s; }
+    const z = new Float64Array(n); s = y[n - 1];
+    for (let lap = 0; lap < 2; lap++) for (let i = n - 1; i >= 0; i--) { s += a * (y[i] - s); z[i] = s; }
+    return z;
+  }
+  // moyenne glissante périodique de largeur W, démarrant à i+off
+  function box(x, W, off) {
+    const n = x.length, c = new Float64Array(n + 1);
+    for (let i = 0; i < n; i++) c[i + 1] = c[i] + x[i];
+    const y = new Float64Array(n), tot = c[n];
+    for (let i = 0; i < n; i++) {
+      const a = i + off, b = a + W, wa = Math.floor(a / n), wb = Math.floor(b / n);
+      y[i] = ((wb - wa) * tot + c[b - wb * n] - c[a - wa * n]) / W;
+    }
+    return y;
+  }
+  const rms = (a, b) => { let s = 0; for (let i = 0; i < a.length; i++) { const d = a[i] - b[i]; s += d * d; } return Math.sqrt(s / a.length); };
+
+  function simulate(p, seed) {
+    const g = gauss(seed);
+    const orig = new Float64Array(NG);
+    for (let i = 0; i < NG; i++) orig[i] = src(p.shape, i / G);
+    // voie analogique
+    const rxA = new Float64Array(NG);
+    for (let i = 0; i < NG; i++) rxA[i] = orig[i] + p.sigma * g();
+    const finA = p.filt ? lowpass(rxA, 4) : rxA;
+    // voie numérique : CAN
+    const N = p.nbits, L = 1 << N, q = 5 / L, Ns = P * p.spp, W = G / p.spp;
+    const codes = new Int32Array(Ns), vs = new Float64Array(Ns);
+    for (let k = 0; k < Ns; k++) { const v = src(p.shape, k / p.spp); vs[k] = v; codes[k] = Math.max(0, Math.min(L - 1, Math.round(v / q))); }
+    // trame série + bruit + comparateur
+    const B = Ns * N, tx = new Uint8Array(B), rxb = new Uint8Array(B), line = new Float32Array(B * LB);
+    let errs = 0;
+    const rcodes = new Int32Array(Ns);
+    for (let k = 0; k < Ns; k++) {
+      let rc = 0;
+      for (let b = 0; b < N; b++) {
+        const idx = k * N + b, bit = (codes[k] >> (N - 1 - b)) & 1;
+        tx[idx] = bit;
+        for (let j = 0; j < LB; j++) line[idx * LB + j] = bit * 5 + p.sigma * g();
+        const r = line[idx * LB + LB / 2] > p.th ? 1 : 0;
+        rxb[idx] = r; if (r !== bit) errs++;
+        rc = (rc << 1) | r;
+      }
+      rcodes[k] = rc;
+    }
+    // CNA (blocage) + lissage
+    const rvals = new Float64Array(Ns), zoh = new Float64Array(NG);
+    for (let k = 0; k < Ns; k++) rvals[k] = rcodes[k] * q;
+    for (let i = 0; i < NG; i++) zoh[i] = rvals[Math.round(i / W) % Ns];
+    const h = Math.floor(W / 2);
+    const rec = box(box(zoh, W, -h), W, W % 2 ? -h : -h + 1);
+    return { orig, rxA, finA, N, L, q, Ns, W, codes, vs, B, tx, rxb, line, errs, rcodes, rvals, zoh, rec,
+             rmsA: rms(finA, orig), rmsD: rms(rec, orig) };
+  }
+
+  // probabilité théorique d'erreur par bit
+  function erfc(x) { const z = Math.abs(x), t = 1 / (1 + 0.5 * z); const r = t * Math.exp(-z * z - 1.26551223 + t * (1.00002368 + t * (0.37409196 + t * (0.09678418 + t * (-0.18628806 + t * (0.27886807 + t * (-1.13520398 + t * (1.48851587 + t * (-0.82215223 + t * 0.17087277))))))))); return x >= 0 ? r : 2 - r; }
+  const Qf = x => 0.5 * erfc(x / Math.SQRT2);
+  const pTheo = (s, th) => s <= 0 ? 0 : 0.5 * (Qf(th / s) + Qf((5 - th) / s));
+
+  // ---------- balayage ----------
+  const SWEEP = []; for (let s = 0; s <= 2.5001; s += 0.1) SWEEP.push(+s.toFixed(2));
+  let sweep = null, sweepKey = '';
+  function computeSweep() {
+    const key = [st.shape, st.nbits, st.spp, st.th, st.filt].join('|');
+    if (key === sweepKey) return;
+    sweepKey = key;
+    sweep = SWEEP.map(s => {
+      let a = 0, d = 0; const R = 4;
+      for (let r = 0; r < R; r++) { const o = simulate({ ...st, sigma: s }, 1000 + r * 37); a += o.rmsA; d += o.rmsD; }
+      return { s, a: a / R, d: d / R };
+    });
+  }
+
+  // ---------- dessin ----------
+  let C = {};
+  function readColors() {
+    const s = getComputedStyle(document.documentElement), g = n => s.getPropertyValue(n).trim();
+    C = { ink: g('--ink'), muted: g('--muted'), grid: g('--grid'), gs: g('--grid-strong'), ana: g('--ana'), anaS: g('--ana-soft'),
+          dig: g('--dig'), digS: g('--dig-soft'), orig: g('--orig'), err: g('--err'), ok: g('--ok'), surf: g('--surface') };
+  }
+  const MONO = '"IBM Plex Mono", ui-monospace, Consolas, monospace';
+  const frames = {};
+  function frame(cv, o) {
+    const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+    const W = Math.round(w * dpr), H = Math.round(h * dpr);
+    if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+    const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
+    const m = { l: 46, r: 14, t: o.top || 10, b: 26 };
+    const pw = w - m.l - m.r, ph = h - m.t - m.b;
+    const X = v => m.l + (v - o.x0) / (o.x1 - o.x0) * pw;
+    const Y = v => m.t + (o.y1 - v) / (o.y1 - o.y0) * ph;
+    const iX = px => o.x0 + (px - m.l) / pw * (o.x1 - o.x0);
+    ctx.font = `11px ${MONO}`; ctx.lineWidth = 1;
+    ctx.textBaseline = 'middle'; ctx.textAlign = 'right';
+    for (const v of o.yTicks) {
+      const y = Math.round(Y(v)) + .5;
+      ctx.strokeStyle = C.grid; ctx.beginPath(); ctx.moveTo(m.l, y); ctx.lineTo(m.l + pw, y); ctx.stroke();
+      ctx.fillStyle = C.muted; ctx.fillText(o.yFmt ? o.yFmt(v) : `${fr(v, 0)} V`, m.l - 6, y);
+    }
+    ctx.textBaseline = 'top'; ctx.textAlign = 'center';
+    for (const t of o.xTicks || []) {
+      const x = Math.round(X(t.v)) + .5;
+      ctx.strokeStyle = t.strong ? C.gs : C.grid; ctx.beginPath(); ctx.moveTo(x, m.t); ctx.lineTo(x, m.t + ph); ctx.stroke();
+      if (t.l) { ctx.fillStyle = C.muted; ctx.fillText(t.l, t.lx !== undefined ? X(t.lx) : x, m.t + ph + 7); }
+    }
+    ctx.strokeStyle = C.gs; ctx.strokeRect(m.l + .5, m.t + .5, pw - 1, ph - 1);
+    ctx.save(); ctx.beginPath(); ctx.rect(m.l, m.t, pw, ph); ctx.clip();
+    const f = { ctx, X, Y, iX, w, h, m, pw, ph, done: () => ctx.restore() };
+    frames[cv.id] = f;
+    return f;
+  }
+  function trace(f, n, xs, ys, color, lw = 1.5, dash = null, alpha = 1) {
+    const c = f.ctx; c.save(); c.globalAlpha = alpha; c.strokeStyle = color; c.lineWidth = lw; c.lineJoin = 'round';
+    if (dash) c.setLineDash(dash);
+    c.beginPath();
+    for (let i = 0; i < n; i++) { const x = f.X(xs(i)), y = f.Y(ys(i)); i ? c.lineTo(x, y) : c.moveTo(x, y); }
+    c.stroke(); c.restore();
+  }
+  const tAt = i => i * T / G;
+  const timeTicks = () => { const a = []; for (let t = 0; t <= 20; t += 2.5) a.push({ v: t, l: t % 5 === 0 ? `${t} ms` : '' }); return a; };
+  function origTrace(f, sim) { trace(f, NG, tAt, i => sim.orig[i], C.orig, 1.6, [6, 4], .9); }
+  function winBand(f, sim, K) {
+    const Ts = T / st.spp, c = f.ctx;
+    c.fillStyle = C.digS;
+    for (let j = 0; j < K; j++) {
+      const k = (st.sel + j) % sim.Ns, x0 = f.X(k * Ts - Ts / 2), x1 = f.X(k * Ts + Ts / 2);
+      c.fillRect(x0, f.m.t, x1 - x0, f.ph);
+    }
+  }
+  const winK = () => Math.max(1, Math.min(4, Math.floor(24 / st.nbits)));
+
+  let sim, sim0;
+  function draw() {
+    readColors();
+    const K = winK();
+    // A — analogique
+    {
+      const f = frame($('cvA'), { x0: 0, x1: 20, y0: -1.5, y1: 6.5, yTicks: [-1, 0, 1, 2, 3, 4, 5, 6], xTicks: timeTicks() });
+      if (st.filt) trace(f, NG, tAt, i => sim.rxA[i], C.ana, 1, null, .35);
+      trace(f, NG, tAt, i => sim.finA[i], C.ana, st.filt ? 2.2 : 1.1);
+      origTrace(f, sim);
+      f.done();
+    }
+    // D1 — échantillonnage
+    {
+      const f = frame($('cvD1'), { x0: 0, x1: 20, y0: -0.3, y1: 5.3, yTicks: [0, 1, 2, 3, 4, 5], xTicks: timeTicks() });
+      const c = f.ctx;
+      winBand(f, sim, K);
+      if (sim.N <= 5) { c.strokeStyle = C.dig; c.globalAlpha = .18; c.setLineDash([2, 3]);
+        for (let l = 0; l < sim.L; l++) { const y = Math.round(f.Y(l * sim.q)) + .5; c.beginPath(); c.moveTo(f.m.l, y); c.lineTo(f.m.l + f.pw, y); c.stroke(); }
+        c.setLineDash([]); c.globalAlpha = 1; }
+      origTrace(f, sim);
+      const Ts = T / st.spp;
+      for (let k = 0; k < sim.Ns; k++) {
+        const x = f.X(k * Ts), y = f.Y(sim.codes[k] * sim.q);
+        c.strokeStyle = C.dig; c.globalAlpha = .45; c.lineWidth = 1; c.beginPath(); c.moveTo(x, f.Y(0)); c.lineTo(x, y); c.stroke(); c.globalAlpha = 1;
+        c.fillStyle = C.dig; c.beginPath(); c.arc(x, y, 3.2, 0, 7); c.fill();
+      }
+      f.done();
+    }
+    // D2 — trame
+    drawFrameChart(K);
+    // D3 — reconstruction
+    {
+      const f = frame($('cvD3'), { x0: 0, x1: 20, y0: -0.5, y1: 5.5, yTicks: [0, 1, 2, 3, 4, 5], xTicks: timeTicks() });
+      const c = f.ctx, Ts = T / st.spp;
+      winBand(f, sim, K);
+      trace(f, NG, tAt, i => sim.zoh[i], C.dig, 1, null, .55);
+      origTrace(f, sim);
+      trace(f, NG, tAt, i => sim.rec[i], C.dig, 2.4);
+      for (let k = 0; k < sim.Ns; k++) if (sim.rcodes[k] !== sim.codes[k]) {
+        const x = f.X(k * Ts), y = f.Y(sim.rvals[k]), y0 = f.Y(sim.codes[k] * sim.q);
+        c.strokeStyle = C.err; c.lineWidth = 1.2; c.setLineDash([3, 2]); c.beginPath(); c.moveTo(x, y0); c.lineTo(x, y); c.stroke(); c.setLineDash([]);
+        c.lineWidth = 2; c.beginPath(); c.arc(x, y, 5, 0, 7); c.stroke();
+      }
+      f.done();
+    }
+    // F — comparaison
+    {
+      const f = frame($('cvF'), { x0: 0, x1: 20, y0: -1.5, y1: 6.5, yTicks: [-1, 0, 1, 2, 3, 4, 5, 6], xTicks: timeTicks() });
+      trace(f, NG, tAt, i => sim.finA[i], C.ana, st.filt ? 2 : 1.1, null, .9);
+      origTrace(f, sim);
+      trace(f, NG, tAt, i => sim.rec[i], C.dig, 2.6);
+      f.done();
+    }
+    drawSweep();
+    updateText(K);
+  }
+
+  function drawFrameChart(K) {
+    const N = sim.N, nb = K * N;
+    const xt = [];
+    for (let j = 0; j <= K; j++) xt.push({ v: j * N, strong: true, l: j < K ? `éch. n°${(st.sel + j) % sim.Ns}` : '', lx: j * N + N / 2 });
+    for (let u = 0; u < nb; u++) if (u % N) xt.push({ v: u });
+    const f = frame($('cvD2'), { x0: 0, x1: nb, y0: -2.5, y1: 7.5, yTicks: [-2, 0, 2.5, 5, 7], yFmt: v => `${fr(v, v % 1 ? 1 : 0)} V`, xTicks: xt, top: 26 });
+    const c = f.ctx, gi = u => ((st.sel + Math.floor(u / N)) % sim.Ns) * N + (u % N);
+    // zone de décision
+    c.fillStyle = C.digS; c.fillRect(f.m.l, f.m.t, f.pw, f.Y(st.th) - f.m.t);
+    // reçu bruité
+    trace(f, nb * LB, i => Math.floor(i / LB) + (i % LB + .5) / LB, i => sim.line[gi(Math.floor(i / LB)) * LB + (i % LB)], C.dig, 1.2);
+    // émis
+    c.save(); c.strokeStyle = C.orig; c.lineWidth = 1.6; c.setLineDash([6, 4]); c.globalAlpha = .9; c.beginPath();
+    for (let u = 0; u < nb; u++) { const y = f.Y(sim.tx[gi(u)] * 5); u ? c.lineTo(f.X(u), y) : c.moveTo(f.X(u), y); c.lineTo(f.X(u + 1), y); }
+    c.stroke(); c.restore();
+    // seuil
+    c.save(); c.strokeStyle = C.err; c.lineWidth = 1.5; c.setLineDash([2, 3]);
+    const ys = Math.round(f.Y(st.th)) + .5; c.beginPath(); c.moveTo(f.m.l, ys); c.lineTo(f.m.l + f.pw, ys); c.stroke(); c.restore();
+    // décisions
+    for (let u = 0; u < nb; u++) {
+      const idx = gi(u), v = sim.line[idx * LB + LB / 2], bad = sim.rxb[idx] !== sim.tx[idx];
+      const x = f.X(u + (LB / 2 + .5) / LB), y = f.Y(Math.max(-2.4, Math.min(7.4, v)));
+      c.fillStyle = bad ? C.err : C.ok; c.strokeStyle = C.surf; c.lineWidth = 1.5;
+      c.beginPath(); c.arc(x, y, bad ? 5 : 3.6, 0, 7); c.fill(); c.stroke();
+    }
+    f.done();
+    // bits lus, au-dessus
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    for (let u = 0; u < nb; u++) {
+      const idx = gi(u), bad = sim.rxb[idx] !== sim.tx[idx];
+      c.font = `${bad ? 700 : 500} ${nb > 20 ? 11 : 13}px ${MONO}`;
+      c.fillStyle = bad ? C.err : C.ink;
+      c.fillText(String(sim.rxb[idx]), f.X(u + .5), 13);
+    }
+    c.font = `11px ${MONO}`; c.fillStyle = C.err; c.textAlign = 'right';
+    c.fillText(`seuil ${fr(st.th, 1)} V`, f.m.l + f.pw - 6, f.Y(st.th) - 9);
+  }
+
+  function drawSweep() {
+    const ymax = Math.max(1, Math.ceil(Math.max(...sweep.map(p => Math.max(p.a, p.d))) * 2 + .2) / 2);
+    const yt = []; for (let v = 0; v <= ymax + 1e-9; v += ymax > 2 ? .5 : .25) yt.push(+v.toFixed(2));
+    const xt = []; for (let s = 0; s <= 2.5 + 1e-9; s += .5) xt.push({ v: s, l: `σ = ${fr(s, 1)} V` });
+    const f = frame($('cvS'), { x0: 0, x1: 2.5, y0: 0, y1: ymax, yTicks: yt, yFmt: v => `${fr(v, 2)}`, xTicks: xt });
+    const c = f.ctx, n = sweep.length;
+    // aire numérique
+    c.fillStyle = C.digS; c.beginPath(); c.moveTo(f.X(0), f.Y(0));
+    sweep.forEach(p => c.lineTo(f.X(p.s), f.Y(p.d))); c.lineTo(f.X(2.5), f.Y(0)); c.closePath(); c.fill();
+    trace(f, n, i => sweep[i].s, i => sweep[i].a, C.ana, 2.2);
+    trace(f, n, i => sweep[i].s, i => sweep[i].d, C.dig, 2.4);
+    // falaise
+    const floor = sweep[0].d; const cliff = sweep.find(p => p.d > floor * 1.5 + 0.03);
+    if (cliff) {
+      const x = f.X(cliff.s);
+      c.save(); c.strokeStyle = C.muted; c.setLineDash([3, 3]); c.beginPath(); c.moveTo(x, f.m.t); c.lineTo(x, f.m.t + f.ph); c.stroke(); c.restore();
+      c.font = `600 12px "IBM Plex Sans", sans-serif`; c.fillStyle = C.muted; c.textAlign = 'left'; c.textBaseline = 'top';
+      c.fillText(`les bits commencent à basculer (σ ≈ ${fr(cliff.s, 1)} V)`, Math.min(x + 6, f.m.l + f.pw - 260), f.m.t + 6);
+    }
+    // position actuelle
+    const x = f.X(st.sigma);
+    c.strokeStyle = C.err; c.lineWidth = 1.5; c.beginPath(); c.moveTo(x, f.m.t); c.lineTo(x, f.m.t + f.ph); c.stroke();
+    const lerp = key => { const t = st.sigma / 0.1, i = Math.min(n - 2, Math.floor(t)), a = t - i; return sweep[i][key] * (1 - a) + sweep[i + 1][key] * a; };
+    for (const [k, col] of [['a', C.ana], ['d', C.dig]]) { c.fillStyle = col; c.strokeStyle = C.surf; c.lineWidth = 2; c.beginPath(); c.arc(x, f.Y(lerp(k)), 5, 0, 7); c.fill(); c.stroke(); }
+    // étiquettes de courbes
+    c.font = `600 12px "IBM Plex Sans", sans-serif`; c.textAlign = 'right'; c.textBaseline = 'bottom';
+    const last = sweep[n - 1];
+    c.fillStyle = C.ana; c.fillText('analogique', f.X(2.5) - 6, f.Y(last.a) - 6);
+    c.fillStyle = C.dig; c.textBaseline = last.d > last.a - .15 ? 'top' : 'bottom';
+    c.fillText('numérique', f.X(2.5) - 6, f.Y(last.d) + (c.textBaseline === 'top' ? 6 : -6));
+    f.done();
+    c.font = `11px ${MONO}`; c.fillStyle = C.muted; c.textAlign = 'left'; c.textBaseline = 'top';
+  }
+
+  function bitsHtml(code, ref, N) {
+    let s = '';
+    for (let b = N - 1; b >= 0; b--) { const v = (code >> b) & 1, x = ((ref >> b) & 1) !== v; s += `<i class="${x ? 'x' : ''}">${v}</i>`; }
+    return s;
+  }
+  function updateText(K) {
+    const N = sim.N, q = sim.q;
+    $('sigmaVal').textContent = `${fr(st.sigma)} V`;
+    const sigAC = (() => { let m = 0, s = 0; for (const v of sim.orig) m += v; m /= NG; for (const v of sim.orig) s += (v - m) ** 2; return Math.sqrt(s / NG); })();
+    $('snrHint').textContent = st.sigma > 0
+      ? `Rapport signal/bruit : ${fr(20 * Math.log10(sigAC / st.sigma), 1)} dB · marge au seuil : ${fr(Math.min(st.th, 5 - st.th) / st.sigma, 1)} σ`
+      : 'Ligne parfaite : aucun bruit.';
+    $('nbitsVal').textContent = `${N} bits`;
+    $('qHint').textContent = `${sim.L} niveaux · quantum q = 5/${sim.L} = ${fr(q * 1000, 0)} mV`;
+    $('sppVal').textContent = `${st.spp} / période`;
+    $('feHint').textContent = `fe = ${fr(st.spp * 0.1, 1)} kHz · débit = ${fr(st.spp * 0.1 * N, 1)} kbit/s`;
+    $('thVal').textContent = `${fr(st.th)} V`;
+    $('chainN').textContent = `${N} bits`;
+    $('chainTh').textContent = `${fr(st.th, 1)} V`;
+    $('chainFilt').textContent = st.filt ? 'Filtre passe-bas' : 'Récepteur (aucun traitement)';
+    $('anaNote').textContent = st.filt
+      ? 'Le filtre atténue le bruit… mais aussi les variations rapides du signal, et le bruit lent reste.'
+      : 'Tension reçue = signal + bruit. Le récepteur ne peut pas savoir quelle part est du bruit.';
+    const a = st.sel, b = (st.sel + K - 1) % sim.Ns;
+    $('winLbl').textContent = K > 1 ? `éch. ${a}–${b}` : `éch. ${a}`;
+
+    // tableau de décodage
+    let rows = '';
+    for (let j = 0; j < K; j++) {
+      const k = (st.sel + j) % sim.Ns, c0 = sim.codes[k], c1 = sim.rcodes[k], bad = c0 !== c1;
+      const d = (c1 - c0) * q;
+      rows += `<tr><td class="mono">${k}</td><td class="mono">${fr(sim.vs[k])} V</td>
+        <td class="mono bits">${bitsHtml(c0, c0, N)} = ${c0} → ${fr(c0 * q)} V</td>
+        <td class="mono bits">${bitsHtml(c1, c0, N)} = ${c1} → <span class="${bad ? 'bad' : ''}">${fr(c1 * q)} V</span></td>
+        <td class="mono ${bad ? 'bad' : ''}">${bad ? (d > 0 ? '+' : '−') + fr(Math.abs(d)) + ' V' : 'identique'}</td></tr>`;
+    }
+    $('decode').innerHTML = `<table><thead><tr><th>Éch.</th><th>Tension mesurée</th><th>Code émis</th><th>Code reçu → CNA</th><th>Écart</th></tr></thead><tbody>${rows}</tbody></table>`;
+
+    // tuiles
+    const ber = sim.errs / sim.B, pt = pTheo(st.sigma, st.th);
+    const vd = sim.errs === 0 ? ['ok', 'aucun bit faux'] : ber < 0.01 ? ['warn', 'quelques bits faux'] : ['bad', 'trop de bits faux'];
+    const win = sim.rmsD < sim.rmsA ? 'numérique' : 'analogique';
+    $('tiles').innerHTML = `
+      <div class="tile"><span class="k">Erreur analogique</span><span class="v c-ana">${fr(sim.rmsA)} V</span><span class="s">efficace, après ${st.filt ? 'filtrage' : 'réception'}</span></div>
+      <div class="tile"><span class="k">Erreur numérique</span><span class="v c-dig">${fr(sim.rmsD)} V</span><span class="s">dont ${fr(sim0.rmsD)} V de quantification et lissage</span></div>
+      <div class="tile"><span class="k">Bits erronés</span><span class="v ${sim.errs ? 'c-err' : 'c-ok'}">${sim.errs} / ${sim.B}</span><span class="s">théorie : ${pt < 1e-6 ? '< 0,0001' : fr(pt * 100, pt < 0.001 ? 4 : 2)} % par bit</span><span class="verdict ${vd[0]}">${vd[1]}</span></div>
+      <div class="tile"><span class="k">Meilleure voie</span><span class="v ${win === 'numérique' ? 'c-dig' : 'c-ana'}" style="font-size:20px;font-family:Archivo,sans-serif;font-stretch:82%;font-weight:800">${win}</span><span class="s">${sim.rmsA > 0 && sim.rmsD > 0 ? `erreur ${win === 'numérique' ? fr(sim.rmsA / sim.rmsD, 1) + ' × plus petite' : fr(sim.rmsD / sim.rmsA, 1) + ' × plus petite'}` : '—'}</span></div>`;
+
+    // observation
+    let o;
+    const s = fr(st.sigma);
+    if (st.sigma === 0) o = `Sans bruit, la voie analogique est parfaite. La voie numérique garde une petite erreur (${fr(sim0.rmsD)} V efficace) due à la quantification sur ${N} bits et à l’échantillonnage : c’est le prix à payer pour le numérique.`;
+    else if (sim.errs === 0) o = `Avec σ = ${s} V, la voie analogique arrive déformée (${fr(sim.rmsA)} V d’erreur efficace), mais aucun des ${sim.B} bits n’a franchi le seuil : le récepteur numérique retrouve exactement les codes émis, et le signal reconstruit est le même que sans bruit.`;
+    else if (ber < 0.01) o = `Avec σ = ${s} V, ${sim.errs} bit${sim.errs > 1 ? 's' : ''} sur ${sim.B} ${sim.errs > 1 ? 'ont' : 'a'} franchi le seuil : les échantillons concernés sont faux (cercles rouges), d’autant plus que le bit touché est de poids fort. Le reste du signal est intact.`;
+    else o = `Avec σ = ${s} V, le bruit est comparable à la marge de ${fr(Math.min(st.th, 5 - st.th), 1)} V autour du seuil : ${fr(ber * 100, 1)} % des bits basculent et la reconstruction s’effondre. On est passé de l’autre côté de la « falaise numérique ».`;
+    if (Math.abs(st.th - 2.5) > 0.25 && st.sigma > 0) o += ` Le seuil décalé à ${fr(st.th, 1)} V réduit la marge d’un côté : les ${st.th > 2.5 ? '« 1 »' : '« 0 »'} sont plus souvent mal lus.`;
+    $('obs').textContent = o;
+  }
+
+  // ---------- son ----------
+  // Même chaîne qu'à l'écran, recalculée à la fréquence audio.
+  // Son « signal affiché » : f = 220 Hz, boucle de 2 s = 440 périodes entières (raccord inaudible).
+  // Mélodies : synthétisées ici, puis ramenées dans la plage 0,5–4,5 V comme le capteur.
+  const FA = 220;
+  const PIECES = {
+    lune: { bpm: 126, beats: 16, ev: [
+      // Au clair de la lune (air traditionnel) : [note MIDI, début, durée] en temps
+      ...[[60,0,1],[60,1,1],[60,2,1],[62,3,1],[64,4,2],[62,6,2],[60,8,1],[64,9,1],[62,10,1],[62,11,1],[60,12,4]].map(e => [...e, 'lead']),
+      ...[[48,0,2],[55,2,2],[48,4,2],[43,6,2],[48,8,2],[43,10,2],[48,12,2],[48,14,2]].map(e => [...e, 'bass']),
+      ...[[52,0,4],[52,4,2],[47,6,2],[52,8,1],[55,9,1],[47,10,2],[52,12,4]].map(e => [...e, 'pad'])
+    ] },
+    boucle: { bpm: 112, beats: 16, ev: (() => {
+      const ch = [[57, 60, 64], [53, 57, 60], [48, 55, 64], [55, 59, 62]], pat = [0, 1, 2, 3, 2, 1, 0, 2], ev = [];
+      ch.forEach((c, bar) => {
+        pat.forEach((p, j) => ev.push([p === 3 ? c[0] + 24 : c[p] + 12, bar * 4 + j * 0.5, 0.45, 'arp']));
+        ev.push([c[0] - 12, bar * 4, 1.5, 'bass'], [c[0] - 12, bar * 4 + 2, 0.75, 'bass'], [c[0] - 12, bar * 4 + 3, 1, 'bass']);
+      });
+      [[76,0,1.5],[74,1.5,0.5],[72,2,2],[72,4,1.5],[69,5.5,0.5],[72,6,2],[71,8,1.5],[72,9.5,0.5],[74,10,2],[74,12,1],[71,13,1],[67,14,2]]
+        .forEach(e => ev.push([...e, 'lead']));
+      return ev;
+    })() }
+  };
+  const VOICES = {
+    lead: { h: [1, .45, .22, .1, .05], tau: .7, g: .55 },
+    pad:  { h: [1, .3, .12], tau: 2.5, g: .22 },
+    arp:  { h: [1, 0, .33, 0, .18, 0, .1], tau: .16, g: .22 },
+    bass: { h: [1, .35, .12], tau: .9, g: .5 }
+  };
+  const musicCache = {};
+  function renderPiece(name, sr) {
+    const key = name + sr; if (musicCache[key]) return musicCache[key];
+    const P = PIECES[name], beat = 60 / P.bpm, n = Math.round(P.beats * beat * sr), x = new Float64Array(n);
+    for (const [m, b0, d, vn] of P.ev) {
+      const V = VOICES[vn], f = 440 * 2 ** ((m - 69) / 12), i0 = Math.round(b0 * beat * sr), dur = d * beat, len = Math.round((dur + 0.08) * sr);
+      for (let j = 0; j < len; j++) {
+        const t = j / sr, env = Math.min(1, t / 0.006) * Math.exp(-t / V.tau) * (t < dur ? 1 : Math.max(0, 1 - (t - dur) / 0.08));
+        let s = 0; for (let h = 0; h < V.h.length; h++) if (V.h[h]) s += V.h[h] * Math.sin(2 * Math.PI * f * (h + 1) * t);
+        x[(i0 + j) % n] += V.g * env * s;
+      }
+    }
+    let pk = 0; for (const v of x) pk = Math.max(pk, Math.abs(v));
+    for (let i = 0; i < n; i++) x[i] = 2.5 + 2 * x[i] / pk;
+    return (musicCache[key] = x);
+  }
+  function baseWave(sr) {
+    if (st.audioSrc !== 'tone') return renderPiece(st.audioSrc, sr);
+    const n = Math.round(sr * 2), v = new Float64Array(n);
+    for (let i = 0; i < n; i++) v[i] = src(st.shape, FA * i / sr);
+    return v;
+  }
+  const audioFe = () => st.spp * FA;
+  let actx = null, master = null, cur = null, playing = null, audioKey = '', audioT = 0;
+  const keyNow = () => [st.audioSrc, st.shape, st.sigma, st.nbits, st.spp, st.th, st.filt].join('|');
+  function voltsChain(kind, sr, base, seed) {
+    if (kind === 'orig') return base;
+    const n = base.length, g = gauss(seed), v = new Float64Array(n);
+    if (kind === 'ana') {
+      for (let i = 0; i < n; i++) v[i] = base[i] + st.sigma * g();
+      return st.filt ? lowpassA(v, 1 - Math.exp(-2 * Math.PI * 4 * FA / sr)) : v;
+    }
+    const N = st.nbits, L = 1 << N, q = 5 / L, fe = audioFe(), Ns = Math.round(fe * n / sr), rv = new Float64Array(Ns);
+    for (let k = 0; k < Ns; k++) {
+      const p = k * sr / fe, i = Math.floor(p), a = p - i, x = base[i % n] * (1 - a) + base[(i + 1) % n] * a;
+      const code = Math.max(0, Math.min(L - 1, Math.round(x / q)));
+      let rc = 0;
+      for (let b = N - 1; b >= 0; b--) { const bit = (code >> b) & 1; rc = (rc << 1) | (bit * 5 + st.sigma * g() > st.th ? 1 : 0); }
+      rv[k] = rc * q;
+    }
+    for (let i = 0; i < n; i++) v[i] = rv[Math.round(i * fe / sr) % Ns];
+    const W = Math.max(2, Math.round(sr / fe)), h = Math.floor(W / 2);
+    return box(box(v, W, -h), W, W % 2 ? -h : -h + 1);
+  }
+  function makeBuffer(kind) {
+    const sr = actx.sampleRate, base = baseWave(sr), n = base.length;
+    const parts = kind === 'ab' ? ['ana', 'dig'] : [kind];
+    const buf = actx.createBuffer(1, n * parts.length, sr), out = buf.getChannelData(0);
+    parts.forEach((k, p) => {
+      const v = voltsChain(k, sr, base, 4242 + p);
+      for (let i = 0; i < n; i++) out[p * n + i] = Math.max(-1, Math.min(1, (v[i] - 2.5) / 2.5 * 0.9));
+    });
+    return buf;
+  }
+  function startSound() {
+    const t = actx.currentTime, s = actx.createBufferSource(), g = actx.createGain();
+    s.buffer = makeBuffer(playing); s.loop = true;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(1, t + 0.04);
+    s.connect(g).connect(master); s.start(t);
+    stopSound(); cur = { s, g };
+    audioKey = keyNow();
+  }
+  function stopSound() {
+    if (!cur) return;
+    const { s, g } = cur, t = actx.currentTime;
+    g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(0, t + 0.04);
+    s.stop(t + 0.06); cur = null;
+  }
+  function setPlaying(kind) {
+    playing = kind;
+    document.querySelectorAll('.play').forEach(b => {
+      const on = b.dataset.k === kind;
+      b.setAttribute('aria-pressed', on); b.querySelector('.ico').textContent = on ? '■' : '▶';
+    });
+  }
+  document.querySelectorAll('.play').forEach(b => b.addEventListener('click', () => {
+    if (!actx) {
+      const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+      actx = new AC(); master = actx.createGain(); master.gain.value = (+$('vol').value) ** 2; master.connect(actx.destination);
+    }
+    actx.resume();
+    if (playing === b.dataset.k) { stopSound(); setPlaying(null); return; }
+    setPlaying(b.dataset.k); startSound();
+  }));
+  $('vol').addEventListener('input', e => { if (master) master.gain.setTargetAtTime((+e.target.value) ** 2, actx.currentTime, 0.02); });
+  document.querySelectorAll('#asrc button').forEach(b => b.addEventListener('click', () => {
+    st.audioSrc = b.dataset.v;
+    document.querySelectorAll('#asrc button').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+    audioFollow();
+  }));
+  function audioHint() {
+    $('abSub').textContent = st.audioSrc === 'tone' ? '2 s analogique, puis 2 s numérique' : 'le morceau en analogique, puis en numérique';
+    $('feAudio').textContent = `À l’écoute : fe = ${fr(audioFe() / 1000, 1)} kHz (${st.spp} × 220 Hz), ${st.nbits} bits`;
+  }
+  function audioFollow() {
+    audioHint();
+    if (!playing || keyNow() === audioKey) return;
+    clearTimeout(audioT); audioT = setTimeout(() => { if (playing) startSound(); }, 120);
+  }
+
+  // ---------- état ----------
+  let raf = 0;
+  function update(full) {
+    sim = simulate(st, st.seed);
+    if (full) { sim0 = simulate({ ...st, sigma: 0 }, 1); computeSweep(); }
+    st.sel = Math.min(st.sel, sim.Ns - 1);
+    if (!raf) raf = requestAnimationFrame(() => { raf = 0; draw(); });
+    audioFollow();
+  }
+
+  document.querySelectorAll('#shape button').forEach(b => b.addEventListener('click', () => {
+    st.shape = b.dataset.v;
+    document.querySelectorAll('#shape button').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+    update(true);
+  }));
+  $('sigma').addEventListener('input', e => { st.sigma = +e.target.value; update(false); });
+  document.querySelectorAll('[data-sigma]').forEach(b => b.addEventListener('click', () => { st.sigma = +b.dataset.sigma; $('sigma').value = st.sigma; update(false); }));
+  $('nbits').addEventListener('input', e => { st.nbits = +e.target.value; update(true); });
+  $('spp').addEventListener('input', e => {
+    const old = st.spp; st.spp = SPP[+e.target.value];
+    st.sel = Math.round(st.sel * st.spp / old) % (P * st.spp); update(true);
+  });
+  $('th').addEventListener('input', e => { st.th = +e.target.value; update(true); });
+  $('filt').addEventListener('change', e => { st.filt = e.target.checked; update(true); });
+  $('reroll').addEventListener('click', () => { st.seed = (st.seed * 7919 + 13) % 1e6; update(false); });
+  let timer = 0;
+  $('live').addEventListener('click', () => {
+    st.live = !st.live; $('live').setAttribute('aria-pressed', st.live);
+    $('live').textContent = st.live ? 'Arrêter le direct' : 'Bruit en direct';
+    clearInterval(timer);
+    if (st.live) timer = setInterval(() => { st.seed = (st.seed + 1) % 1e6; update(false); }, 140);
+  });
+  const step = d => { st.sel = (st.sel + d * winK() + sim.Ns * 4) % sim.Ns; update(false); };
+  $('prev').addEventListener('click', () => step(-1));
+  $('next').addEventListener('click', () => step(1));
+  for (const id of ['cvD1', 'cvD3']) $(id).addEventListener('click', e => {
+    const f = frames[id]; if (!f) return;
+    const r = e.target.getBoundingClientRect(), t = f.iX(e.clientX - r.left);
+    const k = Math.round(t / (T / st.spp));
+    st.sel = ((k % sim.Ns) + sim.Ns) % sim.Ns; update(false);
+  });
+
+  // synchroniser l'état initial avec les contrôles (rechargement de page)
+  st.sigma = +$('sigma').value; st.nbits = +$('nbits').value; st.spp = SPP[+$('spp').value]; st.th = +$('th').value; st.filt = $('filt').checked;
+
+  const redraw = () => { if (sim && !raf) raf = requestAnimationFrame(() => { raf = 0; draw(); }); };
+  new ResizeObserver(redraw).observe(document.querySelector('main'));
+  try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw); } catch (e) {}
+  new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(redraw);
+  update(true);
+  audioHint();
+})();
+</script>
+
+</body></html>
