@@ -1,0 +1,1296 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MP3 décortiqué</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  --bg:#f2f5f4; --panel:#ffffff; --panel2:#f7faf9; --ink:#13201e; --muted:#5a6b67; --line:#d3dedb;
+  --teal:#0d8780; --orange:#d9631c; --noise:#c4285a; --mask:#5650cc; --ath:#7c8b88;
+  --chip:#e4edeb; --grid:rgba(19,32,30,.08); --axis:rgba(19,32,30,.45); --shade:rgba(19,32,30,.06);
+  --c-head:#7c8b88; --c-side:#a9b6b3; --c-sf:#5650cc; --c-data:#d9631c;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0d1413; --panel2:#111b1a; --ink:#e2ebe9; --muted:#93a5a1; --line:#26373a;
+    --panel:#131e1d; --teal:#3cc3b9; --orange:#ff8a3d; --noise:#ff5d8c; --mask:#a29dff; --ath:#8a9b97;
+    --chip:#1b2b29; --grid:rgba(226,235,233,.07); --axis:rgba(226,235,233,.45); --shade:rgba(226,235,233,.05);
+    --c-head:#6d7f7b; --c-side:#4b5d5a; --c-sf:#a29dff; --c-data:#ff8a3d;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0d1413; --panel:#131e1d; --panel2:#111b1a; --ink:#e2ebe9; --muted:#93a5a1; --line:#26373a;
+  --teal:#3cc3b9; --orange:#ff8a3d; --noise:#ff5d8c; --mask:#a29dff; --ath:#8a9b97;
+  --chip:#1b2b29; --grid:rgba(226,235,233,.07); --axis:rgba(226,235,233,.45); --shade:rgba(226,235,233,.05);
+  --c-head:#6d7f7b; --c-side:#4b5d5a; --c-sf:#a29dff; --c-data:#ff8a3d;
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 var(--body);margin:0}
+.wrap{max-width:1320px;margin:0 auto;padding:20px 20px 60px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;letter-spacing:-.01em}
+h1{font-size:clamp(30px,4.4vw,46px);font-weight:800;line-height:1.05}
+h1 em{font-style:normal;color:var(--orange)}
+h2{font-size:22px;font-weight:700}
+h3{font-size:15px;font-weight:700}
+p{margin:0}
+.mono,.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.small{font-size:13.5px}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+
+/* ---------- en-tête ---------- */
+.top{display:grid;grid-template-columns:1fr auto;gap:16px 28px;align-items:end;margin-bottom:18px}
+.lede{max-width:62ch;color:var(--muted);margin-top:8px}
+.src{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-end}
+.chip{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:6px 14px;cursor:pointer;font-size:14.5px}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip.file{position:relative;overflow:hidden}
+.chip.file input{position:absolute;inset:0;opacity:0;cursor:pointer}
+@media (max-width:820px){.top{grid-template-columns:1fr}.src{justify-content:flex-start}}
+
+/* ---------- bandeau bilan ---------- */
+.verdict{display:grid;grid-template-columns:1fr auto;gap:18px 28px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 20px;margin-bottom:18px}
+.sizes{display:flex;gap:22px;align-items:flex-end;flex-wrap:wrap}
+.size .lab{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.size .val{font-family:var(--display);font-weight:700;font-size:28px;line-height:1.1;font-variant-numeric:tabular-nums}
+.size.wav .val{color:var(--teal)} .size.mp3 .val{color:var(--orange)}
+.arrow{font-size:22px;color:var(--muted);padding-bottom:4px}
+.ratio{text-align:left}
+.ratio .val{font-family:var(--display);font-weight:800;font-size:44px;line-height:1}
+.ratio .sub{font-size:13.5px;color:var(--muted)}
+.bars{display:flex;flex-direction:column;gap:6px;min-width:0;grid-column:1/-1;grid-row:2}
+.sizebar{position:relative;height:14px;border-radius:4px;background:var(--chip);overflow:hidden}
+.sizebar i{position:absolute;left:0;top:0;bottom:0;border-radius:4px}
+.play{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.pbtn{border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:7px 12px;cursor:pointer;font-size:14px;display:inline-flex;gap:7px;align-items:center}
+.pbtn .dot{width:9px;height:9px;border-radius:50%}
+.pbtn[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.status{font-size:13px;color:var(--muted);min-height:1.4em;text-align:right}
+@media (max-width:980px){.verdict{grid-template-columns:1fr}.play{justify-content:flex-start}.status{text-align:left}}
+
+/* ---------- mise en page ---------- */
+.layout{display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:900px){.layout{grid-template-columns:minmax(0,1fr)}}
+aside{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:16px;max-height:calc(100vh - 24px);overflow:auto}
+@media (max-width:900px){aside{position:static;max-height:none}}
+.ctl{display:flex;flex-direction:column;gap:5px}
+.ctl label,.ctl .lbl{display:flex;justify-content:space-between;gap:8px;font-weight:700;font-size:14.5px}
+.ctl label output,.ctl .lbl output{font-family:var(--mono);font-weight:600;font-size:13.5px;color:var(--orange)}
+.ctl .help{font-size:12.8px;color:var(--muted);line-height:1.4}
+.ctl input[type=range]{width:100%;accent-color:var(--orange)}
+.ctl.off{opacity:.5}
+.seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{border:0;background:transparent;padding:7px 6px;cursor:pointer;font-size:13.5px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.presets{display:flex;flex-wrap:wrap;gap:6px}
+.presets button{border:1px solid var(--line);background:var(--panel2);border-radius:7px;padding:4px 9px;font-size:13px;cursor:pointer}
+.presets button:hover{border-color:var(--orange)}
+.presets button.danger{border-color:var(--noise);color:var(--noise)}
+.check{display:flex;gap:8px;align-items:center;font-weight:700;font-size:14.5px}
+.check input{accent-color:var(--orange);width:16px;height:16px}
+.sect-t{font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;border-bottom:1px solid var(--line);padding-bottom:4px}
+
+/* ---------- chaîne ---------- */
+.chain{display:flex;flex-wrap:wrap;gap:0;margin-bottom:18px;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.chain a{flex:1 1 120px;text-decoration:none;color:inherit;padding:10px 14px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:2px;min-width:0}
+.chain a:last-child{border-right:0}
+.chain a:hover{background:var(--panel2)}
+.chain .k{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.chain .t{font-family:var(--display);font-weight:700;font-size:15px}
+.chain .v{font-family:var(--mono);font-size:12.5px;color:var(--orange);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ---------- étapes ---------- */
+main{display:flex;flex-direction:column;gap:18px;min-width:0}
+.step{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.step-h{display:flex;gap:12px;align-items:baseline}
+.step-h .n{font-family:var(--mono);font-size:13px;color:var(--bg);background:var(--ink);border-radius:6px;padding:1px 7px}
+.step .txt{max-width:75ch;color:var(--ink)}
+.step .txt b{font-weight:700}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--muted);align-items:center}
+.legend span{display:inline-flex;gap:6px;align-items:center}
+.legend i{display:inline-block;width:16px;height:3px;border-radius:2px}
+.legend i.dash{background:repeating-linear-gradient(90deg,currentColor 0 4px,transparent 4px 7px)!important;height:2px}
+.legend label{display:inline-flex;gap:5px;align-items:center;cursor:pointer;color:var(--ink)}
+.cv{width:100%;display:block;border-radius:8px;background:var(--panel2);cursor:crosshair}
+.scroll{overflow-x:auto}
+.scroll .cv{min-width:720px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:760px){.row2{grid-template-columns:1fr}}
+.gran{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:14px}
+.gran input[type=range]{flex:1;min-width:160px;accent-color:var(--teal)}
+.facts{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13.5px}
+.facts b{font-family:var(--mono);font-weight:600;color:var(--orange)}
+.note{font-size:13.5px;color:var(--muted);border-left:3px solid var(--line);padding-left:10px;max-width:75ch}
+table.huff{border-collapse:collapse;font-size:13.5px;width:100%}
+table.huff th{font-weight:700;text-align:left;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:4px 8px;border-bottom:1px solid var(--line)}
+table.huff td{padding:3px 8px;border-bottom:1px solid var(--line);font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+table.huff td.bar{width:40%}
+table.huff td.bar i{display:block;height:9px;border-radius:3px;background:var(--orange);opacity:.8}
+.stack{display:flex;height:26px;border-radius:6px;overflow:hidden;background:var(--chip)}
+.stack i{height:100%}
+.stack-leg{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:13px}
+.stack-leg span{display:inline-flex;gap:6px;align-items:center}
+.stack-leg em{font-style:normal;width:11px;height:11px;border-radius:3px;display:inline-block}
+.stack-leg b{font-family:var(--mono);font-weight:600}
+.busy{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:14px;z-index:9}
+@media (prefers-reduced-motion:no-preference){.busy{transition:opacity .2s}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>MP3 <em>décortiqué</em></h1>
+      <p class="lede">Un encodeur MP3 simplifié, étape par étape : trames, MDCT, modèle psychoacoustique, quantification, Huffman. Réglez les seuils, écoutez, et regardez fondre le fichier… jusqu'à le massacrer.</p>
+    </div>
+    <div class="src" role="group" aria-label="Source sonore">
+      <button class="chip" id="demo-music" aria-pressed="true">Musique</button>
+      <button class="chip" id="demo-cast" aria-pressed="false">Castagnettes</button>
+      <button class="chip" id="demo-mask" aria-pressed="false">Masquage (sinus)</button>
+      <span class="chip file" id="chip-file">Importer un son…<input type="file" id="file" accept="audio/*" aria-label="Importer un fichier audio"></span>
+    </div>
+  </header>
+
+  <section class="verdict" aria-label="Bilan de compression">
+    <div class="sizes">
+      <div class="size wav"><div class="lab">WAV 16 bits</div><div class="val" id="v-wav">—</div><div class="small muted num" id="v-wav-r">705,6 kbit/s</div></div>
+      <div class="arrow">→</div>
+      <div class="size mp3"><div class="lab">MP3 estimé</div><div class="val" id="v-mp3">—</div><div class="small muted num" id="v-mp3-r">—</div></div>
+      <div class="ratio"><div class="size"><div class="lab">Rapport</div></div><div class="val num" id="v-ratio">—</div><div class="sub" id="v-snr">—</div></div>
+    </div>
+    <div class="bars">
+      <div class="sizebar" title="Taille WAV"><i id="bar-wav" style="width:100%;background:var(--teal)"></i></div>
+      <div class="sizebar" title="Taille MP3"><i id="bar-mp3" style="width:10%;background:var(--orange)"></i></div>
+      <div class="small muted" id="v-src">—</div>
+    </div>
+    <div>
+      <div class="play" role="group" aria-label="Écoute">
+        <button class="pbtn" id="p-orig" aria-pressed="false"><span class="dot" style="background:var(--teal)"></span>Original</button>
+        <button class="pbtn" id="p-dec" aria-pressed="false"><span class="dot" style="background:var(--orange)"></span>MP3</button>
+        <button class="pbtn" id="p-diff" aria-pressed="false"><span class="dot" style="background:var(--noise)"></span>Ce qui a été retiré</button>
+        <button class="pbtn" id="p-ab" title="Basculer entre original et MP3 sans perdre la position">A ⇄ B</button>
+        <button class="pbtn" id="p-stop">■ Stop</button>
+        <button class="pbtn" id="p-export" title="Original, MP3 décodé et différence en WAV, avec les réglages">⤓ Exporter (.zip)</button>
+      </div>
+      <div class="status" id="status">&nbsp;</div>
+    </div>
+  </section>
+
+  <div class="layout">
+    <aside aria-label="Réglages">
+      <div class="ctl">
+        <div class="sect-t">Préréglages</div>
+        <div class="presets">
+          <button data-p="hq">Haute qualité</button>
+          <button data-p="128">128 kbit/s</button>
+          <button data-p="64">Radio 64</button>
+          <button data-p="tel">Téléphone</button>
+          <button data-p="crush" class="danger">Massacre</button>
+        </div>
+      </div>
+
+      <div class="ctl">
+        <div class="sect-t">Pilotage</div>
+        <div class="seg" role="group" aria-label="Mode">
+          <button id="m-thr" aria-pressed="true">Par seuils</button>
+          <button id="m-rate" aria-pressed="false">Débit cible</button>
+        </div>
+        <div class="help">Par seuils : vous fixez le bruit toléré, la taille en découle. Débit cible : l'encodeur cherche lui-même le bruit toléré qui tient dans le débit.</div>
+      </div>
+
+      <div class="ctl" id="c-rate">
+        <label for="rate">Débit cible <output id="o-rate">128 kbit/s</output></label>
+        <input type="range" id="rate" min="8" max="320" step="8" value="128">
+      </div>
+
+      <div class="ctl" id="c-nmr">
+        <label for="nmr">Bruit toléré / masque <output id="o-nmr">0 dB</output></label>
+        <input type="range" id="nmr" min="-20" max="60" step="1" value="0">
+        <div class="help">0 dB : le bruit de quantification reste juste sous le seuil de masquage (inaudible en théorie). Au-delà, on l'autorise à dépasser : sur-compression.</div>
+      </div>
+
+      <div class="ctl">
+        <label for="ath">Seuil absolu d'audition <output id="o-ath">+0 dB</output></label>
+        <input type="range" id="ath" min="-20" max="70" step="1" value="0">
+        <div class="help">Tout ce qui est sous ce seuil est jugé inaudible et supprimé. Hypothèse : pleine échelle = 96 dB SPL.</div>
+      </div>
+
+      <div class="ctl">
+        <label class="check" for="masking"><input type="checkbox" id="masking" checked> Masquage fréquentiel</label>
+        <label for="spread">Étalement du masquage <output id="o-spread">×1,0</output></label>
+        <input type="range" id="spread" min="0.3" max="3" step="0.1" value="1">
+        <div class="help">Un son fort cache ses voisins en fréquence. Plus l'étalement est large, plus il en cache.</div>
+      </div>
+
+      <div class="ctl">
+        <label for="cut">Filtre passe-bas <output id="o-cut">16,0 kHz</output></label>
+        <input type="range" id="cut" min="1000" max="22050" step="250" value="16000">
+        <div class="help">Les raies au-dessus sont mises à zéro avant quantification.</div>
+      </div>
+
+      <div class="ctl">
+        <div class="lbl">Codage entropique</div>
+        <div class="seg" role="group" aria-label="Codage">
+          <button id="h-on" aria-pressed="true">Huffman</button>
+          <button id="h-off" aria-pressed="false">Longueur fixe</button>
+        </div>
+      </div>
+    </aside>
+
+    <main>
+      <nav class="chain" aria-label="Chaîne de compression">
+        <a href="#s1"><span class="k">1</span><span class="t">Trames</span><span class="v" id="ch1">—</span></a>
+        <a href="#s2"><span class="k">2</span><span class="t">MDCT</span><span class="v" id="ch2">576 raies</span></a>
+        <a href="#s3"><span class="k">3</span><span class="t">Psychoacoustique</span><span class="v" id="ch3">—</span></a>
+        <a href="#s4"><span class="k">4</span><span class="t">Quantification</span><span class="v" id="ch4">—</span></a>
+        <a href="#s5"><span class="k">5</span><span class="t">Huffman</span><span class="v" id="ch5">—</span></a>
+        <a href="#s6"><span class="k">6</span><span class="t">Flux MP3</span><span class="v" id="ch6">—</span></a>
+      </nav>
+
+      <section class="step" id="s1">
+        <div class="step-h"><span class="n">1</span><h2>Le signal, découpé en trames</h2></div>
+        <p class="txt">Le son PCM (44 100 échantillons/s, 16 bits) est traité par <b>granules de 576 échantillons</b> (13,1 ms) ; deux granules forment une <b>trame MP3 de 1152 échantillons</b> (26,1 ms). Chaque granule est analysé à travers une fenêtre de 1152 échantillons qui chevauche ses voisins de moitié. Cliquez sur la vue d'ensemble pour choisir le granule étudié dans toutes les étapes.</p>
+        <canvas class="cv" id="cv-over" style="height:84px" aria-label="Vue d'ensemble du signal"></canvas>
+        <div class="gran">
+          <label for="gsel">Granule</label>
+          <input type="range" id="gsel" min="0" max="10" value="0">
+          <span class="num" id="g-info">—</span>
+        </div>
+        <div class="legend">
+          <label><input type="checkbox" id="sh-orig" checked> <i style="background:var(--teal)"></i>original</label>
+          <label><input type="checkbox" id="sh-dec" checked> <i style="background:var(--orange)"></i>après MP3</label>
+          <label><input type="checkbox" id="sh-err"> <i style="background:var(--noise)"></i>erreur</label>
+          <span><i style="background:var(--mask);opacity:.5"></i>fenêtre d'analyse du granule</span>
+          <span style="margin-left:auto">Zoom
+            <select id="zoom" aria-label="Largeur de la fenêtre de l'oscilloscope">
+              <option value="1152">26 ms (1 trame)</option>
+              <option value="3456" selected>78 ms</option>
+              <option value="11520">261 ms</option>
+            </select></span>
+        </div>
+        <canvas class="cv" id="cv-scope" style="height:230px" aria-label="Oscilloscope"></canvas>
+      </section>
+
+      <section class="step" id="s2">
+        <div class="step-h"><span class="n">2</span><h2>La transformée : 576 raies par granule</h2></div>
+        <p class="txt">La MDCT (transformée en cosinus discrète modifiée) convertit chaque granule en <b>576 coefficients</b>, un tous les <b>38,3 Hz</b> de 0 à 22 050 Hz. Elle est réversible : sans quantification, on retrouve exactement le signal. Le vrai MP3 passe d'abord par un banc de 32 sous-bandes puis 18 raies MDCT par sous-bande (32 × 18 = 576) ; on fait ici la MDCT directement, le résultat est équivalent pour comprendre.</p>
+        <canvas class="cv" id="cv-spec-in" style="height:220px" aria-label="Spectrogramme de l'original"></canvas>
+        <p class="note">Spectrogramme MDCT de l'original : temps en abscisse, fréquence en ordonnée, couleur = énergie. Le trait vertical marque le granule choisi.</p>
+      </section>
+
+      <section class="step" id="s3">
+        <div class="step-h"><span class="n">3</span><h2>Le modèle psychoacoustique : ce que l'oreille n'entendra pas</h2></div>
+        <p class="txt">Pour chaque granule, l'encodeur calcule un <b>seuil de masquage</b> : sous ce seuil, un bruit est inaudible. Il combine le <b>seuil absolu d'audition</b> (l'oreille est sourde aux sons trop faibles, surtout en basses et en aigus) et le <b>masquage fréquentiel</b> (un son fort cache ses voisins, davantage vers les aigus). Le spectre est découpé en 22 <b>bandes de facteur d'échelle</b>, étroites en basses et larges en aigus, comme les bandes critiques de l'oreille. Chaque bande reçoit un budget de bruit.</p>
+        <div class="legend">
+          <span><i style="background:var(--teal)"></i>spectre du granule</span>
+          <span style="color:var(--ath)"><i class="dash" style="color:var(--ath)"></i><span style="color:var(--muted)">seuil absolu d'audition</span></span>
+          <span><i style="background:var(--mask);opacity:.55"></i>masquage</span>
+          <span><i style="background:var(--mask);height:4px"></i>bruit toléré par bande</span>
+          <span><i style="background:var(--noise);height:4px"></i>bruit réellement introduit</span>
+        </div>
+        <canvas class="cv" id="cv-psy" style="height:300px" aria-label="Modèle psychoacoustique du granule"></canvas>
+        <div class="facts" id="psy-facts"></div>
+      </section>
+
+      <section class="step" id="s4">
+        <div class="step-h"><span class="n">4</span><h2>La quantification : arrondir avec un pas par bande</h2></div>
+        <p class="txt">Chaque raie est divisée par un <b>pas de quantification</b> puis arrondie à un entier : c'est là que l'information est perdue. Le MP3 compresse d'abord l'amplitude (puissance 3/4) pour arrondir plus finement les petites valeurs. L'encodeur cherche, bande par bande, le <b>pas le plus grand</b> dont le bruit reste sous le budget de l'étape 3 (boucle de distorsion). Le pas s'écrit avec un <b>gain global</b> commun au granule et un <b>facteur d'échelle</b> par bande qui l'affine. Une bande dont le signal est entièrement masqué ne reçoit que des zéros.</p>
+        <div class="scroll"><canvas class="cv" id="cv-q" style="height:270px" aria-label="Valeurs quantifiées par bande"></canvas></div>
+        <div class="facts" id="q-facts"></div>
+        <p class="note">Barres : valeur entière transmise pour chaque raie (échelle logarithmique, signe conservé). Sous chaque bande : son facteur d'échelle et les bits qu'elle coûte. Dernière bande (sfb 21, au-dessus de 16 kHz) : pas de facteur d'échelle en MP3, elle subit le gain global.</p>
+        <canvas class="cv" id="cv-spec-out" style="height:220px" aria-label="Spectrogramme après décodage"></canvas>
+        <p class="note">Spectrogramme <b>après décodage</b>. En sur-compression, apparaissent des trous et des îlots qui clignotent d'un granule à l'autre : ce sont les « gazouillis » (birdies) typiques du MP3 à bas débit.</p>
+      </section>
+
+      <section class="step" id="s5">
+        <div class="step-h"><span class="n">5</span><h2>Le codage de Huffman : des codes courts pour les valeurs fréquentes</h2></div>
+        <p class="txt">Les valeurs quantifiées sont regroupées <b>par paires</b> et chaque paire reçoit un code binaire de longueur variable : les paires fréquentes, comme (0,0) ou (1,0), ont des codes très courts. Les zéros en fin de spectre ne coûtent rien, il suffit d'indiquer où ils commencent. Les valeurs ≥ 15 sont codées « 15 » plus quelques bits d'échappement. Ce codage est <b>sans perte</b>. Le vrai MP3 utilise 32 tables fixes ; ici la table est construite sur le morceau, ce qui en donne une estimation légèrement optimiste.</p>
+        <div class="row2">
+          <div><table class="huff" id="huff-t"></table></div>
+          <div class="facts" id="h-facts" style="flex-direction:column;align-items:flex-start"></div>
+        </div>
+      </section>
+
+      <section class="step" id="s6">
+        <div class="step-h"><span class="n">6</span><h2>Le flux MP3 : où partent les bits</h2></div>
+        <p class="txt">Chaque trame commence par un <b>en-tête</b> de 32 bits, puis des <b>informations annexes</b> (136 bits en mono : gain global, tables Huffman choisies…), les <b>facteurs d'échelle</b> et enfin les <b>données Huffman</b>. Le débit varie d'un granule à l'autre selon la difficulté du passage. Ce coût fixe de 168 bits par trame vaut déjà 6,4 kbit/s : à très bas débit, l'emballage pèse plus que le contenu.</p>
+        <div class="stack" id="stack"></div>
+        <div class="stack-leg" id="stack-leg"></div>
+        <canvas class="cv" id="cv-rate" style="height:160px" aria-label="Débit instantané par granule"></canvas>
+        <p class="note">Débit instantané (bits du granule ÷ 13,1 ms). Le pointillé indique le débit moyen. Un vrai encodeur à débit constant lisserait ces pics avec un « réservoir de bits » ; ici on mesure le débit moyen.</p>
+      </section>
+    </main>
+  </div>
+</div>
+<div class="busy" id="busy" hidden>Calcul…</div>
+<script>
+// ===================== Noyau DSP : MDCT, psychoacoustique, quantification, Huffman =====================
+const FS = 44100, N = 576, N2 = 1152, NF = 1024, NH = 513;
+const SFB = [0,4,8,12,16,20,24,30,36,44,52,62,74,90,110,134,162,196,238,288,342,418,576];
+const NB = 22;
+const BINHZ = FS / N2;            // largeur d'une raie MDCT ≈ 38,3 Hz
+const FFTHZ = FS / NF;            // largeur d'un bin FFT ≈ 43,1 Hz
+const SPL_OFF = 96 - 10 * Math.log10(65536); // sinus pleine échelle = 96 dB SPL
+const SF_CAP = SFB.slice(0, 21).map((_, b) => b < 11 ? 15 : 7);
+
+// ---- FFT à radix mixte (2, 3, 5) ----
+function makeFFT(n) {
+  const cs = new Float64Array(n), sn = new Float64Array(n);
+  for (let i = 0; i < n; i++) { cs[i] = Math.cos(2 * Math.PI * i / n); sn[i] = -Math.sin(2 * Math.PI * i / n); }
+  const oR = new Float64Array(n), oI = new Float64Array(n);
+  const tr = new Float64Array(8), ti = new Float64Array(8);
+  function rec(xr, xi, off, stride, m, o) {
+    if (m === 1) { oR[o] = xr[off]; oI[o] = xi[off]; return; }
+    const p = m % 2 === 0 ? 2 : m % 3 === 0 ? 3 : m % 5 === 0 ? 5 : m;
+    const q = m / p, tw = n / m;
+    for (let r = 0; r < p; r++) rec(xr, xi, off + r * stride, stride * p, q, o + r * q);
+    const TR = p <= 8 ? tr : new Float64Array(p), TI = p <= 8 ? ti : new Float64Array(p);
+    for (let k = 0; k < q; k++) {
+      for (let r = 0; r < p; r++) {
+        const yr = oR[o + r * q + k], yi = oI[o + r * q + k];
+        const id = (r * k * tw) % n, c = cs[id], s = sn[id];
+        TR[r] = yr * c - yi * s; TI[r] = yr * s + yi * c;
+      }
+      for (let s2 = 0; s2 < p; s2++) {
+        let ar = 0, ai = 0;
+        for (let r = 0; r < p; r++) {
+          const id = (r * s2 * q * tw) % n, c = cs[id], s = sn[id];
+          ar += TR[r] * c - TI[r] * s; ai += TR[r] * s + TI[r] * c;
+        }
+        oR[o + k + q * s2] = ar; oI[o + k + q * s2] = ai;
+      }
+    }
+  }
+  return (xr, xi) => { rec(xr, xi, 0, 1, n, 0); return [oR, oI]; };
+}
+const fft1152 = makeFFT(N2), fft1024 = makeFFT(NF);
+
+// ---- MDCT (576 raies, fenêtre sinus de 1152) via FFT 1152 ----
+const WIN = new Float64Array(N2);
+for (let n = 0; n < N2; n++) WIN[n] = Math.sin(Math.PI * (n + 0.5) / N2);
+const N0 = 0.5 + N / 2;
+const preC = new Float64Array(N2), preS = new Float64Array(N2), postC = new Float64Array(N), postS = new Float64Array(N);
+const zC = new Float64Array(N), zS = new Float64Array(N), phC = new Float64Array(N2), phS = new Float64Array(N2);
+for (let n = 0; n < N2; n++) {
+  preC[n] = Math.cos(Math.PI * n / N2); preS[n] = Math.sin(Math.PI * n / N2);
+  const ph = Math.PI * (n + N0) / N2; phC[n] = Math.cos(ph); phS[n] = Math.sin(ph);
+}
+for (let k = 0; k < N; k++) {
+  const t = Math.PI * N0 * (k + 0.5) / N; postC[k] = Math.cos(t); postS[k] = Math.sin(t);
+  const u = Math.PI * N0 * k / N; zC[k] = Math.cos(u); zS[k] = Math.sin(u);
+}
+const _r = new Float64Array(N2), _i = new Float64Array(N2);
+function mdct(x, off, out, oOff) {           // x[off .. off+1152) → out[oOff .. oOff+576)
+  for (let n = 0; n < N2; n++) { const v = x[off + n] * WIN[n]; _r[n] = v * preC[n]; _i[n] = -v * preS[n]; }
+  const [R, I] = fft1152(_r, _i);
+  for (let k = 0; k < N; k++) out[oOff + k] = R[k] * postC[k] + I[k] * postS[k];
+}
+function imdctAdd(X, xOff, y, yOff) {         // fenêtre + addition-recouvrement dans y[yOff .. yOff+1152)
+  for (let k = 0; k < N; k++) { const v = X[xOff + k]; _r[k] = v * zC[k]; _i[k] = -v * zS[k]; }
+  for (let k = N; k < N2; k++) { _r[k] = 0; _i[k] = 0; }
+  const [R, I] = fft1152(_r, _i);
+  for (let n = 0; n < N2; n++) y[yOff + n] += WIN[n] * (R[n] * phC[n] + I[n] * phS[n]) * 2 / N;
+}
+
+// ---- Seuil absolu d'audition (Terhardt), en dB SPL ----
+function ath(f) {
+  const k = Math.max(f, 20) / 1000;
+  return 3.64 * Math.pow(k, -0.8) - 6.5 * Math.exp(-0.6 * (k - 3.3) ** 2) + 1e-3 * k ** 4;
+}
+const bark = f => 13 * Math.atan(0.00076 * f) + 3.5 * Math.atan((f / 7500) ** 2);
+const spreadDb = dz => 15.81 + 7.5 * (dz + 0.474) - 17.5 * Math.sqrt(1 + (dz + 0.474) ** 2);
+
+// partitions de ~1/3 de Bark sur les 513 bins FFT
+const PART = [];
+(function () {
+  let j = 0;
+  while (j < NH) {
+    const z0 = bark(j * FFTHZ); let e = j + 1;
+    while (e < NH && bark(e * FFTHZ) - z0 < 0.33) e++;
+    PART.push({ lo: j, hi: e, z: bark(((j + e - 1) / 2) * FFTHZ) });
+    j = e;
+  }
+})();
+const NP = PART.length;
+const partOfBin = new Int16Array(NH);
+PART.forEach((p, i) => { for (let j = p.lo; j < p.hi; j++) partOfBin[j] = i; });
+const sfbOfBin = new Int8Array(NH).fill(-1);
+for (let j = 0; j < NH; j++) {
+  const f = j * FFTHZ;
+  for (let b = 0; b < NB; b++) if (f >= SFB[b] * BINHZ && f < SFB[b + 1] * BINHZ) sfbOfBin[j] = b;
+}
+const ATH_DB = new Float64Array(NH);
+for (let j = 0; j < NH; j++) ATH_DB[j] = ath(j * FFTHZ);
+const HANN = new Float64Array(NF);
+for (let n = 0; n < NF; n++) HANN[n] = 0.5 - 0.5 * Math.cos(2 * Math.PI * n / NF);
+
+const POW43 = new Float64Array(8207);
+for (let i = 0; i < 8207; i++) POW43[i] = Math.pow(i, 4 / 3);
+
+// ---- Analyse (indépendante des réglages) ----
+function analyse(x) {
+  const L = x.length, G = Math.ceil(L / N) + 1;
+  const xp = new Float64Array((G + 2) * N);
+  xp.set(x, N);
+  const mdc = new Float32Array(G * N), P = new Float32Array(G * NH);
+  const Ep = new Float32Array(G * NP), offF = new Float32Array(G * NP);
+  const fr = new Float64Array(NF), fi = new Float64Array(NF);
+  for (let g = 0; g < G; g++) {
+    mdct(xp, g * N, mdc, g * N);
+    const s0 = g * N + N - NF / 2;
+    for (let n = 0; n < NF; n++) { const idx = s0 + n; fr[n] = (idx >= 0 && idx < xp.length ? xp[idx] : 0) * HANN[n]; fi[n] = 0; }
+    const [R, I] = fft1024(fr, fi);
+    for (let j = 0; j < NH; j++) P[g * NH + j] = R[j] * R[j] + I[j] * I[j];
+    for (let i = 0; i < NP; i++) {
+      const p = PART[i]; let e = 0;
+      for (let j = p.lo; j < p.hi; j++) e += P[g * NH + j];
+      Ep[g * NP + i] = e;
+      // tonalité : platitude spectrale sur le voisinage
+      const a = Math.max(0, p.lo - 2), b = Math.min(NH, p.hi + 2);
+      let sl = 0, sa = 0;
+      for (let j = a; j < b; j++) { const v = P[g * NH + j] + 1e-12; sl += Math.log(v); sa += v; }
+      const n = b - a, sfm = 10 * Math.log10(Math.exp(sl / n) / (sa / n));
+      const alpha = Math.min(1, Math.max(0, (-sfm - 1) / 6));
+      const O = alpha * (14.5 + p.z) + (1 - alpha) * 8;
+      offF[g * NP + i] = Math.pow(10, -O / 10);
+    }
+  }
+  const absX = new Float32Array(G * N), xr34 = new Float32Array(G * N);
+  for (let i = 0; i < G * N; i++) { const a = Math.abs(mdc[i]); absX[i] = a; xr34[i] = Math.pow(a, 0.75); }
+  return { L, G, mdc, absX, xr34, P, Ep, offF };
+}
+
+// ---- Modèle psychoacoustique (dépend des réglages) ----
+function spreadMatrix(width) {
+  const S = new Float64Array(NP * NP);
+  for (let i = 0; i < NP; i++) for (let t = 0; t < NP; t++) {
+    const v = Math.pow(10, spreadDb((PART[t].z - PART[i].z) / width) / 10);
+    S[i * NP + t] = v < 1e-12 ? 0 : v;
+  }
+  // normalisation (comme le modèle ISO) : l'étalement ne crée pas d'énergie
+  S.norm = new Float64Array(NP);
+  for (let t = 0; t < NP; t++) { let s = 0; for (let i = 0; i < NP; i++) s += S[i * NP + t]; S.norm[t] = 1 / s; }
+  return S;
+}
+// renvoie le seuil par bin (puissance) pour un granule ; détail optionnel
+function psyGranule(A, g, prm, S, out) {
+  const M = new Float64Array(NP);
+  if (prm.masking) {
+    for (let i = 0; i < NP; i++) {
+      const e = A.Ep[g * NP + i] * A.offF[g * NP + i];
+      if (e === 0) continue;
+      const row = i * NP;
+      for (let t = 0; t < NP; t++) M[t] += e * S[row + t];
+    }
+    for (let t = 0; t < NP; t++) M[t] *= S.norm[t];
+  }
+  const athK = Math.pow(10, (prm.athOff - SPL_OFF) / 10);
+  for (let j = 0; j < NH; j++) {
+    const p = partOfBin[j], nb = PART[p].hi - PART[p].lo;
+    const m = M[p] / nb, a = Math.pow(10, ATH_DB[j] / 10) * athK;
+    out.mask[j] = m; out.ath[j] = a; out.thr[j] = Math.max(m, a);
+  }
+  return out;
+}
+function psyAll(A, prm) {
+  const S = spreadMatrix(prm.spread);
+  const ratio = new Float32Array(A.G * NB);
+  const tmp = { mask: new Float64Array(NH), ath: new Float64Array(NH), thr: new Float64Array(NH) };
+  const en = new Float64Array(NB), th = new Float64Array(NB);
+  for (let g = 0; g < A.G; g++) {
+    psyGranule(A, g, prm, S, tmp);
+    en.fill(0); th.fill(0);
+    for (let j = 0; j < NH; j++) { const b = sfbOfBin[j]; if (b < 0) continue; en[b] += A.P[g * NH + j]; th[b] += tmp.thr[j]; }
+    for (let b = 0; b < NB; b++) ratio[g * NB + b] = en[b] > 0 ? th[b] / en[b] : 1e9;
+  }
+  return { ratio, S };
+}
+
+// ---- Quantification (boucles imbriquées simplifiées) ----
+function bandNoise(A, base, a, c, s) {
+  const ist = Math.pow(2, -0.1875 * s), st = Math.pow(2, 0.25 * s);
+  let noise = 0;
+  for (let i = base + a; i < base + c; i++) {
+    const q = (A.xr34[i] * ist + 0.4054) | 0;
+    if (q > 8206) return Infinity;
+    const d = A.absX[i] - POW43[q] * st; noise += d * d;
+  }
+  return noise;
+}
+const bitsFor = v => v <= 0 ? 0 : Math.ceil(Math.log2(v + 1));
+
+function huffLengths(hist) {
+  const nodes = [];
+  for (let s = 0; s < hist.length; s++) if (hist[s] > 0) nodes.push({ w: hist[s], s });
+  const len = new Uint8Array(hist.length);
+  if (nodes.length === 0) return len;
+  if (nodes.length === 1) { len[nodes[0].s] = 1; return len; }
+  let heap = nodes.map(n => ({ w: n.w, leaves: [n.s] }));
+  while (heap.length > 1) {
+    heap.sort((a, b) => a.w - b.w);
+    const a = heap.shift(), b = heap.shift();
+    for (const s of a.leaves) len[s]++;
+    for (const s of b.leaves) len[s]++;
+    heap.push({ w: a.w + b.w, leaves: a.leaves.concat(b.leaves) });
+  }
+  return len;
+}
+function canonicalCodes(len) {
+  const syms = [];
+  for (let s = 0; s < len.length; s++) if (len[s]) syms.push(s);
+  syms.sort((a, b) => len[a] - len[b] || a - b);
+  const codes = {}; let code = 0, prev = 0;
+  for (const s of syms) { code <<= (len[s] - prev); prev = len[s]; codes[s] = code.toString(2).padStart(len[s], '0'); code++; }
+  return codes;
+}
+
+// encode : renvoie quantification + comptage de bits ; estimate=true → entropie au lieu de Huffman réel
+function encode(A, psy, prm, nmrDb, estimate) {
+  const G = A.G, k10 = Math.pow(10, nmrDb / 10);
+  const kc = Math.max(0, Math.min(N, Math.ceil(prm.cutoff / BINHZ - 0.5)));
+  const q = new Int16Array(G * N), sEff = new Float32Array(G * NB), sf = new Uint8Array(G * NB);
+  const act = new Uint8Array(G * NB), noise = new Float32Array(G * NB), eBand = new Float32Array(G * NB);
+  const gg = new Float32Array(G), sfBits = new Uint16Array(G), pairEnd = new Uint16Array(G);
+  const maxq = new Uint16Array(G), nnz = new Uint16Array(G), nesc = new Uint16Array(G);
+  const hist = new Float64Array(256);
+  const need = new Float64Array(NB);
+  for (let g = 0; g < G; g++) {
+    const base = g * N; let any = false;
+    for (let b = 0; b < NB; b++) {
+      const a = SFB[b], c = Math.min(SFB[b + 1], kc);
+      let E = 0, mx = 0;
+      for (let i = base + a; i < base + c; i++) { E += A.absX[i] * A.absX[i]; if (A.absX[i] > mx) mx = A.absX[i]; }
+      eBand[g * NB + b] = E;
+      const rr = psy.ratio[g * NB + b] * k10;
+      if (a >= c || E === 0 || rr >= 1) continue;
+      const xmin = rr * E, m34 = Math.pow(mx, 0.75);
+      let lo = Math.ceil(-Math.log2(8205.5 / m34) / 0.1875), hi = Math.ceil(-Math.log2(0.5946 / m34) / 0.1875) + 1;
+      if (bandNoise(A, base, a, c, lo) <= xmin) {
+        while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (bandNoise(A, base, a, c, mid) <= xmin) lo = mid; else hi = mid; }
+      }
+      need[b] = lo; act[g * NB + b] = 1; any = true;
+    }
+    if (!any) { gg[g] = NaN; continue; }
+    let G0 = -Infinity;
+    for (let b = 0; b < NB; b++) if (act[g * NB + b]) G0 = Math.max(G0, need[b]);
+    for (let b = 0; b < NB; b++) if (act[g * NB + b]) G0 = Math.min(G0, b < 21 ? need[b] + 2 * SF_CAP[b] : need[b]);
+    gg[g] = G0;
+    let m1 = 0, m2 = 0;
+    for (let b = 0; b < NB; b++) {
+      let f = 0;
+      if (b < 21 && act[g * NB + b]) f = Math.min(SF_CAP[b], Math.max(0, Math.ceil((G0 - need[b]) / 2)));
+      sf[g * NB + b] = f; const s = G0 - 2 * f; sEff[g * NB + b] = s;
+      if (b < 11) m1 = Math.max(m1, f); else if (b < 21) m2 = Math.max(m2, f);
+      const a = SFB[b], c = Math.min(SFB[b + 1], kc);
+      const ist = Math.pow(2, -0.1875 * s), st = Math.pow(2, 0.25 * s);
+      let nz = 0;
+      for (let k = a; k < c; k++) {
+        const i = base + k;
+        let v = (A.xr34[i] * ist + 0.4054) | 0; if (v > 8206) v = 8206;
+        const d = A.absX[i] - POW43[v] * st; nz += d * d;
+        q[i] = A.mdc[i] < 0 ? -v : v;
+      }
+      noise[g * NB + b] = nz;
+    }
+    sfBits[g] = 11 * Math.min(4, bitsFor(m1)) + 10 * Math.min(3, bitsFor(m2));
+    let last = -1, mq = 0, cnt = 0;
+    for (let k = 0; k < N; k++) { const v = Math.abs(q[base + k]); if (v) { last = k; cnt++; if (v > mq) mq = v; } }
+    const pe = (last + 2) & ~1;
+    pairEnd[g] = pe; maxq[g] = mq; nnz[g] = cnt;
+    let esc = 0;
+    for (let k = 0; k < pe; k += 2) {
+      const u = Math.abs(q[base + k]), v = Math.abs(q[base + k + 1]);
+      if (u >= 15) esc++; if (v >= 15) esc++;
+      hist[Math.min(u, 15) * 16 + Math.min(v, 15)]++;
+    }
+    nesc[g] = esc;
+  }
+  // comptage des bits
+  const frames = Math.ceil(G / 2);
+  const dataBits = new Float64Array(G), fixBits = new Float64Array(G);
+  let len = null, totalH = 0;
+  for (let s = 0; s < 256; s++) totalH += hist[s];
+  if (estimate) {
+    let H = 0; for (let s = 0; s < 256; s++) if (hist[s]) H -= hist[s] * Math.log2(hist[s] / totalH);
+    let extra = 0; for (let g = 0; g < G; g++) extra += nnz[g] + nesc[g] * (maxq[g] >= 15 ? bitsFor(maxq[g] - 15) : 0);
+    let sfb = 0; for (let g = 0; g < G; g++) sfb += sfBits[g];
+    let fix = 0; for (let g = 0; g < G; g++) fix += pairEnd[g] * bitsFor(maxq[g]) + nnz[g];
+    const data = prm.huff ? H + extra : fix;
+    return { total: frames * 168 + sfb + data };
+  }
+  len = huffLengths(hist);
+  for (let g = 0; g < G; g++) {
+    const base = g * N, lb = maxq[g] >= 15 ? bitsFor(maxq[g] - 15) : 0;
+    let b = nnz[g] + nesc[g] * lb;
+    for (let k = 0; k < pairEnd[g]; k += 2) {
+      const u = Math.min(Math.abs(q[base + k]), 15), v = Math.min(Math.abs(q[base + k + 1]), 15);
+      b += len[u * 16 + v];
+    }
+    dataBits[g] = b;
+    fixBits[g] = pairEnd[g] * bitsFor(maxq[g]) + nnz[g];
+  }
+  let sH = 0, sF = 0, sS = 0;
+  for (let g = 0; g < G; g++) { sH += dataBits[g]; sF += fixBits[g]; sS += sfBits[g]; }
+  const data = prm.huff ? sH : sF;
+  const bits = { header: frames * 32, side: frames * 136, sf: sS, data, huff: sH, fixed: sF };
+  bits.total = bits.header + bits.side + bits.sf + bits.data;
+  return { q, sEff, sf, act, noise, eBand, gg, sfBits, pairEnd, maxq, nnz, nesc, hist, len,
+           dataBits: prm.huff ? dataBits : fixBits, bits, kc, nmrDb, frames };
+}
+
+function decode(A, E) {
+  const G = A.G, L = A.L;
+  const deq = new Float32Array(G * N), y = new Float64Array((G + 2) * N);
+  for (let g = 0; g < G; g++) {
+    const base = g * N; let any = false;
+    for (let b = 0; b < NB; b++) {
+      const st = Math.pow(2, 0.25 * E.sEff[g * NB + b]);
+      for (let k = SFB[b]; k < SFB[b + 1]; k++) {
+        const v = E.q[base + k];
+        if (v) { any = true; deq[base + k] = (v < 0 ? -POW43[-v] : POW43[v]) * st; }
+      }
+    }
+    if (any) imdctAdd(deq, base, y, g * N);
+  }
+  const out = new Float32Array(L);
+  for (let n = 0; n < L; n++) out[n] = y[n + N];
+  return { deq, out };
+}
+
+if (typeof module !== 'undefined') module.exports = { analyse, psyAll, encode, decode, mdct, imdctAdd, FS, N, N2 };
+
+// ===================== Interface =====================
+const $ = id => document.getElementById(id);
+const fr1 = v => v.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const fr0 = v => Math.round(v).toLocaleString('fr-FR');
+function fmtBytes(b) {
+  if (b >= 1e6) return fr1(b / 1e6).replace(/,0$/, '') + ' Mo';
+  if (b >= 1e4) return fr0(b / 1e3) + ' ko';
+  return fr1(b / 1e3) + ' ko';
+}
+
+const S = {
+  x: null, name: '', desc: '', A: null, P: null, E: null, D: null, diff: null,
+  g: 0, mode: 'rate', psyDirty: true,
+  prm: { athOff: 0, masking: true, spread: 1, cutoff: 16000, huff: true },
+  nmr: 0, rate: 128, specIn: null, specOut: null, overBase: null, refDb: 0
+};
+
+// ---------- sons de démonstration ----------
+function rng(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296) * 2 - 1; }
+function genMusic() {
+  const dur = 8, L = dur * FS, x = new Float32Array(L), r = rng(7);
+  const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+  const chords = [[48, 52, 55, 60, 64], [45, 48, 52, 57, 60], [41, 45, 48, 53, 57], [43, 47, 50, 55, 59]];
+  const pat = [0, 2, 3, 4, 3, 2, 1, 3];
+  const add = (t0, fn, len) => { const s0 = Math.round(t0 * FS); for (let i = 0; i < len && s0 + i < L; i++) x[s0 + i] += fn(i, i / FS); };
+  for (let bar = 0; bar < 4; bar++) {
+    const ch = chords[bar], tb = bar * 2;
+    for (let e = 0; e < 8; e++) {               // arpège de guitare (Karplus-Strong)
+      const f = hz(ch[pat[e]]), p = Math.round(FS / f), buf = new Float64Array(p);
+      let prev = 0; for (let i = 0; i < p; i++) { prev = 0.5 * prev + 0.5 * r(); buf[i] = prev; }
+      add(tb + e * 0.25, (i) => { const k = i % p, v = buf[k]; buf[k] = 0.4985 * (buf[k] + buf[(k + 1) % p]); return 0.32 * v; }, FS * 1.1);
+    }
+    for (let bt = 0; bt < 4; bt++) {
+      const t = tb + bt * 0.5, fb = hz(ch[0] - 12);
+      add(t, (i, s) => 0.28 * Math.exp(-s * 3.5) * (Math.sin(2 * Math.PI * fb * s) + 0.35 * Math.sin(4 * Math.PI * fb * s)), FS * 0.5);
+      if (bt % 2 === 0) add(t, (i, s) => 0.55 * Math.exp(-s * 9) * Math.sin(2 * Math.PI * (45 * s + 75 * (1 - Math.exp(-s * 30)) / 30)), FS * 0.4);
+      else { let lp = 0; add(t, (i, s) => { lp = 0.6 * lp + 0.4 * r(); return Math.exp(-s * 16) * (0.3 * lp + 0.12 * Math.sin(2 * Math.PI * 190 * s)); }, FS * 0.3); }
+    }
+    for (let e = 0; e < 8; e++) { let pr = 0; add(tb + e * 0.25, (i, s) => { const n = r(), h = n - pr; pr = n; return 0.1 * Math.exp(-s * (e % 2 ? 22 : 55)) * h; }, FS * 0.2); }
+  }
+  return norm(x, 0.85);
+}
+function genCast() {
+  const dur = 5, L = dur * FS, x = new Float32Array(L), r = rng(3);
+  for (let i = 0; i < L; i++) x[i] = 0.0002 * r();
+  const times = [0.4, 0.62, 0.78, 1.3, 1.42, 1.9, 2.2, 2.33, 2.46, 3.1, 3.6, 3.71, 4.2, 4.33];
+  for (const t of times) {
+    const s0 = Math.round(t * FS), ph = [r() * 3, r() * 3, r() * 3];
+    for (let i = 0; i < FS * 0.04 && s0 + i < L; i++) {
+      const s = i / FS;
+      x[s0 + i] += Math.exp(-s * 220) * (0.4 * Math.sin(2 * Math.PI * 2150 * s + ph[0]) + 0.3 * Math.sin(2 * Math.PI * 3420 * s + ph[1]) + 0.25 * Math.sin(2 * Math.PI * 5650 * s + ph[2])) + 0.5 * Math.exp(-s * 500) * r();
+    }
+  }
+  return norm(x, 0.85);
+}
+function genMask() {
+  const dur = 4, L = dur * FS, x = new Float32Array(L), r = rng(11);
+  for (let i = 0; i < L; i++) {
+    const t = i / FS;
+    x[i] = 0.5 * Math.sin(2 * Math.PI * 1000 * t) + 0.006 * Math.sin(2 * Math.PI * 1150 * t)
+         + 0.006 * Math.sin(2 * Math.PI * 4000 * t) + 0.0016 * Math.sin(2 * Math.PI * 15000 * t) + 0.0004 * r();
+  }
+  return x;
+}
+function norm(x, pk) { let m = 0; for (const v of x) m = Math.max(m, Math.abs(v)); const k = pk / (m || 1); for (let i = 0; i < x.length; i++) x[i] *= k; return x; }
+
+const DEMOS = {
+  'demo-music': { gen: genMusic, name: 'Musique de démonstration', desc: 'arpèges de guitare, basse, grosse caisse, caisse claire, charleston' },
+  'demo-cast': { gen: genCast, name: 'Castagnettes', desc: 'attaques très brèves dans le silence : idéal pour entendre le pré-écho' },
+  'demo-mask': { gen: genMask, name: 'Masquage (sinus)', desc: 'sinus fort à 1 kHz + sinus faible à 1,15 kHz (masqué) + sinus faible à 4 kHz (audible) + sinus très faible à 15 kHz (sous le seuil d\'audition)' }
+};
+
+// ---------- calcul ----------
+let busyT = null;
+function busy(on) { $('busy').hidden = !on; }
+function loadSource(x, name, desc) {
+  S.x = x; S.name = name; S.desc = desc;
+  busy(true);
+  setTimeout(() => {
+    S.A = analyse(x); S.psyDirty = true; S.specIn = null;
+    let best = 0, bg = 0;
+    for (let g = 0; g < S.A.G; g++) { let e = 0; for (let k = 0; k < N; k++) e += S.A.absX[g * N + k] ** 2; if (e > best) { best = e; bg = g; } }
+    S.g = bg;
+    let mx = 0; for (let i = 0; i < S.A.absX.length; i++) if (S.A.absX[i] > mx) mx = S.A.absX[i];
+    S.refDb = 20 * Math.log10(mx || 1);
+    $('gsel').max = S.A.G - 1; $('gsel').value = S.g;
+    compute(true);
+  }, 20);
+}
+function schedule() { clearTimeout(busyT); busy(true); busyT = setTimeout(() => compute(false), 60); }
+function compute(fresh) {
+  if (!S.A) return;
+  const A = S.A;
+  if (S.psyDirty) { S.P = psyAll(A, S.prm); S.psyDirty = false; }
+  const dur = A.L / FS;
+  if (S.mode === 'rate') {
+    const target = S.rate * 1000 * dur;
+    const est = n => encode(A, S.P, S.prm, n, true).total;
+    let lo = -30, hi = 90;
+    if (est(hi) > target) S.nmr = hi;
+    else if (est(lo) < target) S.nmr = lo;
+    else {
+      for (let it = 0; it < 10; it++) { const m = (lo + hi) / 2; if (est(m) > target) lo = m; else hi = m; }
+      S.nmr = hi;
+    }
+  }
+  S.E = encode(A, S.P, S.prm, S.nmr, false);
+  S.D = decode(A, S.E);
+  const L = A.L, d = new Float32Array(L);
+  let se = 0, sd = 0;
+  for (let i = 0; i < L; i++) { d[i] = S.D.out[i] - S.x[i]; se += S.x[i] * S.x[i]; sd += d[i] * d[i]; }
+  S.diff = d; S.snr = sd > 0 ? 10 * Math.log10(se / sd) : Infinity;
+  S.specOut = null; S.overBase = null;
+  bufs.dec = bufs.diff = null; if (fresh) bufs.orig = null;
+  busy(false);
+  updateTexts(); drawAll();
+  if (fresh) { if (player.kind) stopPlay(); }
+  else if (player.kind === 'dec' || player.kind === 'diff') play(player.kind, true);
+}
+
+// ---------- textes ----------
+function updateTexts() {
+  const A = S.A, E = S.E, dur = A.L / FS;
+  const wavB = A.L * 2 + 44, mp3B = E.bits.total / 8;
+  $('v-wav').textContent = fmtBytes(wavB);
+  $('v-mp3').textContent = fmtBytes(mp3B);
+  const kbps = E.bits.total / dur / 1000;
+  $('v-mp3-r').textContent = fr1(kbps) + ' kbit/s' + (S.mode === 'rate' ? ' (cible ' + S.rate + ')' : '');
+  $('v-ratio').textContent = fr1(wavB / mp3B) + ' : 1';
+  $('v-snr').textContent = 'RSB ' + (isFinite(S.snr) ? fr1(S.snr) + ' dB' : '∞') + ' · bruit toléré ' + (S.nmr >= 0 ? '+' : '') + fr1(S.nmr) + ' dB';
+  $('bar-mp3').style.width = Math.max(0.4, Math.min(100, 100 * mp3B / wavB)) + '%';
+  $('v-src').textContent = S.name + ' · ' + fr1(dur) + ' s mono — ' + S.desc;
+  // chaîne
+  let masked = 0, tot = 0, zeros = 0, raies = 0;
+  for (let g = 0; g < A.G; g++) for (let b = 0; b < NB; b++) { if (E.eBand[g * NB + b] > 0) { tot++; if (!E.act[g * NB + b]) masked++; } }
+  for (let i = 0; i < E.q.length; i++) { raies++; if (!E.q[i]) zeros++; }
+  $('ch1').textContent = fr0(E.frames) + ' trames';
+  $('ch3').textContent = fr0(100 * masked / (tot || 1)) + ' % bandes masquées';
+  $('ch4').textContent = fr0(100 * zeros / raies) + ' % de zéros';
+  $('ch5').textContent = fr0(E.bits.data / 1000) + ' kbit';
+  $('ch6').textContent = fr1(kbps) + ' kbit/s';
+  // réglages affichés
+  $('o-nmr').textContent = (S.nmr >= 0 ? '+' : '') + fr1(S.nmr).replace(/,0$/, '') + ' dB' + (S.mode === 'rate' ? ' (auto)' : '');
+  $('nmr').value = Math.round(S.nmr);
+  $('o-rate').textContent = S.mode === 'rate' ? S.rate + ' kbit/s' : '(obtenu : ' + fr0(kbps) + ')';
+  $('c-nmr').classList.toggle('off', S.mode === 'rate'); $('nmr').disabled = S.mode === 'rate';
+  $('c-rate').classList.toggle('off', S.mode !== 'rate'); $('rate').disabled = S.mode !== 'rate';
+  // Huffman
+  const hist = E.hist; let totP = 0; for (let s = 0; s < 256; s++) totP += hist[s];
+  const order = [...Array(256).keys()].filter(s => hist[s] > 0).sort((a, b) => hist[b] - hist[a]).slice(0, 12);
+  const codes = canonicalCodes(E.len), maxF = order.length ? hist[order[0]] : 1;
+  const lab = s => '(' + ((s >> 4) === 15 ? '15+' : (s >> 4)) + ',' + ((s & 15) === 15 ? '15+' : (s & 15)) + ')';
+  let h = '<tr><th>Paire</th><th>Fréquence</th><th></th><th>Bits</th><th>Code</th></tr>';
+  for (const s of order) {
+    const c = codes[s] || '';
+    h += `<tr><td>${lab(s)}</td><td>${fr1(100 * hist[s] / totP)} %</td><td class="bar"><i style="width:${(100 * hist[s] / maxF).toFixed(1)}%"></i></td><td>${E.len[s]}</td><td>${c.length > 16 ? c.slice(0, 15) + '…' : c}</td></tr>`;
+  }
+  $('huff-t').innerHTML = totP ? h : '<tr><td>Aucune valeur non nulle à coder : tout a été supprimé.</td></tr>';
+  const gain = E.bits.fixed > 0 ? 100 * (1 - E.bits.huff / E.bits.fixed) : 0;
+  $('h-facts').innerHTML =
+    `<span>Paires codées : <b>${fr0(totP)}</b></span>` +
+    `<span>Symboles distincts : <b>${[...hist].filter(v => v > 0).length} / 256</b></span>` +
+    `<span>Avec Huffman : <b>${fr1(E.bits.huff / 1000)} kbit</b> (${totP ? fr1(E.bits.huff / totP) : '0'} bits/paire, signes inclus)</span>` +
+    `<span>En longueur fixe : <b>${fr1(E.bits.fixed / 1000)} kbit</b></span>` +
+    `<span>Économie due à Huffman : <b>${fr0(gain)} %</b></span>` +
+    `<span class="muted small">Le codage choisi dans les réglages (${S.prm.huff ? 'Huffman' : 'longueur fixe'}) est celui compté dans la taille.</span>`;
+  // pile de bits
+  const B = E.bits, parts = [['En-têtes', B.header, 'var(--c-head)'], ['Infos annexes', B.side, 'var(--c-side)'], ['Facteurs d\'échelle', B.sf, 'var(--c-sf)'], ['Données ' + (S.prm.huff ? 'Huffman' : 'longueur fixe'), B.data, 'var(--c-data)']];
+  $('stack').innerHTML = parts.map(p => `<i style="width:${100 * p[1] / B.total}%;background:${p[2]}" title="${p[0]}"></i>`).join('');
+  $('stack-leg').innerHTML = parts.map(p => `<span><em style="background:${p[2]}"></em>${p[0]} <b>${fr1(p[1] / dur / 1000)} kbit/s</b> <span class="muted">(${fr0(100 * p[1] / B.total)} %)</span></span>`).join('');
+  granTexts();
+}
+function granTexts() {
+  const A = S.A, E = S.E, g = S.g;
+  $('g-info').textContent = 'n° ' + g + ' · t = ' + fr0(g * N / FS * 1000) + ' ms · trame ' + Math.floor(g / 2);
+  let act = 0, msk = 0, cut = 0;
+  for (let b = 0; b < NB; b++) {
+    if (SFB[b] >= E.kc) cut++;
+    else if (E.act[g * NB + b]) act++; else if (E.eBand[g * NB + b] > 0) msk++;
+  }
+  const bitsG = E.dataBits[g] + E.sfBits[g] + 84;
+  $('psy-facts').innerHTML = `<span>Bandes à coder : <b>${act}</b></span><span>Bandes entièrement masquées : <b>${msk}</b></span><span>Bandes coupées par le passe-bas : <b>${cut}</b></span><span>Bruit toléré : <b>${S.nmr >= 0 ? '+' : ''}${fr1(S.nmr)} dB</b> par rapport au masque</span>`;
+  $('q-facts').innerHTML = `<span>Gain global : <b>${isNaN(E.gg[g]) ? '—' : fr0(E.gg[g] + 210)}</b></span><span>Raies non nulles : <b>${E.nnz[g]}/576</b></span><span>Plus grande valeur : <b>${E.maxq[g]}</b></span><span>Bits du granule : <b>${fr0(bitsG)}</b> (≈ ${fr0(bitsG / (N / FS) / 1000)} kbit/s)</span>`;
+}
+
+// ---------- dessin ----------
+let COL = {};
+function readCols() {
+  const cs = getComputedStyle(document.documentElement);
+  for (const k of ['ink', 'muted', 'line', 'teal', 'orange', 'noise', 'mask', 'ath', 'grid', 'axis', 'shade', 'panel2', 'bg']) COL[k] = cs.getPropertyValue('--' + k).trim();
+}
+function setup(cv) {
+  const dpr = window.devicePixelRatio || 1, r = cv.getBoundingClientRect();
+  const w = Math.max(10, r.width), h = Math.max(10, r.height);
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+  const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, w, h);
+  return { c, w, h };
+}
+function drawAll() { if (!S.E) return; readCols(); drawOver(); drawScope(); drawSpec('cv-spec-in', false); drawSpec('cv-spec-out', true); drawPsy(); drawQ(); drawRate(); }
+function drawGran() { if (!S.E) return; granTexts(); drawOver(); drawScope(); drawSpec('cv-spec-in', false); drawSpec('cv-spec-out', true); drawPsy(); drawQ(); drawRate(); }
+
+function drawOver() {
+  const cv = $('cv-over'), { c, w, h } = setup(cv), L = S.A.L;
+  const key = w + 'x' + h;
+  if (!S.overBase || S.overBase.key !== key) {
+    const off = document.createElement('canvas'), dpr = window.devicePixelRatio || 1;
+    off.width = Math.round(w * dpr); off.height = Math.round(h * dpr);
+    const o = off.getContext('2d'); o.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const mid = h / 2, sc = h / 2 - 4;
+    const env = (arr, col) => {
+      o.fillStyle = col; o.beginPath();
+      const W = Math.floor(w);
+      for (let px = 0; px < W; px++) {
+        const a = Math.floor(px / W * L), b = Math.max(a + 1, Math.floor((px + 1) / W * L));
+        let mn = 0, mx = 0; for (let i = a; i < b; i++) { const v = arr[i]; if (v < mn) mn = v; if (v > mx) mx = v; }
+        o.rect(px, mid - mx * sc, 1, Math.max(1, (mx - mn) * sc));
+      }
+      o.fill();
+    };
+    env(S.x, COL.teal); env(S.diff, COL.noise);
+    S.overBase = { key, off };
+  }
+  c.drawImage(S.overBase.off, 0, 0, w, h);
+  const g0 = (S.g * N - N) / L * w, g1 = (S.g * N + N) / L * w;
+  c.fillStyle = COL.mask; c.globalAlpha = 0.18; c.fillRect(g0, 0, Math.max(2, g1 - g0), h); c.globalAlpha = 1;
+  c.strokeStyle = COL.mask; c.lineWidth = 1.5; c.beginPath(); c.moveTo((g0 + g1) / 2, 0); c.lineTo((g0 + g1) / 2, h); c.stroke();
+  if (player.kind) {
+    const px = playPos() / (L / FS) * w;
+    c.strokeStyle = COL.ink; c.lineWidth = 2; c.beginPath(); c.moveTo(px, 0); c.lineTo(px, h); c.stroke();
+  }
+}
+
+function drawScope() {
+  const cv = $('cv-scope'), { c, w, h } = setup(cv), L = S.A.L;
+  const W = +$('zoom').value, ctr = S.g * N, a = Math.round(ctr - W / 2), b = a + W;
+  const m = { l: 44, r: 10, t: 10, b: 22 }, pw = w - m.l - m.r, ph = h - m.t - m.b;
+  let amp = 0.01; for (let i = Math.max(0, a); i < Math.min(L, b); i++) amp = Math.max(amp, Math.abs(S.x[i]), Math.abs(S.D.out[i]));
+  amp *= 1.08;
+  const X = n => m.l + (n - a) / W * pw, Y = v => m.t + ph / 2 - v / amp * ph / 2;
+  // fenêtre d'analyse
+  c.fillStyle = COL.mask; c.globalAlpha = 0.12; c.beginPath(); c.moveTo(X(ctr - N), Y(0));
+  for (let n = 0; n <= N2; n += 8) c.lineTo(X(ctr - N + n), Y(amp * Math.sin(Math.PI * (n + 0.5) / N2) * 0.98));
+  c.lineTo(X(ctr + N), Y(0)); c.fill(); c.globalAlpha = 1;
+  // grille granules / trames
+  c.font = '11px ' + getComputedStyle(document.body).getPropertyValue('--mono');
+  for (let k = Math.ceil(a / N); k * N <= b; k++) {
+    const x = X(k * N); if (x < m.l || x > w - m.r) continue;
+    c.strokeStyle = k % 2 === 0 ? COL.axis : COL.grid; c.lineWidth = 1; c.setLineDash(k % 2 === 0 ? [] : [3, 3]);
+    c.beginPath(); c.moveTo(x, m.t); c.lineTo(x, m.t + ph); c.stroke(); c.setLineDash([]);
+  }
+  c.strokeStyle = COL.grid; c.beginPath(); c.moveTo(m.l, Y(0)); c.lineTo(w - m.r, Y(0)); c.stroke();
+  c.fillStyle = COL.muted; c.textAlign = 'right'; c.textBaseline = 'middle';
+  for (const v of [amp / 1.08, 0, -amp / 1.08]) c.fillText(v.toFixed(Math.abs(v) < 0.1 && v ? 3 : 2).replace('.', ','), m.l - 6, Y(v));
+  c.textAlign = 'center'; c.textBaseline = 'top';
+  const msW = W / FS * 1000, stepMs = msW > 150 ? 50 : msW > 40 ? 10 : 5;
+  for (let t = Math.ceil(a / FS * 1000 / stepMs) * stepMs; t <= b / FS * 1000; t += stepMs) { const x = X(t / 1000 * FS); if (x >= m.l + 20 && x <= w - m.r - 26) c.fillText(fr0(t) + ' ms', x, m.t + ph + 5); }
+  const trace = (arr, col, lw) => {
+    c.strokeStyle = col; c.lineWidth = lw; c.beginPath();
+    const spp = W / pw;
+    if (spp <= 1.5) { let st = false; for (let n = a; n < b; n++) { const v = n >= 0 && n < L ? arr[n] : 0; if (!st) { c.moveTo(X(n), Y(v)); st = true; } else c.lineTo(X(n), Y(v)); } }
+    else for (let px = 0; px < pw; px++) { const n0 = Math.floor(a + px * spp), n1 = Math.floor(a + (px + 1) * spp); let mn = Infinity, mx = -Infinity; for (let n = n0; n < n1; n++) { const v = n >= 0 && n < L ? arr[n] : 0; if (v < mn) mn = v; if (v > mx) mx = v; } c.moveTo(m.l + px + .5, Y(mx)); c.lineTo(m.l + px + .5, Y(mn) + 0.5); }
+    c.stroke();
+  };
+  c.save(); c.beginPath(); c.rect(m.l, m.t, pw, ph); c.clip();
+  if ($('sh-orig').checked) trace(S.x, COL.teal, 1.6);
+  if ($('sh-dec').checked) trace(S.D.out, COL.orange, 1.3);
+  if ($('sh-err').checked) trace(S.diff, COL.noise, 1.3);
+  c.restore();
+}
+
+// palette du spectrogramme (fond sombre dans les deux thèmes)
+const LUT = (() => {
+  const st = [[0, [10, 16, 18]], [0.3, [14, 70, 84]], [0.55, [30, 160, 150]], [0.78, [240, 140, 60]], [1, [255, 240, 190]]];
+  const t = new Uint8Array(256 * 3);
+  for (let i = 0; i < 256; i++) {
+    const v = i / 255; let k = 0; while (k < st.length - 2 && v > st[k + 1][0]) k++;
+    const [p0, c0] = st[k], [p1, c1] = st[k + 1], f = (v - p0) / (p1 - p0);
+    for (let j = 0; j < 3; j++) t[i * 3 + j] = Math.round(c0[j] + (c1[j] - c0[j]) * f);
+  }
+  return t;
+})();
+function specImage(arr) {
+  const G = S.A.G, cv = document.createElement('canvas'); cv.width = G; cv.height = N;
+  const c = cv.getContext('2d'), img = c.createImageData(G, N), d = img.data;
+  for (let g = 0; g < G; g++) for (let k = 0; k < N; k++) {
+    const v = Math.abs(arr[g * N + k]), db = v > 0 ? 20 * Math.log10(v) - S.refDb : -200;
+    const u = Math.max(0, Math.min(255, Math.round((db + 85) / 85 * 255)));
+    const p = ((N - 1 - k) * G + g) * 4;
+    d[p] = LUT[u * 3]; d[p + 1] = LUT[u * 3 + 1]; d[p + 2] = LUT[u * 3 + 2]; d[p + 3] = 255;
+  }
+  c.putImageData(img, 0, 0); return cv;
+}
+function drawSpec(id, out) {
+  const cv = $(id), { c, w, h } = setup(cv);
+  if (out) { if (!S.specOut) S.specOut = specImage(S.D.deq); } else if (!S.specIn) S.specIn = specImage(S.A.mdc);
+  const m = { l: 44, r: 6, t: 6, b: 18 }, pw = w - m.l - m.r, ph = h - m.t - m.b;
+  c.imageSmoothingEnabled = true; c.drawImage(out ? S.specOut : S.specIn, m.l, m.t, pw, ph);
+  c.font = '11px ' + getComputedStyle(document.body).getPropertyValue('--mono');
+  c.fillStyle = COL.muted; c.textAlign = 'right'; c.textBaseline = 'middle';
+  for (const f of [0, 5000, 10000, 15000, 20000]) { const y = m.t + ph - f / (FS / 2) * ph; c.fillText(f / 1000 + ' kHz', m.l - 5, y); }
+  c.textAlign = 'left'; c.textBaseline = 'top';
+  c.fillText(out ? 'après MP3' : 'original', m.l + 6, m.t + ph + 3);
+  const dur = S.A.L / FS; c.textAlign = 'right'; c.fillText(fr1(dur) + ' s', m.l + pw, m.t + ph + 3);
+  if (out && S.prm.cutoff < FS / 2) {
+    const y = m.t + ph - S.prm.cutoff / (FS / 2) * ph;
+    c.strokeStyle = '#ffffff'; c.globalAlpha = .7; c.setLineDash([5, 4]); c.beginPath(); c.moveTo(m.l, y); c.lineTo(m.l + pw, y); c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
+  }
+  const x = m.l + (S.g + 0.5) / S.A.G * pw;
+  c.strokeStyle = '#ffffff'; c.lineWidth = 1.5; c.globalAlpha = .85; c.beginPath(); c.moveTo(x, m.t); c.lineTo(x, m.t + ph); c.stroke(); c.globalAlpha = 1;
+  cv._map = { m, pw };
+}
+
+function drawPsy() {
+  const cv = $('cv-psy'), { c, w, h } = setup(cv), A = S.A, E = S.E, g = S.g;
+  const det = psyGranule(A, g, S.prm, S.P.S, { mask: new Float64Array(NH), ath: new Float64Array(NH), thr: new Float64Array(NH) });
+  const m = { l: 46, r: 12, t: 10, b: 24 }, pw = w - m.l - m.r, ph = h - m.t - m.b;
+  const f0 = 20, f1 = FS / 2, lg = Math.log10(f1 / f0);
+  const X = f => m.l + Math.log10(Math.max(f, f0) / f0) / lg * pw;
+  const y0 = -10, y1 = 110, Y = db => m.t + (1 - (Math.max(y0, Math.min(y1, db)) - y0) / (y1 - y0)) * ph;
+  const dB = p => 10 * Math.log10(p + 1e-30) + SPL_OFF;
+  const k10 = Math.pow(10, S.nmr / 10);
+  c.font = '11px ' + getComputedStyle(document.body).getPropertyValue('--mono');
+  // bandes : fond alterné, masquées, coupées
+  for (let b = 0; b < NB; b++) {
+    const xa = X(Math.max(SFB[b] * BINHZ, f0)), xb = X(SFB[b + 1] * BINHZ);
+    if (SFB[b] >= E.kc) { c.fillStyle = COL.shade; c.fillRect(xa, m.t, xb - xa, ph); }
+    else if (!E.act[g * NB + b] && E.eBand[g * NB + b] > 0) { c.fillStyle = COL.mask; c.globalAlpha = .08; c.fillRect(xa, m.t, xb - xa, ph); c.globalAlpha = 1; }
+    c.strokeStyle = COL.grid; c.beginPath(); c.moveTo(xa, m.t); c.lineTo(xa, m.t + ph); c.stroke();
+  }
+  // axes
+  c.fillStyle = COL.muted; c.textAlign = 'right'; c.textBaseline = 'middle';
+  for (let d = 0; d <= 100; d += 20) { const y = Y(d); c.strokeStyle = COL.grid; c.beginPath(); c.moveTo(m.l, y); c.lineTo(w - m.r, y); c.stroke(); c.fillText(d + ' dB', m.l - 5, y); }
+  c.textAlign = 'center'; c.textBaseline = 'top';
+  for (const f of [50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000]) c.fillText(f >= 1000 ? f / 1000 + ' k' : f + '', X(f), m.t + ph + 6);
+  c.save(); c.beginPath(); c.rect(m.l, m.t, pw, ph); c.clip();
+  // spectre
+  c.beginPath(); c.moveTo(X(FFTHZ), Y(y0));
+  for (let j = 1; j < NH; j++) c.lineTo(X(j * FFTHZ), Y(dB(A.P[g * NH + j])));
+  c.lineTo(X(f1), Y(y0)); c.closePath();
+  c.fillStyle = COL.teal; c.globalAlpha = .16; c.fill(); c.globalAlpha = 1;
+  c.beginPath(); for (let j = 1; j < NH; j++) { const x = X(j * FFTHZ), y = Y(dB(A.P[g * NH + j])); j === 1 ? c.moveTo(x, y) : c.lineTo(x, y); }
+  c.strokeStyle = COL.teal; c.lineWidth = 1.3; c.stroke();
+  // masquage
+  if (S.prm.masking) {
+    c.beginPath(); for (let j = 1; j < NH; j++) { const x = X(j * FFTHZ), y = Y(dB(det.mask[j])); j === 1 ? c.moveTo(x, y) : c.lineTo(x, y); }
+    c.strokeStyle = COL.mask; c.globalAlpha = .55; c.lineWidth = 1.5; c.stroke(); c.globalAlpha = 1;
+  }
+  // seuil absolu
+  c.beginPath(); for (let j = 1; j < NH; j++) { const x = X(j * FFTHZ), y = Y(dB(det.ath[j])); j === 1 ? c.moveTo(x, y) : c.lineTo(x, y); }
+  c.strokeStyle = COL.ath; c.setLineDash([5, 4]); c.lineWidth = 1.5; c.stroke(); c.setLineDash([]);
+  // budgets et bruit par bande
+  const en = new Float64Array(NB), th = new Float64Array(NB), nb = new Float64Array(NB);
+  for (let j = 0; j < NH; j++) { const b = sfbOfBin[j]; if (b < 0) continue; en[b] += A.P[g * NH + j]; th[b] += det.thr[j]; nb[b]++; }
+  for (let b = 0; b < NB; b++) {
+    if (!nb[b] || SFB[b] >= E.kc) continue;
+    const xa = X(Math.max(SFB[b] * BINHZ, f0)), xb = X(SFB[b + 1] * BINHZ);
+    const allow = dB(th[b] * k10 / nb[b]);
+    c.strokeStyle = COL.mask; c.lineWidth = 3; c.beginPath(); c.moveTo(xa + 1, Y(allow)); c.lineTo(xb - 1, Y(allow)); c.stroke();
+    const eb = E.eBand[g * NB + b];
+    if (eb > 0) {
+      const nz = E.noise[g * NB + b] / eb * en[b] / nb[b];
+      if (nz > 0) { c.strokeStyle = COL.noise; c.lineWidth = 3; c.beginPath(); c.moveTo(xa + 1, Y(dB(nz))); c.lineTo(xb - 1, Y(dB(nz))); c.stroke(); }
+    }
+  }
+  c.restore();
+  if (E.kc < N) { const xc = X(E.kc * BINHZ), rt = xc > w - 90; c.fillStyle = COL.muted; c.textAlign = rt ? 'right' : 'left'; c.textBaseline = 'top'; c.fillText('passe-bas', xc + (rt ? -4 : 4), m.t + 4); }
+}
+
+function drawQ() {
+  const cv = $('cv-q'), { c, w, h } = setup(cv), E = S.E, g = S.g, base = g * N;
+  const m = { l: 40, r: 8, t: 18, b: 44 }, pw = w - m.l - m.r, ph = h - m.t - m.b, bw = pw / NB;
+  const mq = Math.max(15, E.maxq[g]), top = Math.log2(1 + mq);
+  const Y = v => m.t + ph / 2 - Math.sign(v) * Math.log2(1 + Math.abs(v)) / top * ph / 2;
+  c.font = '10.5px ' + getComputedStyle(document.body).getPropertyValue('--mono');
+  const codes = E.len;
+  for (let b = 0; b < NB; b++) {
+    const x0 = m.l + b * bw, a = SFB[b], z = SFB[b + 1], n = z - a;
+    const cut = a >= E.kc, msk = !cut && !E.act[g * NB + b];
+    c.fillStyle = cut ? COL.shade : msk ? COL.mask : (b % 2 ? COL.shade : 'transparent');
+    c.globalAlpha = msk ? .08 : 1; c.fillRect(x0, m.t, bw, ph); c.globalAlpha = 1;
+    if (cut || msk) { c.fillStyle = COL.muted; c.save(); c.translate(x0 + bw / 2, m.t + ph * 0.22); c.rotate(-Math.PI / 2); c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(cut ? 'coupée' : 'masquée', 0, 0); c.restore(); }
+    c.strokeStyle = COL.orange; c.lineWidth = Math.max(1, Math.min(3, bw / n * 0.6));
+    c.beginPath();
+    for (let k = a; k < z; k++) { const v = E.q[base + k]; if (!v) continue; const x = x0 + (k - a + 0.5) / n * bw; c.moveTo(x, Y(0)); c.lineTo(x, Y(v)); }
+    c.stroke();
+    // bits de la bande
+    let bits = 0;
+    const lb = E.maxq[g] >= 15 ? bitsFor(E.maxq[g] - 15) : 0, fixb = bitsFor(E.maxq[g]);
+    if (a < E.pairEnd[g]) for (let k = a; k < Math.min(z, E.pairEnd[g]); k += 2) {
+      const u = Math.abs(E.q[base + k]), v = Math.abs(E.q[base + k + 1]);
+      bits += (u ? 1 : 0) + (v ? 1 : 0) + (u >= 15 ? lb : 0) + (v >= 15 ? lb : 0);
+      bits += S.prm.huff ? codes[Math.min(u, 15) * 16 + Math.min(v, 15)] : 2 * fixb - (u ? 1 : 0) - (v ? 1 : 0) + (u >= 15 ? -lb : 0) + (v >= 15 ? -lb : 0);
+    }
+    c.fillStyle = COL.muted; c.textAlign = 'center'; c.textBaseline = 'top';
+    c.fillText(b, x0 + bw / 2, 3);
+    c.fillStyle = COL.mask; c.fillText(b < 21 ? E.sf[g * NB + b] : '–', x0 + bw / 2, m.t + ph + 6);
+    c.fillStyle = COL.orange; c.fillText(bits, x0 + bw / 2, m.t + ph + 22);
+  }
+  c.strokeStyle = COL.axis; c.lineWidth = 1; c.beginPath(); c.moveTo(m.l, Y(0)); c.lineTo(w - m.r, Y(0)); c.stroke();
+  c.fillStyle = COL.muted; c.textAlign = 'right'; c.textBaseline = 'middle';
+  for (const v of [1, 3, 15, 63, 255, 1023, 4095]) if (v <= mq) { c.fillText(v, m.l - 5, Y(v)); c.fillText(-v, m.l - 5, Y(-v)); c.strokeStyle = COL.grid; c.beginPath(); c.moveTo(m.l, Y(v)); c.lineTo(w - m.r, Y(v)); c.moveTo(m.l, Y(-v)); c.lineTo(w - m.r, Y(-v)); c.stroke(); }
+  c.fillText('0', m.l - 5, Y(0));
+  c.textAlign = 'left'; c.textBaseline = 'top';
+  c.fillStyle = COL.mask; c.fillText('sf', 4, m.t + ph + 6);
+  c.fillStyle = COL.orange; c.fillText('bits', 4, m.t + ph + 22);
+}
+
+function drawRate() {
+  const cv = $('cv-rate'), { c, w, h } = setup(cv), E = S.E, G = S.A.G;
+  const m = { l: 52, r: 10, t: 10, b: 20 }, pw = w - m.l - m.r, ph = h - m.t - m.b;
+  const k = FS / N / 1000, rate = new Float64Array(G);
+  let mx = 1; for (let g = 0; g < G; g++) { rate[g] = (E.dataBits[g] + E.sfBits[g] + 84) * k; mx = Math.max(mx, rate[g]); }
+  const dur = S.A.L / FS, avg = E.bits.total / dur / 1000;
+  mx = Math.max(mx, avg, S.mode === 'rate' ? S.rate : 0) * 1.1;
+  const X = g => m.l + (g + 0.5) / G * pw, Y = v => m.t + ph - v / mx * ph;
+  c.font = '11px ' + getComputedStyle(document.body).getPropertyValue('--mono');
+  const step = mx > 1200 ? 500 : mx > 500 ? 200 : mx > 200 ? 100 : mx > 80 ? 40 : 20;
+  c.fillStyle = COL.muted; c.textAlign = 'right'; c.textBaseline = 'middle';
+  for (let v = 0; v <= mx; v += step) { c.strokeStyle = COL.grid; c.beginPath(); c.moveTo(m.l, Y(v)); c.lineTo(w - m.r, Y(v)); c.stroke(); c.fillText(v, m.l - 5, Y(v)); }
+  c.save(); c.translate(11, m.t + ph / 2); c.rotate(-Math.PI / 2); c.textAlign = 'center'; c.fillText('kbit/s', 0, 0); c.restore();
+  c.beginPath(); c.moveTo(X(0), Y(0)); for (let g = 0; g < G; g++) c.lineTo(X(g), Y(rate[g])); c.lineTo(X(G - 1), Y(0)); c.closePath();
+  c.fillStyle = COL.orange; c.globalAlpha = .22; c.fill(); c.globalAlpha = 1;
+  c.beginPath(); for (let g = 0; g < G; g++) g ? c.lineTo(X(g), Y(rate[g])) : c.moveTo(X(g), Y(rate[g]));
+  c.strokeStyle = COL.orange; c.lineWidth = 1.2; c.stroke();
+  c.strokeStyle = COL.ink; c.setLineDash([5, 4]); c.beginPath(); c.moveTo(m.l, Y(avg)); c.lineTo(w - m.r, Y(avg)); c.stroke(); c.setLineDash([]);
+  c.fillStyle = COL.ink; c.textAlign = 'right'; c.textBaseline = 'bottom'; c.fillText('moyenne ' + fr1(avg) + ' kbit/s', w - m.r - 4, Y(avg) - 3);
+  const x = X(S.g); c.strokeStyle = COL.mask; c.lineWidth = 1.5; c.beginPath(); c.moveTo(x, m.t); c.lineTo(x, m.t + ph); c.stroke();
+  c.fillStyle = COL.mask; c.beginPath(); c.arc(x, Y(rate[S.g]), 3.5, 0, 7); c.fill();
+  c.fillStyle = COL.muted; c.textAlign = 'left'; c.textBaseline = 'top'; c.fillText('0 s', m.l, m.t + ph + 4); c.textAlign = 'right'; c.fillText(fr1(dur) + ' s', w - m.r, m.t + ph + 4);
+}
+
+// ---------- audio ----------
+let actx = null;
+const bufs = { orig: null, dec: null, diff: null };
+const player = { kind: null, src: null, t0: 0, off: 0 };
+function getBuf(kind) {
+  if (!bufs[kind]) {
+    const arr = kind === 'orig' ? S.x : kind === 'dec' ? S.D.out : S.diff;
+    const b = actx.createBuffer(1, arr.length, FS); const ch = b.getChannelData(0);
+    for (let i = 0; i < arr.length; i++) ch[i] = Math.max(-1, Math.min(1, arr[i]));
+    bufs[kind] = b;
+  }
+  return bufs[kind];
+}
+function playPos() { if (!player.kind) return 0; const d = S.A.L / FS; return (actx.currentTime - player.t0) % d; }
+function play(kind, keepPos) {
+  if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+  if (actx.state === 'suspended') actx.resume();
+  const pos = keepPos && player.kind ? playPos() : 0;
+  if (player.src) { player.src.onended = null; try { player.src.stop(); } catch (e) {} }
+  const src = actx.createBufferSource(); src.buffer = getBuf(kind); src.loop = true; src.connect(actx.destination);
+  src.start(0, pos); player.src = src; player.kind = kind; player.t0 = actx.currentTime - pos;
+  setPressed(); tick();
+}
+function stopPlay() { if (player.src) { try { player.src.stop(); } catch (e) {} } player.src = null; player.kind = null; setPressed(); drawOver(); }
+function setPressed() { for (const [id, k] of [['p-orig', 'orig'], ['p-dec', 'dec'], ['p-diff', 'diff']]) $(id).setAttribute('aria-pressed', player.kind === k); }
+let raf = 0;
+function tick() { cancelAnimationFrame(raf); const f = () => { if (!player.kind) return; drawOver(); raf = requestAnimationFrame(f); }; raf = requestAnimationFrame(f); }
+
+// ---------- réglages ----------
+function setMode(m) { S.mode = m; $('m-thr').setAttribute('aria-pressed', m === 'thr'); $('m-rate').setAttribute('aria-pressed', m === 'rate'); }
+function setHuff(on) { S.prm.huff = on; $('h-on').setAttribute('aria-pressed', on); $('h-off').setAttribute('aria-pressed', !on); }
+function syncOutputs() {
+  $('o-ath').textContent = (S.prm.athOff >= 0 ? '+' : '') + S.prm.athOff + ' dB';
+  $('o-spread').textContent = '×' + fr1(S.prm.spread);
+  $('o-cut').textContent = S.prm.cutoff >= FS / 2 ? 'aucun' : fr1(S.prm.cutoff / 1000) + ' kHz';
+  $('o-rate').textContent = S.rate + ' kbit/s';
+  $('spread').disabled = !S.prm.masking;
+}
+function applyCtl() {
+  S.prm.athOff = +$('ath').value; S.prm.spread = +$('spread').value; S.prm.masking = $('masking').checked;
+  S.prm.cutoff = +$('cut').value; S.rate = +$('rate').value;
+  if (S.mode === 'thr') S.nmr = +$('nmr').value;
+  syncOutputs();
+}
+const PRESETS = {
+  hq: { mode: 'rate', rate: 192, cut: 19500, ath: 0, masking: true, spread: 1, huff: true },
+  '128': { mode: 'rate', rate: 128, cut: 16000, ath: 0, masking: true, spread: 1, huff: true },
+  '64': { mode: 'rate', rate: 64, cut: 11000, ath: 0, masking: true, spread: 1, huff: true },
+  tel: { mode: 'rate', rate: 24, cut: 3500, ath: 0, masking: true, spread: 1, huff: true },
+  crush: { mode: 'thr', nmr: 30, cut: 4000, ath: 25, masking: true, spread: 2, huff: true }
+};
+function preset(k) {
+  const p = PRESETS[k];
+  setMode(p.mode); if (p.rate) $('rate').value = p.rate; if (p.nmr != null) $('nmr').value = p.nmr;
+  $('cut').value = p.cut; $('ath').value = p.ath; $('masking').checked = p.masking; $('spread').value = p.spread; setHuff(p.huff);
+  S.psyDirty = true; applyCtl(); schedule();
+}
+
+for (const id of ['ath', 'spread']) $(id).addEventListener('input', () => { S.psyDirty = true; applyCtl(); schedule(); });
+$('masking').addEventListener('change', () => { S.psyDirty = true; applyCtl(); schedule(); });
+for (const id of ['cut', 'rate', 'nmr']) $(id).addEventListener('input', () => { applyCtl(); schedule(); });
+$('m-thr').onclick = () => { setMode('thr'); $('nmr').value = Math.round(S.nmr); applyCtl(); schedule(); };
+$('m-rate').onclick = () => { setMode('rate'); applyCtl(); schedule(); };
+$('h-on').onclick = () => { setHuff(true); schedule(); };
+$('h-off').onclick = () => { setHuff(false); schedule(); };
+document.querySelectorAll('.presets button').forEach(b => b.onclick = () => preset(b.dataset.p));
+$('p-orig').onclick = () => play('orig', true);
+$('p-dec').onclick = () => play('dec', true);
+$('p-diff').onclick = () => play('diff', true);
+$('p-ab').onclick = () => play(player.kind === 'dec' ? 'orig' : 'dec', true);
+$('p-stop').onclick = stopPlay;
+for (const id of ['sh-orig', 'sh-dec', 'sh-err']) $(id).addEventListener('change', () => { readCols(); drawScope(); });
+$('zoom').addEventListener('change', () => { readCols(); drawScope(); });
+function selectG(g) { S.g = Math.max(0, Math.min(S.A.G - 1, g)); $('gsel').value = S.g; readCols(); drawGran(); }
+$('gsel').addEventListener('input', () => selectG(+$('gsel').value));
+$('cv-over').addEventListener('click', e => { const r = e.currentTarget.getBoundingClientRect(); selectG(Math.round((e.clientX - r.left) / r.width * S.A.L / N)); });
+for (const id of ['cv-spec-in', 'cv-spec-out', 'cv-rate']) $(id).addEventListener('click', e => {
+  const r = e.currentTarget.getBoundingClientRect(), l = id === 'cv-rate' ? 52 : 44, rr = id === 'cv-rate' ? 10 : 6;
+  selectG(Math.floor((e.clientX - r.left - l) / (r.width - l - rr) * S.A.G));
+});
+
+function pickDemo(id) {
+  document.querySelectorAll('.src .chip').forEach(c => c.setAttribute('aria-pressed', c.id === id));
+  const d = DEMOS[id]; loadSource(d.gen(), d.name, d.desc);
+}
+for (const id of Object.keys(DEMOS)) $(id).onclick = () => pickDemo(id);
+$('file').addEventListener('change', async e => {
+  const f = e.target.files[0]; if (!f) return;
+  $('status').textContent = 'Décodage de « ' + f.name + ' »…';
+  try {
+    const buf = await f.arrayBuffer();
+    const oc = new OfflineAudioContext(1, 1, FS);
+    const ab = await oc.decodeAudioData(buf);
+    const L = Math.min(ab.length, FS * 20), x = new Float32Array(L);
+    for (let c = 0; c < ab.numberOfChannels; c++) { const d = ab.getChannelData(c); for (let i = 0; i < L; i++) x[i] += d[i] / ab.numberOfChannels; }
+    document.querySelectorAll('.src .chip').forEach(c => c.setAttribute('aria-pressed', c.id === 'chip-file'));
+    $('status').textContent = ab.length > L ? 'Fichier limité aux 20 premières secondes.' : ' ';
+    loadSource(x, f.name, (ab.numberOfChannels > 1 ? 'stéréo mixé en mono' : 'mono') + ', ré-échantillonné à 44,1 kHz');
+  } catch (err) {
+    $('status').textContent = 'Impossible de lire ce fichier : essayez un WAV, MP3 ou OGG.';
+  }
+  e.target.value = '';
+});
+
+// ---------- export : WAV dans un zip ----------
+function wav16(arr) {
+  const n = arr.length, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+  const w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt ');
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, FS, true); v.setUint32(28, FS * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  w(36, 'data'); v.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++) v.setInt16(44 + i * 2, Math.round(Math.max(-1, Math.min(1, arr[i])) * 32767), true);
+  return new Uint8Array(buf);
+}
+const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(d) { let c = 0xFFFFFFFF; for (let i = 0; i < d.length; i++) c = CRC[(c ^ d[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function zip(files) {                 // archive sans compression (méthode « stored »)
+  const enc = new TextEncoder(), parts = [], central = []; let off = 0;
+  for (const f of files) {
+    const name = enc.encode(f.name), data = typeof f.data === 'string' ? enc.encode(f.data) : f.data, crc = crc32(data);
+    const h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true);
+    h.setUint32(14, crc, true); h.setUint32(18, data.length, true); h.setUint32(22, data.length, true); h.setUint16(26, name.length, true);
+    parts.push(new Uint8Array(h.buffer), name, data);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true);
+    c.setUint32(16, crc, true); c.setUint32(20, data.length, true); c.setUint32(24, data.length, true); c.setUint16(28, name.length, true);
+    c.setUint32(42, off, true);
+    central.push(new Uint8Array(c.buffer), name);
+    off += 30 + name.length + data.length;
+  }
+  const csize = central.reduce((s, a) => s + a.length, 0), e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true);
+  e.setUint32(12, csize, true); e.setUint32(16, off, true);
+  return new Blob([...parts, ...central, new Uint8Array(e.buffer)], { type: 'application/zip' });
+}
+function reglagesTxt() {
+  const E = S.E, dur = S.A.L / FS, kb = E.bits.total / dur / 1000, wavB = S.A.L * 2 + 44;
+  return [
+    'MP3 décortiqué — export', '',
+    'Source : ' + S.name + ' (' + fr1(dur) + ' s, mono, 44,1 kHz)',
+    'Mode : ' + (S.mode === 'rate' ? 'débit cible ' + S.rate + ' kbit/s' : 'par seuils'),
+    'Bruit toléré / masque : ' + fr1(S.nmr) + ' dB',
+    'Seuil absolu d\'audition : ' + (S.prm.athOff >= 0 ? '+' : '') + S.prm.athOff + ' dB',
+    'Masquage : ' + (S.prm.masking ? 'oui, étalement ×' + fr1(S.prm.spread) : 'non'),
+    'Passe-bas : ' + (S.prm.cutoff >= FS / 2 ? 'aucun' : fr1(S.prm.cutoff / 1000) + ' kHz'),
+    'Codage : ' + (S.prm.huff ? 'Huffman' : 'longueur fixe'), '',
+    'Taille WAV : ' + fmtBytes(wavB) + ' — MP3 estimé : ' + fmtBytes(E.bits.total / 8) + ' — rapport ' + fr1(wavB / (E.bits.total / 8)) + ' : 1',
+    'Débit : ' + fr1(kb) + ' kbit/s — RSB : ' + (isFinite(S.snr) ? fr1(S.snr) + ' dB' : '∞'),
+    'Répartition : en-têtes ' + fr0(E.bits.header) + ' bits, infos annexes ' + fr0(E.bits.side) + ', facteurs d\'échelle ' + fr0(E.bits.sf) + ', données ' + fr0(E.bits.data), '',
+    'Fichiers : 1-original.wav, 2-mp3-decode.wav (le son tel qu\'un lecteur le restituerait), 3-retire.wav (différence : ce que la compression a enlevé ou ajouté).',
+    'Les WAV sont en 16 bits : leur taille ne reflète pas la compression, seule la valeur « MP3 estimé » la mesure.'
+  ].join('\r\n');
+}
+async function exportZip() {
+  if (!S.E) return;
+  const tag = (S.mode === 'rate' ? S.rate + 'kbps' : 'nmr' + Math.round(S.nmr) + 'dB');
+  const base = S.name.replace(/\.[a-z0-9]+$/i, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'son';
+  const filename = 'mp3-' + base + '-' + tag + '.zip';
+  const blob = zip([
+    { name: '1-original.wav', data: wav16(S.x) },
+    { name: '2-mp3-decode.wav', data: wav16(S.D.out) },
+    { name: '3-retire.wav', data: wav16(S.diff) },
+    { name: 'reglages.txt', data: reglagesTxt() }
+  ]);
+  let dl = null;
+  try { dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch (e) { dl = null; }
+  if (dl) {
+    try { await dl.save({ filename, data: blob }); $('status').textContent = 'Export enregistré : ' + filename; }
+    catch (e) {
+      const c = e && e.code;
+      $('status').textContent = c === 'declined' ? 'Export annulé.' : c === 'rate_limited' ? 'Une demande d\'enregistrement est déjà ouverte.' : 'L\'export n\'est pas disponible dans cette vue.';
+    }
+    return;
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  $('status').textContent = 'Export : ' + filename;
+}
+$('p-export').onclick = exportZip;
+
+let rz = 0;
+new ResizeObserver(() => { cancelAnimationFrame(rz); rz = requestAnimationFrame(() => { S.overBase = null; drawAll(); }); }).observe(document.querySelector('main'));
+const reTheme = () => { S.overBase = null; drawAll(); };
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', reTheme);
+new MutationObserver(reTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+setMode('rate'); setHuff(true); applyCtl();
+pickDemo('demo-music');
+</script>
+</body>
+</html>
