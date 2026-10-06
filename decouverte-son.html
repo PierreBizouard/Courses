@@ -1,0 +1,1402 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Premier son dessiné</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#EDF2F4; --surface:#FFFFFF; --surface-2:#F5F8FA; --ink:#14212B; --muted:#56656F;
+  --line:#D2DEE5; --grid:#CFE5F4; --grid-strong:#9FCDEB; --accent:#1C5FC2; --accent-ink:#FFFFFF;
+  --accent-soft:#E2ECFA; --trace:#D9441A; --ok:#22784A; --warn:#A86400; --err:#B3261E;
+  --shadow:0 1px 2px rgba(20,33,43,.06),0 6px 20px rgba(20,33,43,.06);
+  --display:"Familjen Grotesk","Helvetica Neue",Arial,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --paper:#0D141A; --surface:#141E26; --surface-2:#18242D; --ink:#E4ECF1; --muted:#94A6B2;
+    --line:#26363F; --grid:#1B3343; --grid-strong:#2C5470; --accent:#6EA6FF; --accent-ink:#0B1520;
+    --accent-soft:#1A2D47; --trace:#FF7B4F; --ok:#5CC48A; --warn:#E5A33A; --err:#FF7A70;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --paper:#0D141A; --surface:#141E26; --surface-2:#18242D; --ink:#E4ECF1; --muted:#94A6B2;
+  --line:#26363F; --grid:#1B3343; --grid-strong:#2C5470; --accent:#6EA6FF; --accent-ink:#0B1520;
+  --accent-soft:#1A2D47; --trace:#FF7B4F; --ok:#5CC48A; --warn:#E5A33A; --err:#FF7A70;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25);
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0}
+body{background:var(--paper);color:var(--ink);font:15px/1.5 var(--body)}
+.wrap{max-width:1380px;margin:0 auto;padding-inline:20px;padding-block:0 72px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0}
+p{margin:0}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* header: graph-paper band */
+.top{
+  background-color:var(--surface);
+  background-image:
+    linear-gradient(var(--grid) 1px,transparent 1px),
+    linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:20px 20px;
+  border-bottom:1px solid var(--line);
+  margin-bottom:28px;
+}
+.top .wrap{padding-block:34px 30px;display:flex;flex-wrap:wrap;gap:18px 40px;align-items:flex-end;justify-content:space-between}
+.top h1{font-size:clamp(34px,5vw,54px);font-weight:700;letter-spacing:-.02em;line-height:1}
+.top h1 .arr{color:var(--trace)}
+.top p{max-width:62ch;color:var(--muted);margin-top:10px;background:var(--surface);padding:2px 0}
+.top .other{color:var(--accent);font-weight:500;background:var(--surface);padding:2px 4px;margin-right:auto}
+.chain{display:flex;flex-wrap:wrap;gap:6px;font:500 12px/1 var(--mono);color:var(--muted)}
+.chain span{background:var(--surface);border:1px solid var(--line);padding:6px 8px;border-radius:4px}
+.chain b{color:var(--ink);font-weight:500}
+
+.step{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px;box-shadow:var(--shadow);min-width:0}
+.step-h{display:flex;align-items:baseline;gap:12px;margin-bottom:6px}
+.step-h .n{font:500 13px/1 var(--mono);color:var(--accent);border:1.5px solid var(--accent);border-radius:50%;width:26px;height:26px;display:inline-grid;place-items:center;flex:none;transform:translateY(-2px)}
+.step-h h2{font-size:22px;font-weight:600}
+.lede{color:var(--muted);max-width:70ch;margin-bottom:16px}
+
+.sheets{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+.sheet figure{margin:0}
+.sheet canvas{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:4px;background:#fff}
+.sheet figcaption{margin-top:8px;font-size:14px}
+.sheet figcaption b{font-family:var(--display);font-weight:600}
+.sheet figcaption span{color:var(--muted);display:block;font-size:13px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.tips{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px 24px;margin-top:16px;padding-top:14px;border-top:1px dashed var(--line);color:var(--muted);font-size:13.5px}
+.tips b{color:var(--ink);font-weight:600}
+
+.btn{border:1px solid var(--line);background:var(--surface-2);border-radius:6px;padding:8px 14px;cursor:pointer;font-weight:500;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.btn:hover{border-color:var(--grid-strong)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.small{padding:4px 9px;font-size:13px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.note{font-size:13px;color:var(--muted)}
+.note.err{color:var(--err)}
+
+.work{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;margin-top:20px;align-items:start}
+@media (min-width:1100px){.work{grid-template-columns:minmax(0,1fr) minmax(0,1.12fr)}.listen{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}}
+
+.drop{border:1.5px dashed var(--grid-strong);border-radius:8px;padding:18px;display:flex;flex-wrap:wrap;gap:12px 16px;align-items:center;background:var(--surface-2)}
+.drop.over{background:var(--accent-soft);border-color:var(--accent)}
+.drop p{flex:1 1 220px;color:var(--muted);font-size:14px}
+.drop input{position:absolute;width:1px;height:1px;opacity:0}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;margin-top:16px}
+.card{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface);display:flex;flex-direction:column}
+.card.off{opacity:.62}
+.card.flash{outline:3px solid var(--trace);outline-offset:2px}
+@media (prefers-reduced-motion:no-preference){.card{transition:outline-color .4s}}
+.card canvas{width:100%;height:auto;display:block;background:#fff;border-bottom:1px solid var(--line)}
+.card .body{padding:10px 12px;display:flex;flex-direction:column;gap:8px;flex:1}
+.card .t{display:flex;gap:8px;align-items:center;min-width:0}
+.badge{font:600 12px/1 var(--mono);padding:4px 6px;border-radius:4px;background:var(--accent-soft);color:var(--accent);flex:none}
+.badge.ex{background:transparent;border:1px solid var(--line);color:var(--muted);font-weight:400}
+.card .name{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.card .meta{font:12.5px/1.4 var(--mono);color:var(--muted)}
+.card .meta .warn{color:var(--warn)}
+.card .meta .err{color:var(--err)}
+.card .ctl{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:auto}
+.card label.inc{display:inline-flex;gap:6px;align-items:center;font-size:13.5px;margin-right:auto;cursor:pointer}
+.card select{font-size:12.5px;padding:3px 4px;border:1px solid var(--line);border-radius:4px;background:var(--surface-2)}
+.empty{color:var(--muted);font-size:14px;padding:12px 0}
+
+details.pad{margin-top:16px;border-top:1px dashed var(--line);padding-top:12px}
+details.pad summary{cursor:pointer;font-weight:500}
+.padbox{margin-top:10px}
+.padbox canvas{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:4px;background:#fff;touch-action:none;cursor:crosshair}
+
+.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px 18px;margin-bottom:16px}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field>span{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.field .v{font:500 13px var(--mono);color:var(--ink);text-transform:none;letter-spacing:0}
+.field select,.field input[type=number]{border:1px solid var(--line);background:var(--surface-2);border-radius:6px;padding:6px 8px;min-width:0;width:100%}
+.field input[type=range]{width:100%;accent-color:var(--accent)}
+.seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg label{flex:1;text-align:center;padding:6px 6px;font-size:13px;cursor:pointer;background:var(--surface-2);border-right:1px solid var(--line)}
+.seg label:last-child{border-right:0}
+.seg input{position:absolute;opacity:0;width:1px;height:1px}
+.seg label:has(input:checked){background:var(--accent);color:var(--accent-ink)}
+.seg label:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:-2px}
+.checks{display:flex;flex-direction:column;gap:4px;font-size:13.5px}
+.checks label{display:flex;gap:7px;align-items:center;cursor:pointer}
+.checks input{accent-color:var(--accent)}
+
+.player{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px;border-radius:8px;background:var(--surface-2);border:1px solid var(--line);margin-bottom:14px}
+.player .info{font:12.5px/1.5 var(--mono);color:var(--muted);flex:1 1 260px}
+.player .info b{color:var(--ink);font-weight:500}
+.plot{margin-top:12px}
+.plot .ph{display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin-bottom:4px;flex-wrap:wrap}
+.plot h3{font-size:15px;font-weight:600}
+.plot .ph span{font:12px var(--mono);color:var(--muted)}
+.plot canvas{width:100%;height:170px;display:block;border:1px solid var(--line);border-radius:6px;background:var(--surface-2)}
+.scopebar{margin-top:8px;gap:8px 20px}
+.legend{font-size:12.5px;color:var(--muted);margin-top:4px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.lg{display:inline-block;width:18px;height:0;border-top:2px solid var(--accent);opacity:.6;font-style:normal}
+.lg.smp{width:8px;height:8px;border:0;border-radius:50%;background:var(--trace);opacity:1;margin-left:10px}
+.harm{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.harm span{font:12px/1 var(--mono);padding:5px 7px;border:1px solid var(--line);border-radius:4px;color:var(--muted);font-variant-numeric:tabular-nums}
+.harm span b{color:var(--ink);font-weight:500}
+
+.modal{position:fixed;inset:0;background:rgba(8,14,20,.6);display:grid;place-items:center;padding:16px;z-index:10}
+.modal .box{background:var(--surface);border-radius:10px;padding:16px;max-width:min(960px,100%);width:100%;max-height:100%;overflow:auto}
+.modal canvas{width:100%;height:auto;display:block;cursor:crosshair;margin:10px 0;border-radius:4px}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:8px 14px;border-radius:6px;font-size:14px;z-index:20;max-width:calc(100% - 32px)}
+@media (prefers-reduced-motion:no-preference){.btn{transition:filter .15s,border-color .15s}}
+</style>
+
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div>
+      <h1>Dessin <span class="arr">→</span> Son</h1>
+      <p>Une courbe tracée au feutre devient un son. Dessine une oscillation, photographie-la, écoute-la : la forme de l'onde fait le timbre, sa répétition fait la hauteur.</p>
+    </div>
+    <a class="other" href="index.html">→ Version complète (échantillonnage, bruit, distorsion)</a>
+      <div class="chain" aria-label="Chaîne de conversion">
+      <span><b>dessin</b></span><span>→ photo</span><span>→ <b>forme d'onde</b></span><span>→ <b>son</b></span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="step" id="s1">
+    <div class="step-h"><span class="n">1</span><h2>Imprimer les feuilles</h2></div>
+    <p class="lede">Les quatre carrés noirs servent au redressement automatique de la photo. Les petits carrés en bas indiquent le type de feuille. La grille bleu clair est ignorée à la lecture : seul le trait noir compte.</p>
+    <div class="sheets">
+      <div class="sheet"><figure><canvas id="pvA" width="594" height="420"></canvas><figcaption><b>A · Une période</b><span>Une seule oscillation sur toute la largeur, répétée par le logiciel. Donne le timbre.</span></figcaption></figure></div>
+      <div class="sheet"><figure><canvas id="pvB" width="594" height="420"></canvas><figcaption><b>B · Enveloppe</b><span>Le volume au cours du temps (attaque, maintien, extinction). Module l'onde A ou un sinus.</span></figcaption></figure></div>
+      <div class="sheet"><figure><canvas id="pvC" width="594" height="420"></canvas><figcaption><b>C · Quatre bandes</b><span>Environ 8 périodes par bande, à la main. Les feuilles de la classe se mettent bout à bout.</span></figcaption></figure></div>
+      <div class="sheet"><figure><canvas id="pvH" width="594" height="420"></canvas><figcaption><b>Sans imprimante · feuille à la main</b><span>Feuille blanche en paysage, 4 carrés d'environ 1 cm noircis au feutre dans les coins, sans cadre. La courbe va de gauche à droite entre les carrés ; l'axe 0 est à mi-hauteur (pour une enveloppe : 0 en bas, 1 en haut).</span></figcaption></figure></div>
+    </div>
+    <div class="row" style="margin-top:16px">
+      <button class="btn primary" id="btnPdf" type="button">Télécharger les feuilles (PDF, A4 paysage)</button>
+      <span class="note" id="pdfNote"></span>
+    </div>
+    <div class="tips">
+      <p><b>Impression</b> : couleur ou noir et blanc, à 100 % ou « ajuster à la page ». Les carrés ne doivent pas être coupés.</p>
+      <p><b>Tracé</b> : feutre noir fin (0,5–0,8 mm), une seule valeur par colonne (pas de boucle), départ et arrivée sur l'axe 0.</p>
+      <p><b>Photo</b> : feuille entière, les 4 carrés dans le cadre, lumière homogène. Le téléphone peut être un peu de travers.</p>
+    </div>
+  </section>
+
+  <div class="work">
+    <section class="step" id="s2">
+      <div class="step-h"><span class="n">2</span><h2>Importer les photos</h2></div>
+      <p class="lede">Une photo par feuille, de n'importe quel type. L'ordre des cartes est l'ordre de lecture des feuilles assemblées.</p>
+      <div class="field" style="margin-bottom:10px;max-width:460px">
+        <span>Les prochaines photos sont</span>
+        <select id="importKind">
+          <option value="auto">des feuilles imprimées A, B ou C (type reconnu)</option>
+          <option value="A">des feuilles à la main : une période</option>
+          <option value="C">des feuilles à la main : plusieurs périodes</option>
+          <option value="B">des feuilles à la main : une enveloppe</option>
+        </select>
+      </div>
+      <label class="drop" id="drop" for="file">
+        <input type="file" id="file" accept="image/*" multiple>
+        <span class="btn primary">Choisir des photos…</span>
+        <p>ou glissez-les ici (JPEG, PNG). Depuis un iPhone, préférez « JPEG » ou « le plus compatible ».</p>
+      </label>
+      <div class="row" style="margin-top:12px;justify-content:space-between">
+        <div class="field" style="flex:1 1 220px;max-width:340px">
+          <span>Sensibilité au trait <span class="v" id="thrV"></span></span>
+          <input type="range" id="thr" min="0.3" max="0.8" step="0.02" value="0.5">
+        </div>
+        <button class="btn small" id="btnClearEx" type="button">Retirer les exemples</button>
+      </div>
+      <div class="cards" id="cards"></div>
+      <details class="pad">
+        <summary>Pas encore de feuille ? Dessiner une période à la souris ou au doigt</summary>
+        <div class="padbox">
+          <canvas id="pad" width="948" height="576" aria-label="Zone de dessin d'une période"></canvas>
+          <div class="row" style="margin-top:8px">
+            <button class="btn small" id="padClear" type="button">Effacer</button>
+            <button class="btn small" id="padPlay" type="button">▶ Écouter ce dessin</button>
+            <button class="btn small primary" id="padAdd" type="button">Ajouter comme feuille A</button>
+            <span class="note">Le tracé suit votre geste colonne par colonne, comme une vraie fonction. La feuille ajoutée apparaît dans la liste ci-dessus.</span>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <section class="step listen" id="s3">
+      <div class="step-h"><span class="n">3</span><h2>Écouter et observer</h2></div>
+      <div class="controls">
+        <div class="field">
+          <span>Hauteur (fondamental)</span>
+          <div class="row" style="gap:6px;flex-wrap:nowrap">
+            <input type="number" id="f" min="40" max="2000" step="1" value="220" aria-label="Fréquence en hertz">
+            <select id="fPreset" aria-label="Notes">
+              <option value="">note…</option>
+              <option value="110">La 1 · 110 Hz</option>
+              <option value="220">La 2 · 220 Hz</option>
+              <option value="261.63">Do 3 · 262 Hz</option>
+              <option value="440">La 3 · 440 Hz</option>
+              <option value="880">La 4 · 880 Hz</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <span>Lecture</span>
+          <div class="seg">
+            <label><input type="radio" name="mode" value="loop" checked>Boucler</label>
+            <label><input type="radio" name="mode" value="once">Une seule fois</label>
+          </div>
+        </div>
+        <div class="field">
+          <span>Durée <span class="v" id="durV"></span></span>
+          <input type="range" id="dur" min="0.2" max="5" step="0.1" value="1.5">
+        </div>
+        <div class="field">
+          <span>Onde</span>
+          <div class="seg">
+            <label><input type="radio" name="carrier" value="drawn" checked>Mon dessin</label>
+            <label><input type="radio" name="carrier" value="sine">Sinus parfait</label>
+          </div>
+        </div>
+        <div class="field">
+          <span>Échantillonnage f<sub>e</sub></span>
+          <select id="fs">
+            <option value="44100">44 100 Hz (CD)</option>
+            <option value="22050">22 050 Hz</option>
+            <option value="11025">11 025 Hz</option>
+            <option value="8000">8 000 Hz (téléphone)</option>
+            <option value="4000">4 000 Hz</option>
+          </select>
+        </div>
+        <div class="field">
+          <span>Quantification <span class="v" id="bitsV"></span></span>
+          <input type="range" id="bits" min="2" max="16" step="1" value="16">
+        </div>
+        <div class="field">
+          <span>Bruit sur le dessin <span class="v" id="nDrawV"></span></span>
+          <input type="range" id="nDraw" min="0" max="30" step="1" value="0">
+        </div>
+        <div class="field">
+          <span>Bruit ajouté au son <span class="v" id="nSigV"></span></span>
+          <input type="range" id="nSig" min="0" max="55" step="1" value="0">
+        </div>
+        <div class="field">
+          <span>Tirage du bruit</span>
+          <button class="btn small" id="reseed" type="button" style="align-self:flex-start">Nouveau tirage</button>
+        </div>
+        <div class="field">
+          <span>Saturation (douce) <span class="v" id="satV"></span></span>
+          <input type="range" id="sat" min="0" max="30" step="1" value="0">
+        </div>
+        <div class="field">
+          <span>Écrêtage (dur) <span class="v" id="clipV"></span></span>
+          <input type="range" id="clip" min="0" max="90" step="1" value="0">
+        </div>
+        <div class="field checks" style="justify-content:flex-end">
+          <label><input type="checkbox" id="asym">Distorsion asymétrique (harmoniques pairs)</label>
+        </div>
+        <div class="field checks" style="grid-column:1/-1;flex-direction:row;flex-wrap:wrap;gap:6px 18px">
+          <label><input type="checkbox" id="aa" checked>Filtre anti-repliement</label>
+          <label><input type="checkbox" id="dc" checked>Retirer la composante continue</label>
+          <label><input type="checkbox" id="seam" checked>Raccorder la fin au début</label>
+        </div>
+      </div>
+
+      <div class="player">
+        <button class="btn primary" id="play" type="button">▶ Écouter</button>
+        <button class="btn" id="btnWav" type="button">WAV (.zip)</button>
+        <button class="btn" id="btnCsv" type="button">Points (.csv)</button>
+        <p class="info" id="info"></p>
+      </div>
+
+      <div class="plot">
+        <div class="ph"><h3>Trait numérisé</h3><span id="lblW"></span></div>
+        <canvas id="cvW" aria-label="Forme d'onde extraite du dessin"></canvas>
+      </div>
+      <div class="plot">
+        <div class="ph"><h3>Oscilloscope</h3><span id="lblS"></span></div>
+        <canvas id="cvS" aria-label="Signal échantillonné"></canvas>
+        <div class="row scopebar">
+          <label class="field" style="flex:1 1 200px;max-width:320px"><span>Zoom <span class="v" id="zoomV"></span></span>
+            <input type="range" id="zoom" min="0.25" max="4" step="0.25" value="1"></label>
+          <span class="checks" style="flex-direction:row;gap:14px;flex-wrap:wrap">
+            <label><input type="checkbox" id="showAna" checked>Signal avant échantillonnage</label>
+            <label><input type="checkbox" id="showHold">Bloqueur (escalier)</label>
+          </span>
+        </div>
+        <p class="legend"><i class="lg ana"></i>signal continu entrant dans le convertisseur <i class="lg smp"></i>échantillons, un tous les T<sub>e</sub> = 1/f<sub>e</sub></p>
+      </div>
+      <div class="plot">
+        <div class="ph"><h3>Spectre</h3><span id="lblF"></span></div>
+        <canvas id="cvF" aria-label="Spectre du signal"></canvas>
+        <div class="harm" id="harm"></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="modal" id="modal" hidden>
+  <div class="box">
+    <h3 style="font-size:18px">Placer les coins à la main</h3>
+    <p class="note" id="modalMsg">Cliquez sur les 4 carrés noirs, dans n'importe quel ordre.</p>
+    <canvas id="mcv"></canvas>
+    <div class="row">
+      <button class="btn small" id="mReset" type="button">Recommencer</button>
+      <button class="btn small" id="mCancel" type="button">Annuler</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+'use strict';
+const SIMPLE=true;   // true = "découverte" version: only pitch, playback, duration and waveform controls
+const $ = s => document.querySelector(s);
+
+/* ================= Sheet geometry (millimetres, A4 landscape) ================= */
+const SW = 297, SH = 210;
+const FID = [[12,12],[285,12],[285,198],[12,198]];          // TL, TR, BR, BL
+const X0 = 30, X1 = 267;                                    // drawing zone, left/right
+const SLOTS = [[136,195],[148.5,195],[161,195]];             // sheet-type code squares
+const SCALE = 5;                                            // px per mm in rectified image
+const TYPES = {
+  A:{label:'Une période', code:'100', bands:[{top:38,bottom:182,zero:110,amp:62,uni:false}]},
+  B:{label:'Enveloppe',   code:'110', bands:[{top:38,bottom:182,zero:172,amp:124,uni:true}]},
+  C:{label:'Quatre bandes',code:'111', bands:[0,1,2,3].map(i=>({top:34+36*i,bottom:70+36*i,zero:52+36*i,amp:14,uni:false}))}
+};
+const COL = {minor:'#D2E9F8', major:'#A9D4F0', axis:'#6DB6E6', text:'#24323C', soft:'#56656F', rule:'#9AA6AE'};
+
+function sheetOps(t){
+  const T = TYPES[t], ops = [];
+  const R = (x,y,w,h,o)=>ops.push(Object.assign({k:'r',x,y,w,h},o));
+  const L = (x1,y1,x2,y2,c,w,dash)=>ops.push({k:'l',x1,y1,x2,y2,c,w,dash});
+  const Tx = (s,x,y,size,o)=>ops.push(Object.assign({k:'t',s,x,y,size,c:COL.text},o));
+  const consigne = {
+    A:"Dessinez UNE période sur toute la largeur. Feutre noir fin, une seule valeur par colonne.",
+    B:"Dessinez le volume (de 0 à 1) sur toute la durée du son. Feutre noir fin.",
+    C:"Environ 8 périodes par bande, en continuant d'une bande à la suivante. Feutre noir fin."
+  }[t];
+  Tx('Feuille '+t+' · '+T.label, 22, 14, 5.2, {b:true});
+  Tx(consigne, 22, 24.5, 2.9, {c:COL.soft});
+  Tx('Nom :', 178, 14, 3.2); L(190,14.6,272,14.6,COL.rule,0.25);
+  Tx('Feuille n° :', 178, 24.5, 3.2); L(198,25.1,232,25.1,COL.rule,0.25);
+  Tx('Dessin-Son · ne pas couvrir les carrés noirs', 22, 197, 2.5, {c:COL.soft});
+  for (const b of T.bands){
+    for (let x = X0; x <= X1+0.01; x += 5){
+      const major = Math.round((x-X0)/5)%2===0;
+      L(x,b.top,x,b.bottom, major?COL.major:COL.minor, major?0.25:0.18);
+    }
+    for (let k=-40;k<=40;k++){
+      const y = b.zero + 5*k;
+      if (y < b.top-0.01 || y > b.bottom+0.01 || k===0) continue;
+      L(X0,y,X1,y, k%2===0?COL.major:COL.minor, k%2===0?0.25:0.18);
+    }
+    L(X0,b.top,X1,b.top,COL.major,0.25); L(X0,b.bottom,X1,b.bottom,COL.major,0.25);
+    if (b.uni){
+      L(X0,b.zero-b.amp,X1,b.zero-b.amp,COL.axis,0.35,[2,1.5]);
+    } else {
+      L(X0,b.zero-b.amp,X1,b.zero-b.amp,COL.axis,0.35,[2,1.5]);
+      L(X0,b.zero+b.amp,X1,b.zero+b.amp,COL.axis,0.35,[2,1.5]);
+    }
+    L(X0,b.zero,X1,b.zero,COL.axis,0.5);
+    L(X0,b.top,X0,b.bottom,COL.axis,0.7); L(X1,b.top,X1,b.bottom,COL.axis,0.7);
+  }
+  if (t==='A'){
+    Tx('+1',27,49.1,3,{a:'right'}); Tx('0',27,111.1,3,{a:'right'}); Tx('-1',27,173.1,3,{a:'right'});
+    Tx('début',X0,187,2.9,{c:COL.soft}); Tx('fin',X1,187,2.9,{a:'right',c:COL.soft});
+    Tx('une période',(X0+X1)/2,187,2.9,{a:'center',c:COL.soft});
+  } else if (t==='B'){
+    Tx('1',27,49.1,3,{a:'right'}); Tx('0',27,173.1,3,{a:'right'});
+    Tx('début du son',X0,187,2.9,{c:COL.soft}); Tx('fin du son',X1,187,2.9,{a:'right',c:COL.soft});
+    Tx('volume',22,112,2.9,{c:COL.soft,rot:true});
+  } else {
+    TYPES.C.bands.forEach((b,i)=>Tx(String(i+1),24,b.zero+1.4,4,{a:'right',b:true}));
+    Tx('début',X0,183,2.9,{c:COL.soft}); Tx('fin',X1,183,2.9,{a:'right',c:COL.soft});
+  }
+  for (const [x,y] of FID) R(x-5,y-5,10,10,{f:'#000000'});
+  SLOTS.forEach(([x,y],i)=>{
+    if (T.code[i]==='1') R(x-2.5,y-2.5,5,5,{f:'#000000'});
+    else R(x-2.5,y-2.5,5,5,{s:COL.major,w:0.25});
+  });
+  return ops;
+}
+
+function drawOpsCanvas(ctx, ops, k){
+  ctx.save(); ctx.scale(k,k);
+  ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,SW,SH);
+  for (const o of ops){
+    if (o.k==='r'){
+      if (o.f){ctx.fillStyle=o.f; ctx.fillRect(o.x,o.y,o.w,o.h);}
+      if (o.s){ctx.strokeStyle=o.s; ctx.lineWidth=o.w; ctx.setLineDash([]); ctx.strokeRect(o.x,o.y,o.w,o.h);}
+    } else if (o.k==='l'){
+      ctx.strokeStyle=o.c; ctx.lineWidth=o.w; ctx.setLineDash(o.dash||[]);
+      ctx.beginPath(); ctx.moveTo(o.x1,o.y1); ctx.lineTo(o.x2,o.y2); ctx.stroke();
+    } else {
+      ctx.fillStyle=o.c; ctx.font=(o.b?'600 ':'400 ')+o.size+'px "IBM Plex Sans", Helvetica, Arial, sans-serif';
+      ctx.textAlign=o.a||'left'; ctx.textBaseline='alphabetic';
+      if (o.rot){ctx.save(); ctx.translate(o.x,o.y); ctx.rotate(-Math.PI/2); ctx.textAlign='center'; ctx.fillText(o.s,0,0); ctx.restore();}
+      else ctx.fillText(o.s,o.x,o.y);
+    }
+  }
+  ctx.setLineDash([]); ctx.restore();
+}
+
+function drawOpsPdf(doc, ops){
+  for (const o of ops){
+    if (o.k==='r'){
+      if (o.f){doc.setFillColor(o.f); doc.rect(o.x,o.y,o.w,o.h,'F');}
+      if (o.s){doc.setDrawColor(o.s); doc.setLineWidth(o.w); doc.setLineDashPattern([],0); doc.rect(o.x,o.y,o.w,o.h,'S');}
+    } else if (o.k==='l'){
+      doc.setDrawColor(o.c); doc.setLineWidth(o.w); doc.setLineDashPattern(o.dash||[],0);
+      doc.line(o.x1,o.y1,o.x2,o.y2); doc.setLineDashPattern([],0);
+    } else {
+      doc.setTextColor(o.c); doc.setFont('helvetica', o.b?'bold':'normal'); doc.setFontSize(o.size*2.835);
+      if (o.rot) doc.text(o.s,o.x,o.y,{angle:90,align:'center'});
+      else doc.text(o.s,o.x,o.y,{align:o.a||'left'});
+    }
+  }
+}
+
+/* ================= Small numeric helpers ================= */
+function solve(A,b){
+  const n=b.length;
+  for (let c=0;c<n;c++){
+    let p=c; for (let r=c+1;r<n;r++) if (Math.abs(A[r][c])>Math.abs(A[p][c])) p=r;
+    [A[c],A[p]]=[A[p],A[c]]; [b[c],b[p]]=[b[p],b[c]];
+    if (Math.abs(A[c][c])<1e-12) return null;
+    for (let r=c+1;r<n;r++){ const f=A[r][c]/A[c][c]; for (let k=c;k<n;k++) A[r][k]-=f*A[c][k]; b[r]-=f*b[c]; }
+  }
+  const x=new Array(n);
+  for (let r=n-1;r>=0;r--){ let s=b[r]; for (let k=r+1;k<n;k++) s-=A[r][k]*x[k]; x[r]=s/A[r][r]; }
+  return x;
+}
+function homography(src,dst){            // maps mm (u,v) -> image (x,y)
+  const A=[],b=[];
+  for (let i=0;i<4;i++){
+    const [u,v]=src[i],[x,y]=dst[i];
+    A.push([u,v,1,0,0,0,-u*x,-v*x]); b.push(x);
+    A.push([0,0,0,u,v,1,-u*y,-v*y]); b.push(y);
+  }
+  return solve(A,b);
+}
+function mapPt(h,u,v){ const d=h[6]*u+h[7]*v+1; return [(h[0]*u+h[1]*v+h[2])/d,(h[3]*u+h[4]*v+h[5])/d]; }
+
+function fft(re,im,inv){
+  const n=re.length;
+  for (let i=1,j=0;i<n;i++){
+    let bit=n>>1; for (;j&bit;bit>>=1) j^=bit; j^=bit;
+    if (i<j){ let t=re[i];re[i]=re[j];re[j]=t; t=im[i];im[i]=im[j];im[j]=t; }
+  }
+  for (let len=2;len<=n;len<<=1){
+    const ang=2*Math.PI/len*(inv?1:-1), wr=Math.cos(ang), wi=Math.sin(ang), half=len>>1;
+    for (let i=0;i<n;i+=len){
+      let cr=1,ci=0;
+      for (let k=0;k<half;k++){
+        const a=i+k,b=a+half;
+        const tr=re[b]*cr-im[b]*ci, ti=re[b]*ci+im[b]*cr;
+        re[b]=re[a]-tr; im[b]=im[a]-ti; re[a]+=tr; im[a]+=ti;
+        const nc=cr*wr-ci*wi; ci=cr*wi+ci*wr; cr=nc;
+      }
+    }
+  }
+  if (inv) for (let i=0;i<n;i++){ re[i]/=n; im[i]/=n; }
+}
+const nextPow2 = n => { let p=1; while(p<n) p<<=1; return p; };
+
+/* ================= Image analysis ================= */
+function grayFrom(src, sw, sh, maxSide=2600){
+  const k=Math.min(1,maxSide/Math.max(sw,sh)), w=Math.round(sw*k), h=Math.round(sh*k);
+  const c=document.createElement('canvas'); c.width=w; c.height=h;
+  const ctx=c.getContext('2d',{willReadFrequently:true}); ctx.drawImage(src,0,0,w,h);
+  const d=ctx.getImageData(0,0,w,h).data, G=new Uint8Array(w*h);
+  for (let i=0,j=0;i<G.length;i++,j+=4){ const r=d[j],g=d[j+1],b=d[j+2]; G[i]=r>g?(r>b?r:b):(g>b?g:b); }
+  return {G,w,h};
+}
+// Paper brightness estimate: block maximum, dilated over 3x3 blocks.
+function localBg(G,w,h,B){
+  const bw=Math.ceil(w/B), bh=Math.ceil(h/B), m=new Uint8Array(bw*bh);
+  for (let y=0;y<h;y++){ const row=(y/B|0)*bw; for (let x=0;x<w;x++){ const v=G[y*w+x], i=row+(x/B|0); if (v>m[i]) m[i]=v; } }
+  const m2=new Uint8Array(bw*bh);
+  for (let j=0;j<bh;j++) for (let i=0;i<bw;i++){
+    let mx=0; for (let dj=-1;dj<=1;dj++) for (let di=-1;di<=1;di++){ const a=i+di,b=j+dj; if(a>=0&&b>=0&&a<bw&&b<bh){ const v=m[b*bw+a]; if(v>mx)mx=v; } }
+    m2[j*bw+i]=mx;
+  }
+  return {m:m2,bw,B};
+}
+const bgAt = (bg,x,y)=>bg.m[(y/bg.B|0)*bg.bw+(x/bg.B|0)];
+
+function detectCorners(G,w,h){
+  const f=Math.max(1,Math.ceil(Math.max(w,h)/900)), sw=Math.floor(w/f), sh=Math.floor(h/f);
+  const S=new Uint8Array(sw*sh);
+  for (let j=0;j<sh;j++) for (let i=0;i<sw;i++){
+    let s=0; for (let b=0;b<f;b++){ const row=(j*f+b)*w+i*f; for (let a=0;a<f;a++) s+=G[row+a]; }
+    S[j*sw+i]=s/(f*f);
+  }
+  const bg=localBg(S,sw,sh,Math.max(8,Math.round(Math.max(sw,sh)/24)));
+  const ink=new Uint8Array(sw*sh);
+  for (let y=0;y<sh;y++) for (let x=0;x<sw;x++){ const b=bgAt(bg,x,y); if (b>80 && S[y*sw+x]<0.55*b) ink[y*sw+x]=1; }
+  const lab=new Int32Array(sw*sh), stack=new Int32Array(sw*sh), comps=[];
+  for (let p=0;p<sw*sh;p++){
+    if (!ink[p]||lab[p]) continue;
+    const id=comps.length+1, c={area:0,sx:0,sy:0,x0:sw,x1:0,y0:sh,y1:0,border:false};
+    let sp=0; stack[sp++]=p; lab[p]=id;
+    while (sp){
+      const q=stack[--sp], x=q%sw, y=(q/sw)|0;
+      c.area++; c.sx+=x; c.sy+=y;
+      if(x<c.x0)c.x0=x; if(x>c.x1)c.x1=x; if(y<c.y0)c.y0=y; if(y>c.y1)c.y1=y;
+      if (x===0||y===0||x===sw-1||y===sh-1) c.border=true;
+      if (x>0 && ink[q-1] && !lab[q-1]){lab[q-1]=id;stack[sp++]=q-1;}
+      if (x<sw-1 && ink[q+1] && !lab[q+1]){lab[q+1]=id;stack[sp++]=q+1;}
+      if (y>0 && ink[q-sw] && !lab[q-sw]){lab[q-sw]=id;stack[sp++]=q-sw;}
+      if (y<sh-1 && ink[q+sw] && !lab[q+sw]){lab[q+sw]=id;stack[sp++]=q+sw;}
+    }
+    comps.push(c);
+  }
+  const L=Math.max(sw,sh);
+  let cand=comps.filter(c=>{
+    const bw=c.x1-c.x0+1, bh=c.y1-c.y0+1;
+    if (c.border||bw<0.012*L||bh<0.012*L||bw>0.12*L||bh>0.12*L) return false;
+    const ar=bw/bh; if (ar<0.5||ar>2) return false;
+    return c.area/(bw*bh)>0.55;
+  }).sort((a,b)=>b.area-a.area);
+  if (cand.length<4) return null;
+  const ref=cand[3].area; cand=cand.filter(c=>c.area>=0.45*ref);
+  const pts=cand.map(c=>{ const p=[(c.sx/c.area+0.5)*f,(c.sy/c.area+0.5)*f]; p.sz=(c.x1-c.x0+c.y1-c.y0+2)/2*f; return p; });
+  const pick=fn=>pts.reduce((a,b)=>fn(b)>fn(a)?b:a);
+  const TL=pick(p=>-(p[0]+p[1])), BR=pick(p=>p[0]+p[1]), TR=pick(p=>p[0]-p[1]), BL=pick(p=>p[1]-p[0]);
+  if (new Set([TL,TR,BR,BL]).size<4) return null;
+  return [TL,TR,BR,BL];
+}
+
+function sampleG(G,w,h,x,y){ const xi=Math.round(x), yi=Math.round(y); return (xi<0||yi<0||xi>=w||yi>=h)?255:G[yi*w+xi]; }
+function inkFrac(G,w,h,H,cx,cy){
+  let ref=0;
+  for (let a=0;a<16;a++){ const t=a/16*2*Math.PI; const [x,y]=mapPt(H,cx+6.5*Math.cos(t),cy+6.5*Math.sin(t)); ref=Math.max(ref,sampleG(G,w,h,x,y)); }
+  let n=0,c=0;
+  for (let i=0;i<7;i++) for (let j=0;j<7;j++){
+    const [x,y]=mapPt(H,cx-1.6+i*3.2/6,cy-1.6+j*3.2/6); n++; if (sampleG(G,w,h,x,y)<0.5*ref) c++;
+  }
+  return c/n;
+}
+// Try the 4 cyclic assignments of the corners; the code square must sit bottom-centre.
+function orient(G,w,h,pts){
+  let best=null;
+  for (let r=0;r<4;r++){
+    const dst=[0,1,2,3].map(i=>pts[(i+r)%4]);
+    const H=homography(FID,dst); if (!H) continue;
+    const s1=inkFrac(G,w,h,H,SLOTS[0][0],SLOTS[0][1]);
+    const mirror=inkFrac(G,w,h,H,SW-SLOTS[0][0],SH-SLOTS[0][1]);
+    const score=s1-mirror;
+    if (!best||score>best.score) best={H,score,s1};
+  }
+  if (!best) return null;
+  const bits=SLOTS.map(([x,y])=>inkFrac(G,w,h,best.H,x,y)>0.45?'1':'0').join('');
+  best.type=Object.keys(TYPES).find(k=>TYPES[k].code===bits)||null;
+  return best;
+}
+function rectify(G,w,h,H){
+  const RW=SW*SCALE, RH=SH*SCALE, R=new Uint8Array(RW*RH);
+  for (let j=0;j<RH;j++){
+    const v=(j+0.5)/SCALE;
+    for (let i=0;i<RW;i++){
+      const u=(i+0.5)/SCALE, d=H[6]*u+H[7]*v+1;
+      const x=(H[0]*u+H[1]*v+H[2])/d-0.5, y=(H[3]*u+H[4]*v+H[5])/d-0.5;
+      const x0=Math.floor(x), y0=Math.floor(y);
+      if (x0<0||y0<0||x0>=w-1||y0>=h-1){ R[j*RW+i]=255; continue; }
+      const fx=x-x0, fy=y-y0, p=y0*w+x0;
+      R[j*RW+i]=(G[p]*(1-fx)+G[p+1]*fx)*(1-fy)+(G[p+w]*(1-fx)+G[p+w+1]*fx)*fy;
+    }
+  }
+  return R;
+}
+
+function extractBand(R,bg,b,thr){
+  const bx0=b.x0??X0, RW=SW*SCALE, c0=Math.round(bx0*SCALE), c1=Math.round((b.x1??X1)*SCALE), n=c1-c0;
+  const r0=Math.round(b.top*SCALE), r1=Math.round(b.bottom*SCALE);
+  const ys=new Float32Array(n).fill(NaN);
+  let prev=b.zero*SCALE, missing=0;
+  for (let c=0;c<n;c++){
+    const x=c0+c; let best=null, inRun=false, ws=0, ys_=0, start=0;
+    const close=(r)=>{ if (r-start>=2 && ws>0.4){ const y=ys_/ws; if (!best||Math.abs(y-prev)<Math.abs(best-prev)) best=y; } inRun=false; ws=0; ys_=0; };
+    for (let r=r0;r<=r1;r++){
+      const g=R[r*RW+x], bv=bgAt(bg,x,r);
+      if (bv>60 && g<thr*bv){ const wt=1-g/bv; ws+=wt; ys_+=wt*(r+0.5); if(!inRun){inRun=true;start=r;} }
+      else if (inRun) close(r);
+    }
+    if (inRun) close(r1+1);
+    if (best!==null){ ys[c]=best; prev=best; } else missing++;
+  }
+  // fill gaps by linear interpolation
+  let last=-1;
+  for (let c=0;c<n;c++){
+    if (!isNaN(ys[c])){
+      if (last<0) for (let k=0;k<c;k++) ys[k]=ys[c];
+      else for (let k=last+1;k<c;k++) ys[k]=ys[last]+(ys[c]-ys[last])*(k-last)/(c-last);
+      last=c;
+    }
+  }
+  if (last<0) return {ys:null,values:null,missing:1};
+  for (let k=last+1;k<n;k++) ys[k]=ys[last];
+  // median of 5 against isolated spikes
+  const m=new Float32Array(n), win=[];
+  for (let c=0;c<n;c++){ win.length=0; for (let k=-2;k<=2;k++) win.push(ys[Math.min(n-1,Math.max(0,c+k))]); win.sort((a,b)=>a-b); m[c]=win[2]; }
+  const values=new Float32Array(n);
+  for (let c=0;c<n;c++){ let v=(b.zero*SCALE-m[c])/(b.amp*SCALE); if (b.uni&&v<0) v=0; values[c]=v; }
+  return {ys:m,values,missing:missing/n,x0:bx0};
+}
+function countLobes(v,hy=0.25){
+  let st=0,n=0; for (const x of v){ if (x>hy){ if(st!==1){n++;st=1;} } else if (x<-hy) st=-1; } return n;
+}
+
+/* ================= Pieces (one per sheet) ================= */
+let pieces=[], nextId=1;
+const thrEl=$('#thr');
+
+function makeBase(R){
+  const RW=SW*SCALE, RH=SH*SCALE;
+  const full=document.createElement('canvas'); full.width=RW; full.height=RH;
+  const fctx=full.getContext('2d'), id=fctx.createImageData(RW,RH);
+  for (let i=0,j=0;i<R.length;i++,j+=4){ id.data[j]=id.data[j+1]=id.data[j+2]=R[i]; id.data[j+3]=255; }
+  fctx.putImageData(id,0,0);
+  const t=document.createElement('canvas'); t.width=594; t.height=420;
+  t.getContext('2d').drawImage(full,0,0,594,420);
+  return t;
+}
+function extractPiece(p){
+  const thr=+thrEl.value;
+  const defs=p.hand ? handBands(p.type,p.margin) : TYPES[p.type].bands;
+  p.bands=defs.map(b=>extractBand(p.R,p.bg,b,thr));
+  const miss=Math.max(...p.bands.map(b=>b.missing));
+  p.ok=p.bands.every(b=>b.values);
+  p.warn = !p.ok ? 'Aucun trait trouvé dans la zone.' : miss>0.35 ? 'Trait peu visible ('+Math.round(miss*100)+' % de colonnes vides).' : '';
+  p.periods = p.type==='A' ? 1 : p.type==='C' && p.ok ? p.bands.reduce((s,b)=>s+Math.max(1,countLobes(b.values)),0) : 0;
+}
+function analyze(p, G, w, h, manual){
+  const pts=manual||detectCorners(G,w,h);
+  if (!pts){ p.fail='Les 4 carrés noirs n’ont pas été trouvés.'; p.img={G,w,h}; return; }
+  const o=orient(G,w,h,pts);
+  if (!o){ p.fail='Redressement impossible avec ces coins.'; p.img={G,w,h}; return; }
+  p.fail=''; p.img=null;
+  if (!p.typeLocked){ p.type=o.type||'A'; p.codeWarn=o.type?'':'Type non reconnu : A supposé.'; }
+  p.R=rectify(G,w,h,o.H);
+  p.bg=localBg(p.R,SW*SCALE,SH*SCALE,10*SCALE);
+  p.base=makeBase(p.R);
+  extractPiece(p);
+}
+/* Hand-made sheet: plain paper, 4 squares blackened with a felt pen, no printed code.
+   The square centres are mapped onto the printed sheet's fiducials, so the drawing area
+   is the rectangle between the squares: axis 0 halfway, ±1 on the lines joining the squares
+   (envelope: 0 at the bottom line, 1 at the top line). */
+function handBands(type,m){
+  const x0=FID[0][0]+m, x1=FID[1][0]-m, top=FID[0][1], bottom=FID[3][1];
+  return type==='B' ? [{top,bottom,zero:bottom,amp:bottom-top,uni:true,x0,x1}]
+                    : [{top,bottom,zero:(top+bottom)/2,amp:(bottom-top)/2,uni:false,x0,x1}];
+}
+function analyzeHand(p, G, w, h, manual){
+  const pts=manual||detectCorners(G,w,h);
+  if (!pts){ p.fail='Les 4 carrés noirs n’ont pas été trouvés.'; p.img={G,w,h}; return; }
+  const d=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+  let P=[...pts];
+  if (d(P[0],P[1])<d(P[0],P[3])) P=[P[3],P[0],P[1],P[2]];          // rectangle photographed upright in portrait
+  P=[0,1,2,3].map(i=>P[(i+(p.rot||0))%4]);
+  const H=homography(FID,P);
+  if (!H){ p.fail='Redressement impossible avec ces coins.'; p.img={G,w,h}; return; }
+  const sz=pts.every(q=>q.sz) ? pts.reduce((s,q)=>s+q.sz,0)/4 : 0;
+  const span=(d(P[0],P[1])+d(P[3],P[2]))/2;
+  p.margin=sz ? Math.max(5,0.6*sz/span*(FID[1][0]-FID[0][0])+3) : 12;
+  p.fail=''; p.img=null; p.src={G,w,h,manual:manual||null}; p.codeWarn='';
+  p.R=rectify(G,w,h,H);
+  p.bg=localBg(p.R,SW*SCALE,SH*SCALE,10*SCALE);
+  p.base=makeBase(p.R);
+  extractPiece(p);
+}
+function analyzeAny(p,G,w,h,manual){ p.hand ? analyzeHand(p,G,w,h,manual) : analyze(p,G,w,h,manual); }
+// The first sheet of the user's own takes over from the examples (they stay listed, unticked).
+function userPieceAdded(){
+  const ex=pieces.filter(p=>p.example&&p.include);
+  if (!ex.length) return;
+  ex.forEach(p=>p.include=false);
+  toast('Les exemples sont décochés : vous entendez maintenant votre feuille.');
+}
+function showCard(p){
+  const el=document.querySelector('#cards .card[data-id="'+p.id+'"]');
+  if (!el) return;
+  el.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'});
+  el.classList.add('flash'); setTimeout(()=>el.classList.remove('flash'),1800);
+}
+function newPiece(name, ex){ const p={id:nextId++,name,example:!!ex,include:true,type:'A',bands:[],ok:false}; pieces.push(p); return p; }
+
+async function addFiles(files){
+  for (const file of files){
+    if (!file.type.startsWith('image/')) { toast(file.name+' n’est pas une image.'); continue; }
+    const p=newPiece(file.name), kind=$('#importKind').value;
+    if (kind!=='auto'){ p.hand=true; p.type=kind; p.typeLocked=true; }
+    renderCards();
+    try{
+      const bmp=await createImageBitmap(file);
+      const {G,w,h}=grayFrom(bmp,bmp.width,bmp.height); bmp.close&&bmp.close();
+      analyzeAny(p,G,w,h);
+    }catch(e){ p.fail='Image illisible par le navigateur (format HEIC ?).'; }
+    if (!p.fail) userPieceAdded();
+    renderCards(); rebuild(); showCard(p);
+    await new Promise(r=>setTimeout(r,0));
+  }
+}
+
+/* ---------- cards ---------- */
+function drawThumb(p,cv){
+  const ctx=cv.getContext('2d');
+  if (p.fail){ const im=p.img; drawGrayPreview(ctx,cv,im); return; }
+  ctx.drawImage(p.base,0,0,cv.width,cv.height);
+  const k=cv.width/SW;
+  ctx.lineWidth=2.2; ctx.strokeStyle='rgba(217,68,26,.95)'; ctx.lineJoin='round';
+  for (const b of p.bands){
+    if (!b.ys) continue;
+    const c0=b.x0;
+    ctx.beginPath();
+    for (let c=0;c<b.ys.length;c+=2){ const x=(c0+(c+0.5)/SCALE)*k, y=b.ys[c]/SCALE*k; c?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+    ctx.stroke();
+  }
+}
+function drawGrayPreview(ctx,cv,im){
+  const sc=Math.min(cv.width/im.w,cv.height/im.h), w=Math.max(1,Math.round(im.w*sc)), h=Math.max(1,Math.round(im.h*sc));
+  const id=ctx.createImageData(w,h);
+  for (let y=0;y<h;y++) for (let x=0;x<w;x++){ const v=im.G[Math.floor(y/sc)*im.w+Math.floor(x/sc)], j=(y*w+x)*4; id.data[j]=id.data[j+1]=id.data[j+2]=v; id.data[j+3]=255; }
+  ctx.fillStyle='#ddd'; ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.putImageData(id,(cv.width-w)/2,(cv.height-h)/2);
+}
+function renderCards(){
+  const box=$('#cards'); box.textContent='';
+  if (!pieces.length){ const e=document.createElement('p'); e.className='empty'; e.textContent='Aucune feuille pour l’instant.'; box.append(e); }
+  pieces.forEach((p,idx)=>{
+    const card=document.createElement('article'); card.className='card'+(p.include&&!p.fail?'':' off'); card.dataset.id=p.id;
+    const cv=document.createElement('canvas'); cv.width=594; cv.height=420; card.append(cv);
+    const body=document.createElement('div'); body.className='body';
+    const t=document.createElement('div'); t.className='t';
+    const bd=document.createElement('span'); bd.className='badge'; bd.textContent=p.fail?'?':p.type; t.append(bd);
+    if (p.hand){ const hb=document.createElement('span'); hb.className='badge ex'; hb.textContent='à la main'; t.append(hb); }
+    if (p.example){ const ex=document.createElement('span'); ex.className='badge ex'; ex.textContent='exemple'; t.append(ex); }
+    const nm=document.createElement('span'); nm.className='name'; nm.textContent=p.name; nm.title=p.name; t.append(nm);
+    body.append(t);
+    const meta=document.createElement('div'); meta.className='meta';
+    if (!p.R && !p.fail){ meta.textContent='Analyse…'; }
+    else if (p.fail){ const s=document.createElement('span'); s.className='err'; s.textContent=p.fail; meta.append(s); }
+    else {
+      const parts=[TYPES[p.type].label];
+      if (p.type==='C') parts.push('≈ '+p.periods+' périodes');
+      if (p.type!=='B') parts.push(p.bands.length*p.bands[0].values.length+' points');
+      meta.append(parts.join(' · '));
+      for (const wmsg of [p.codeWarn,p.warn]) if (wmsg){ meta.append(document.createElement('br')); const s=document.createElement('span'); s.className='warn'; s.textContent=wmsg; meta.append(s); }
+    }
+    body.append(meta);
+    const ctl=document.createElement('div'); ctl.className='ctl';
+    if (p.fail){
+      const b=document.createElement('button'); b.className='btn small primary'; b.type='button'; b.textContent='Placer les coins à la main';
+      b.onclick=()=>openManual(p); ctl.append(b);
+    } else if (p.R){
+      const lb=document.createElement('label'); lb.className='inc';
+      const ck=document.createElement('input'); ck.type='checkbox'; ck.checked=p.include; ck.id='inc'+p.id;
+      ck.onchange=()=>{ p.include=ck.checked; card.classList.toggle('off',!p.include); rebuild(); };
+      lb.append(ck,' Assembler'); ctl.append(lb);
+      const sel=document.createElement('select'); sel.setAttribute('aria-label','Type de feuille');
+      for (const k of Object.keys(TYPES)){ const o=document.createElement('option'); o.value=k; o.textContent=k; if(k===p.type)o.selected=true; sel.append(o); }
+      sel.onchange=()=>{ p.type=sel.value; p.typeLocked=true; p.codeWarn=''; extractPiece(p); renderCards(); rebuild(); };
+      ctl.append(sel);
+      if (p.hand && p.src){
+        const rb=document.createElement('button'); rb.className='btn small'; rb.type='button'; rb.textContent='↻'; rb.title='Retourner d’un demi-tour (photo à l’envers)'; rb.setAttribute('aria-label',rb.title);
+        rb.onclick=()=>{ p.rot=((p.rot||0)+2)%4; analyzeHand(p,p.src.G,p.src.w,p.src.h,p.src.manual||null); renderCards(); rebuild(); };
+        ctl.append(rb);
+      }
+      const pl=document.createElement('button'); pl.className='btn small'; pl.type='button'; pl.textContent='▶'; pl.title='Écouter cette feuille seule'; pl.setAttribute('aria-label','Écouter cette feuille seule');
+      pl.onclick=()=>{ const r=synth(settings(),[p]); if (r.data) playData(r); else toast(r.msg); };
+      ctl.append(pl);
+    }
+    const mk=(txt,lab,fn,dis)=>{ const b=document.createElement('button'); b.className='btn small'; b.type='button'; b.textContent=txt; b.title=lab; b.setAttribute('aria-label',lab); b.disabled=!!dis; b.onclick=fn; ctl.append(b); };
+    mk('↑','Monter',()=>{ [pieces[idx-1],pieces[idx]]=[pieces[idx],pieces[idx-1]]; renderCards(); rebuild(); }, idx===0);
+    mk('↓','Descendre',()=>{ [pieces[idx+1],pieces[idx]]=[pieces[idx],pieces[idx+1]]; renderCards(); rebuild(); }, idx===pieces.length-1);
+    mk('✕','Retirer',()=>{ pieces.splice(idx,1); renderCards(); rebuild(); });
+    body.append(ctl); card.append(body); box.append(card);
+    if (p.R||p.fail) drawThumb(p,cv); else { const c=cv.getContext('2d'); c.fillStyle='#eee'; c.fillRect(0,0,cv.width,cv.height); }
+  });
+  $('#btnClearEx').hidden=!pieces.some(p=>p.example);
+}
+
+/* ---------- manual corners ---------- */
+let manual=null;
+function openManual(p){
+  manual={p,pts:[]};
+  const im=p.img, cv=$('#mcv'), sc=Math.min(1,1400/Math.max(im.w,im.h));
+  cv.width=Math.round(im.w*sc); cv.height=Math.round(im.h*sc); manual.sc=sc;
+  drawManual(); $('#modal').hidden=false;
+}
+function drawManual(){
+  const cv=$('#mcv'), ctx=cv.getContext('2d'), im=manual.p.img;
+  drawGrayPreview(ctx,cv,im);
+  ctx.fillStyle='#D9441A'; ctx.strokeStyle='#fff'; ctx.lineWidth=2;
+  for (const [x,y] of manual.pts){ ctx.beginPath(); ctx.arc(x*manual.sc,y*manual.sc,8,0,7); ctx.fill(); ctx.stroke(); }
+  $('#modalMsg').textContent='Cliquez sur les 4 carrés noirs, dans n’importe quel ordre ('+manual.pts.length+'/4).';
+}
+$('#mcv').addEventListener('click',e=>{
+  if (!manual) return;
+  const cv=e.currentTarget, r=cv.getBoundingClientRect();
+  const x=(e.clientX-r.left)/r.width*cv.width/manual.sc, y=(e.clientY-r.top)/r.height*cv.height/manual.sc;
+  manual.pts.push([x,y]); drawManual();
+  if (manual.pts.length===4){
+    const P=manual.pts, pick=fn=>P.reduce((a,b)=>fn(b)>fn(a)?b:a);
+    const pts=[pick(p=>-(p[0]+p[1])),pick(p=>p[0]-p[1]),pick(p=>p[0]+p[1]),pick(p=>p[1]-p[0])];
+    const p=manual.p, im=p.img; manual=null; $('#modal').hidden=true;
+    analyzeAny(p,im.G,im.w,im.h,pts); renderCards(); rebuild();
+  }
+});
+$('#mReset').onclick=()=>{ if(manual){manual.pts=[];drawManual();} };
+$('#mCancel').onclick=()=>{ manual=null; $('#modal').hidden=true; };
+
+/* ================= Synthesis ================= */
+function settings(){
+  return {
+    f:Math.min(2000,Math.max(40,+$('#f').value||220)),
+    mode:document.querySelector('input[name=mode]:checked').value,
+    carrier:document.querySelector('input[name=carrier]:checked').value,
+    dur:+$('#dur').value, fs:+$('#fs').value, bits:+$('#bits').value,
+    aa:$('#aa').checked, dc:$('#dc').checked, seam:$('#seam').checked,
+    nDraw:+$('#nDraw').value/100,                                   // σ relative to the drawing's peak
+    snr:+$('#nSig').value>0 ? 55-+$('#nSig').value : Infinity,       // signal-to-noise ratio, dB
+    sat:+$('#sat').value,                                             // drive, dB (0 = off)
+    clip:+$('#clip').value/100,                                       // fraction of the peak cut off
+    asym:$('#asym').checked
+  };
+}
+// Seeded noise: the same settings always give the same noise, until "Nouveau tirage".
+let noiseSeed=1;
+function rng(seed){
+  let a=seed>>>0;
+  const u=()=>{ a=(a+0x6D2B79F5)>>>0; let t=a; t=Math.imul(t^(t>>>15),t|1); t^=t+Math.imul(t^(t>>>7),t|61); return ((t^(t>>>14))>>>0)/4294967296; };
+  return ()=>Math.sqrt(-2*Math.log(u()+1e-12))*Math.cos(2*Math.PI*u());   // Gaussian, σ = 1
+}
+// Transfer curve of an overdriven amplifier, for a signal whose peak is 1.
+//   clip: hard clipping at level 1-clip;  sat: tanh soft saturation, drive in dB;  asym: offset → even harmonics.
+function makeDist(S){
+  if (!(S.sat>0||S.clip>0)) return x=>x;
+  const c=1-S.clip, g=10**(S.sat/20), tg=Math.tanh(g), b=S.asym?0.35:0;
+  const f=x=>{ let y=Math.max(-c,Math.min(c,x))/c; if (S.sat>0) y=Math.tanh(g*y)/tg; return y; };
+  const f0=f(b);
+  return x=>f(x+b)-f0;
+}
+function lowpassTaps(n,fcN){                      // windowed-sinc FIR (Blackman), unit DC gain
+  const h=new Float64Array(n), m=(n-1)/2; let s=0;
+  for (let i=0;i<n;i++){
+    const x=i-m, sinc=x===0?2*fcN:Math.sin(2*Math.PI*fcN*x)/(Math.PI*x);
+    h[i]=sinc*(0.42-0.5*Math.cos(2*Math.PI*i/(n-1))+0.08*Math.cos(4*Math.PI*i/(n-1))); s+=h[i];
+  }
+  for (let i=0;i<n;i++) h[i]/=s;
+  return h;
+}
+function synth(S, list){
+  const use=list.filter(p=>p.R&&!p.fail&&p.ok);
+  const wav=use.filter(p=>p.type!=='B'), env=use.filter(p=>p.type==='B');
+  let W, N, segs=[];
+  if (S.carrier==='sine' || !wav.length){
+    if (S.carrier!=='sine' && !env.length) return {msg:'Cochez « Assembler » sur au moins une feuille.'};
+    const M=1024; W=new Float64Array(M); for (let i=0;i<M;i++) W[i]=Math.sin(2*Math.PI*i/M); N=1;
+    segs=[{start:0,len:M,label:'sinus'}];
+  } else {
+    let total=0; N=0;
+    for (const p of wav) p.bands.forEach((b,i)=>{ segs.push({start:total,len:b.values.length,label:p.name+(p.type==='C'?' · bande '+(i+1):''),periods:p.type==='A'?1:Math.max(1,countLobes(b.values))}); total+=b.values.length; N+=segs[segs.length-1].periods; });
+    W=new Float64Array(total); let o=0;
+    for (const p of wav) for (const b of p.bands){ W.set(b.values,o); o+=b.values.length; }
+    if (S.dc){ let m=0; for (const v of W) m+=v; m/=W.length; for (let i=0;i<W.length;i++) W[i]-=m; }
+    // Join the end onto the start over the last 3 % only, so the drawn shape itself is untouched.
+    if (S.seam && W.length>8){
+      const M1=W.length, k=Math.max(4,Math.round(0.03*M1)), d=W[0]-W[M1-1];
+      for (let j=0;j<k;j++){ const t=(j+1)/k, s=t*t*(3-2*t); W[M1-k+j]+=d*s; }
+    }
+    let pk=0; for (const v of W) pk=Math.max(pk,Math.abs(v)); if (pk>0) for (let i=0;i<W.length;i++) W[i]/=pk;
+  }
+  if (S.nDraw>0){ const g=rng(noiseSeed); for (let i=0;i<W.length;i++) W[i]+=S.nDraw*g(); }
+  const M=W.length, fs=S.fs, fc=S.f/N;
+  const Ns=Math.max(64, S.mode==='loop'?Math.round(S.dur*fs):Math.round(N/S.f*fs));
+  let T=null, L=0;
+  if (S.aa){
+    L=Math.min(1<<20,nextPow2(Math.max(2048,2*M)));
+    const re=new Float64Array(L), im=new Float64Array(L);
+    for (let i=0;i<L;i++){ const x=i*M/L, i0=Math.floor(x), fr=x-i0; re[i]=W[i0]*(1-fr)+W[(i0+1)%M]*fr; }
+    fft(re,im,false);
+    const kmax=Math.min(L/2-1,Math.floor((fs/2-1e-6)/fc));
+    for (let k=kmax+1;k<L-kmax;k++){ re[k]=0; im[k]=0; }
+    fft(re,im,true); T=re;
+  }
+  let E=null;
+  const envAt=n=>{ const Ne=E.length, x=Math.min(1,Math.max(0,n/(Ns-1)))*(Ne-1), i0=Math.floor(x), fr=x-i0; return E[i0]*(1-fr)+E[Math.min(Ne-1,i0+1)]*fr; };
+  if (env.length){ E=[]; for (const p of env) for (const v of p.bands[0].values) E.push(v); }
+  const readT=ph=>{ const x=ph*L, i0=Math.floor(x), fr=x-i0; return T[i0]*(1-fr)+T[(i0+1)%L]*fr; };
+  const readW=ph=>{ const x=ph*M, i0=Math.floor(x), fr=x-i0; return W[i0]*(1-fr)+W[(i0+1)%M]*fr; };
+  const dist=makeDist(S), distOn=S.sat>0||S.clip>0;
+  const out=new Float32Array(Ns);
+  let analogPre;
+  if (distOn && S.aa){
+    // The amplifier distorts the analog signal: compute it 4× oversampled, then low-pass before sampling,
+    // so the new harmonics above fe/2 are filtered out instead of folding back.
+    const OS=4, R=fs*OS, Nh=Ns*OS, x=new Float32Array(Nh), incH=fc/R; let ph=0;
+    for (let n=0;n<Nh;n++){ let v=readT(ph); if (E) v*=envAt(n/OS); x[n]=dist(v); ph+=incH; if (ph>=1) ph-=Math.floor(ph); }
+    const taps=lowpassTaps(191,0.43/OS), H=taps.length, half=(H-1)>>1;
+    const conv=i=>{ let s=0; const a=Math.max(0,half-i), b=Math.min(H,Nh+half-i); for (let k=a;k<b;k++) s+=taps[k]*x[i+k-half]; return s; };
+    for (let n=0;n<Ns;n++) out[n]=conv(n*OS);
+    analogPre=t=>{ const p=Math.min(Nh-2,Math.max(0,t*R)), i0=Math.floor(p), fr=p-i0; return conv(i0)*(1-fr)+conv(i0+1)*fr; };
+  } else {
+    const inc=fc/fs; let ph=0;
+    for (let n=0;n<Ns;n++){
+      let v=T?readT(ph):W[Math.min(M-1,Math.floor(ph*M))];
+      if (E) v*=envAt(n);
+      out[n]=dist(v); ph+=inc; if (ph>=1) ph-=Math.floor(ph);
+    }
+    analogPre=t=>{ const ph=(fc*t)%1; let v=T?readT(ph):readW(ph); if (E) v*=envAt(t*fs); return dist(v); };
+  }
+  // An asymmetric curve shifts the mean, following the envelope: remove it with a 20 Hz high-pass
+  // (the coupling capacitor of a real amplifier). `dcTrack` keeps what was removed, for the scope.
+  let dcTrack=null;
+  if (distOn && S.asym){
+    dcTrack=new Float32Array(Ns);
+    const a=1-2*Math.PI*20/fs; let xp=out[0], yp=0, m=0;
+    for (let n=0;n<Math.min(Ns,Math.round(0.02*fs));n++) m+=out[n]; m/=Math.min(Ns,Math.round(0.02*fs));
+    xp=m;                                                  // start settled on the initial offset
+    for (let n=0;n<Ns;n++){ const x=out[n], y=x-xp+a*yp; xp=x; yp=y; dcTrack[n]=x-y; out[n]=y; }
+  }
+  const dcAt=t=>{ if (!dcTrack) return 0; const p=Math.min(Ns-1,Math.max(0,t*fs)), i0=Math.floor(p), fr=p-i0; return dcTrack[i0]*(1-fr)+dcTrack[Math.min(Ns-1,i0+1)]*fr; };
+  if (isFinite(S.snr)){
+    let e=0; for (const v of out) e+=v*v;
+    const sigma=Math.sqrt(e/Ns)*10**(-S.snr/20), g=rng(noiseSeed*7919+3);
+    for (let n=0;n<Ns;n++) out[n]+=sigma*g();
+  }
+  const fade=Math.min(Math.round(0.005*fs),Ns>>3);
+  for (let n=0;n<fade;n++){ const g=n/fade; out[n]*=g; out[Ns-1-n]*=g; }
+  let pk=0; for (const v of out) pk=Math.max(pk,Math.abs(v));
+  const levels=2**S.bits;
+  for (let n=0;n<Ns;n++){
+    let y=pk>0?out[n]/pk*0.9999:0;
+    if (S.bits<16){ let idx=Math.floor((y+1)/2*levels); if(idx>=levels)idx=levels-1; if(idx<0)idx=0; y=((idx+0.5)/levels)*2-1; }
+    out[n]=y*0.89;
+  }
+  // Continuous signal entering the converter (after the anti-aliasing filter if on), same scale as the samples.
+  const gain=pk>0?0.89*0.9999/pk:0;
+  const analog=t=>(analogPre(t)-dcAt(t))*gain;
+  return {data:out,fs,W,N,segs,fc,S,levels,analog,envCount:env.length,wavCount:wav.length};
+}
+
+/* ================= Audio, files ================= */
+let actx=null, src=null;
+function stopAudio(){ if (src){ try{src.onended=null;src.stop();}catch(e){} src=null; } $('#play').textContent='▶ Écouter'; }
+function playData(r){
+  stopAudio();
+  actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+  actx.resume();
+  const b=actx.createBuffer(1,r.data.length,r.fs); b.copyToChannel(r.data,0);
+  src=actx.createBufferSource(); src.buffer=b; src.connect(actx.destination);
+  src.onended=()=>{ src=null; $('#play').textContent='▶ Écouter'; };
+  src.start(); $('#play').textContent='■ Arrêter';
+}
+function wavBytes(data,fs){
+  const n=data.length, buf=new ArrayBuffer(44+2*n), v=new DataView(buf);
+  const w4=(o,s)=>{ for(let i=0;i<4;i++) v.setUint8(o+i,s.charCodeAt(i)); };
+  w4(0,'RIFF'); v.setUint32(4,36+2*n,true); w4(8,'WAVE'); w4(12,'fmt ');
+  v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true); v.setUint32(24,fs,true);
+  v.setUint32(28,fs*2,true); v.setUint16(32,2,true); v.setUint16(34,16,true); w4(36,'data'); v.setUint32(40,2*n,true);
+  for (let i=0;i<n;i++) v.setInt16(44+2*i,Math.max(-32768,Math.min(32767,Math.round(data[i]*32767))),true);
+  return new Uint8Array(buf);
+}
+const CRC=(()=>{ const t=new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=c&1?0xEDB88320^(c>>>1):c>>>1; t[n]=c>>>0; } return t; })();
+function crc32(u8){ let c=0xFFFFFFFF; for (let i=0;i<u8.length;i++) c=CRC[(c^u8[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+function zipOne(name,data){                       // single stored entry
+  const nm=new TextEncoder().encode(name), crc=crc32(data), n=data.length;
+  const lh=new DataView(new ArrayBuffer(30));
+  lh.setUint32(0,0x04034b50,true); lh.setUint16(4,20,true); lh.setUint16(12,33,true);
+  lh.setUint32(14,crc,true); lh.setUint32(18,n,true); lh.setUint32(22,n,true); lh.setUint16(26,nm.length,true);
+  const cd=new DataView(new ArrayBuffer(46));
+  cd.setUint32(0,0x02014b50,true); cd.setUint16(4,20,true); cd.setUint16(6,20,true); cd.setUint16(14,33,true);
+  cd.setUint32(16,crc,true); cd.setUint32(20,n,true); cd.setUint32(24,n,true); cd.setUint16(28,nm.length,true);
+  const cdOff=30+nm.length+n, cdSize=46+nm.length;
+  const end=new DataView(new ArrayBuffer(22));
+  end.setUint32(0,0x06054b50,true); end.setUint16(8,1,true); end.setUint16(10,1,true); end.setUint32(12,cdSize,true); end.setUint32(16,cdOff,true);
+  return new Blob([lh.buffer,nm,data,cd.buffer,nm,end.buffer]);
+}
+let dl=null, dlTried=false;
+async function saveFile(filename,data){
+  if (window.claude && typeof window.claude.use==='function'){
+    if (!dlTried){ dlTried=true; try{ dl=await window.claude.use('downloads'); }catch(e){ dl=null; } }
+    if (!dl){ toast('Le téléchargement n’est pas disponible dans cette vue.'); return; }
+    try{ await dl.save({filename,data}); toast('Fichier enregistré : '+filename); }
+    catch(e){ if (e&&e.code!=='declined') toast('Enregistrement impossible ('+(e&&e.code||'erreur')+').'); }
+    return;
+  }
+  const blob=data instanceof Blob?data:new Blob([data]);
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; document.body.append(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1000);
+}
+let toastT=0;
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>t.hidden=true,3200); }
+
+/* ================= Plots ================= */
+const tok=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function prep(cv){
+  const dpr=window.devicePixelRatio||1, w=cv.clientWidth, h=cv.clientHeight;
+  if (cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){ cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr); }
+  const ctx=cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,w,h);
+  ctx.font='11px "IBM Plex Mono", monospace'; return {ctx,w,h};
+}
+function frame(ctx,w,h,pad){
+  ctx.strokeStyle=tok('--line'); ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(pad.l,pad.t); ctx.lineTo(pad.l,h-pad.b); ctx.lineTo(w-pad.r,h-pad.b); ctx.stroke();
+}
+let last=null;
+function drawAll(){
+  const r=last;
+  for (const id of ['#cvW','#cvS','#cvF']){ const {ctx,w,h}=prep($(id)); if(!r){ ctx.fillStyle=tok('--muted'); ctx.fillText('—',w/2,h/2); } }
+  if (!r) return;
+  drawW(r); drawScope(r); drawSpec(r);
+}
+function drawW(r){
+  const {ctx,w,h}=prep($('#cvW')), pad={l:30,r:8,t:10,b:18}, pw=w-pad.l-pad.r, phh=h-pad.t-pad.b;
+  const Y=v=>pad.t+phh/2-v*phh/2*0.92, M=r.W.length;
+  ctx.fillStyle=tok('--muted'); ctx.textAlign='right';
+  [[1,'+1'],[0,'0'],[-1,'−1']].forEach(([v,s])=>{ ctx.fillText(s,pad.l-6,Y(v)+4); ctx.strokeStyle=tok('--grid'); ctx.beginPath(); ctx.moveTo(pad.l,Y(v)); ctx.lineTo(w-pad.r,Y(v)); ctx.stroke(); });
+  ctx.strokeStyle=tok('--grid-strong'); ctx.setLineDash([3,3]);
+  for (const s of r.segs.slice(1)){ const x=pad.l+s.start/M*pw; ctx.beginPath(); ctx.moveTo(x,pad.t); ctx.lineTo(x,h-pad.b); ctx.stroke(); }
+  ctx.setLineDash([]);
+  frame(ctx,w,h,pad);
+  ctx.strokeStyle=tok('--accent'); ctx.lineWidth=1.4; ctx.beginPath();
+  const step=Math.max(1,Math.floor(M/(pw*2)));
+  for (let i=0;i<M;i+=step){ const x=pad.l+i/(M-1)*pw, y=Y(r.W[i]); i?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+  ctx.stroke();
+  ctx.fillStyle=tok('--muted'); ctx.textAlign='left';
+  ctx.fillText(r.segs.length>1?r.segs.length+' segments':'1 segment',pad.l,h-4);
+  ctx.textAlign='right'; ctx.fillText(M.toLocaleString('fr-FR')+' points',w-pad.r,h-4);
+  $('#lblW').textContent = r.S.carrier==='sine'||!r.wavCount ? 'sinus de référence' : r.N+' période'+(r.N>1?'s':'')+' dessinée'+(r.N>1?'s':'');
+}
+function drawScope(r){
+  const {ctx,w,h}=prep($('#cvS')), pad={l:30,r:8,t:10,b:18}, pw=w-pad.l-pad.r, phh=h-pad.t-pad.b;
+  const d=r.data, fs=r.fs, per=fs/r.S.f, P=+$('#zoom').value, wl=Math.max(4,per*P);
+  let n0=Math.floor(d.length/2);
+  for (let k=0;k<per+2&&n0+k+1<d.length;k++){ if (d[n0+k]<0&&d[n0+k+1]>=0){ n0=n0+k; break; } }
+  if (n0+wl>=d.length) n0=Math.max(0,Math.floor(d.length-wl-1));
+  const t0=n0/fs, Tw=wl/fs;
+  const Y=v=>pad.t+phh/2-v/0.9*phh/2, X=t=>pad.l+(t-t0)/Tw*pw;
+  ctx.lineWidth=1;
+  if (r.S.bits<=6){
+    ctx.strokeStyle=tok('--grid');
+    for (let i=0;i<r.levels;i++){ const v=(((i+0.5)/r.levels)*2-1)*0.89; ctx.beginPath(); ctx.moveTo(pad.l,Y(v)); ctx.lineTo(w-pad.r,Y(v)); ctx.stroke(); }
+  }
+  ctx.strokeStyle=tok('--grid-strong'); ctx.beginPath(); ctx.moveTo(pad.l,Y(0)); ctx.lineTo(w-pad.r,Y(0)); ctx.stroke();
+  frame(ctx,w,h,pad);
+  ctx.save(); ctx.beginPath(); ctx.rect(pad.l,0,pw+1,h); ctx.clip();
+  if (SIMPLE){                             // discovery version: the sound as one continuous curve
+    ctx.strokeStyle=tok('--trace'); ctx.lineWidth=2; ctx.beginPath();
+    for (let px=0;px<=pw;px++){ const t=t0+px/pw*Tw, y=Y(r.analog(t)); px?ctx.lineTo(pad.l+px,y):ctx.moveTo(pad.l+px,y); }
+    ctx.stroke(); ctx.restore();
+    ctx.fillStyle=tok('--muted'); ctx.textAlign='left'; ctx.fillText('0',pad.l,h-4);
+    ctx.textAlign='right'; ctx.fillText((Tw*1000).toFixed(2).replace('.',',')+' ms',w-pad.r,h-4);
+    $('#zoomV').textContent=P.toLocaleString('fr-FR')+' période'+(P>1?'s':'');
+    $('#lblS').textContent='période T = '+(1000/r.S.f).toFixed(2).replace('.',',')+' ms · f = 1/T = '+fmtHz(r.S.f);
+    return;
+  }
+  // continuous signal before sampling
+  if ($('#showAna').checked){
+    ctx.strokeStyle=tok('--accent'); ctx.globalAlpha=0.55; ctx.lineWidth=1.6; ctx.beginPath();
+    for (let px=0;px<=pw;px++){ const t=t0+px/pw*Tw, y=Y(r.analog(t)); px?ctx.lineTo(pad.l+px,y):ctx.moveTo(pad.l+px,y); }
+    ctx.stroke(); ctx.globalAlpha=1;
+  }
+  const n1=Math.min(d.length-1,Math.ceil(n0+wl)), count=n1-n0+1, dx=pw/wl;
+  ctx.strokeStyle=tok('--trace'); ctx.fillStyle=tok('--trace');
+  if ($('#showHold').checked){            // zero-order hold: what a simple DAC outputs
+    ctx.lineWidth=1.4; ctx.globalAlpha=0.8; ctx.beginPath();
+    for (let n=n0;n<=n1;n++){ const x1=X(n/fs), x2=X((n+1)/fs), y=Y(d[n]); n===n0?ctx.moveTo(x1,y):ctx.lineTo(x1,y); ctx.lineTo(x2,y); }
+    ctx.stroke(); ctx.globalAlpha=1;
+  }
+  if (dx>=3){                              // samples are far enough apart to be drawn one by one
+    const rad=dx>14?3.2:dx>6?2.4:1.7;
+    ctx.lineWidth=1; ctx.globalAlpha=0.5; ctx.beginPath();
+    for (let n=n0;n<=n1;n++){ const x=X(n/fs); ctx.moveTo(x,Y(0)); ctx.lineTo(x,Y(d[n])); }
+    ctx.stroke(); ctx.globalAlpha=1;
+    for (let n=n0;n<=n1;n++){ ctx.beginPath(); ctx.arc(X(n/fs),Y(d[n]),rad,0,7); ctx.fill(); }
+  } else {
+    ctx.lineWidth=1.3; ctx.beginPath();
+    for (let n=n0;n<=n1;n++){ const x=X(n/fs), y=Y(d[n]); n===n0?ctx.moveTo(x,y):ctx.lineTo(x,y); }
+    ctx.stroke();
+  }
+  ctx.restore();
+  ctx.fillStyle=tok('--muted'); ctx.textAlign='left'; ctx.fillText('0',pad.l,h-4);
+  ctx.textAlign='center';
+  if (dx<3) ctx.fillText('zoomez pour voir chaque échantillon',pad.l+pw/2,h-4);
+  ctx.textAlign='right'; ctx.fillText((Tw*1000).toFixed(2).replace('.',',')+' ms',w-pad.r,h-4);
+  $('#zoomV').textContent=P.toLocaleString('fr-FR')+' période'+(P>1?'s':'')+' · '+count+' échantillons';
+  $('#lblS').textContent='Tₑ = '+(1e6/fs).toFixed(1).replace('.',',')+' µs · '+per.toFixed(1).replace('.',',')+' éch./période · '+(r.levels>65535?'65 536':r.levels.toLocaleString('fr-FR'))+' niveaux';
+}
+function drawSpec(r){
+  const {ctx,w,h}=prep($('#cvF')), pad={l:36,r:8,t:10,b:18}, pw=w-pad.l-pad.r, phh=h-pad.t-pad.b;
+  const d=r.data, fs=r.fs;
+  let Nf=nextPow2(Math.min(d.length,32768)); if (Nf>d.length) Nf>>=1; Nf=Math.max(Nf,256);
+  const re=new Float64Array(Math.max(Nf,1024)), im=new Float64Array(re.length);
+  const st=Math.max(0,Math.floor((d.length-Nf)/2));
+  for (let i=0;i<Nf&&st+i<d.length;i++) re[i]=d[st+i]*(0.5-0.5*Math.cos(2*Math.PI*i/(Nf-1)));
+  fft(re,im,false);
+  const NF=re.length, df=fs/NF, mag=new Float64Array(NF/2); let mx=1e-12;
+  for (let k=0;k<NF/2;k++){ mag[k]=Math.hypot(re[k],im[k]); if (mag[k]>mx) mx=mag[k]; }
+  const db=k=>20*Math.log10(mag[k]/mx+1e-9), fmax=Math.min(fs/2,10000), floor=-80;
+  const X=f=>pad.l+f/fmax*pw, Y=v=>pad.t+(Math.min(0,Math.max(floor,v))/floor)*phh;
+  ctx.fillStyle=tok('--muted'); ctx.textAlign='right';
+  for (let v=0;v>=floor;v-=20){ ctx.strokeStyle=tok('--grid'); ctx.beginPath(); ctx.moveTo(pad.l,Y(v)); ctx.lineTo(w-pad.r,Y(v)); ctx.stroke(); ctx.fillText(v+'',pad.l-5,Y(v)+4); }
+  frame(ctx,w,h,pad);
+  // harmonic ticks
+  ctx.strokeStyle=tok('--grid-strong'); ctx.setLineDash([2,3]);
+  for (let k=1;k*r.S.f<fmax;k++){ const x=X(k*r.S.f); if (r.S.f/fmax*pw<6) break; ctx.beginPath(); ctx.moveTo(x,pad.t); ctx.lineTo(x,h-pad.b); ctx.stroke(); }
+  ctx.setLineDash([]);
+  ctx.beginPath(); ctx.strokeStyle=tok('--accent'); ctx.lineWidth=1.2;
+  const kmax=Math.min(NF/2-1,Math.floor(fmax/df)), step=Math.max(1,Math.floor(kmax/(pw*2)));
+  for (let k=0;k<=kmax;k+=step){
+    let v=-1e9; for (let j=k;j<Math.min(k+step,kmax+1);j++) v=Math.max(v,db(j));
+    const x=X(k*df), y=Y(v); k?ctx.lineTo(x,y):ctx.moveTo(x,y);
+  }
+  ctx.stroke();
+  ctx.fillStyle=tok('--muted'); ctx.textAlign='left'; ctx.fillText('0 Hz',pad.l,h-4);
+  ctx.textAlign='right'; ctx.fillText((fmax/1000).toLocaleString('fr-FR')+' kHz',w-pad.r,h-4);
+  $('#lblF').textContent='dB · pointillés = multiples de '+fmtHz(r.S.f);
+  // harmonic levels
+  const box=$('#harm'); box.textContent='';
+  const hv=[];
+  for (let k=1;k<=10&&k*r.S.f<fs/2;k++){
+    const c=Math.round(k*r.S.f/df), win=Math.max(2,Math.round(0.04*r.S.f/df));
+    let m=0; for (let j=Math.max(0,c-win);j<=Math.min(NF/2-1,c+win);j++) m=Math.max(m,mag[j]);
+    hv.push([k,20*Math.log10(m/mx+1e-9)]);
+  }
+  for (const [k,v] of hv){ const s=document.createElement('span'); const b=document.createElement('b'); b.textContent='H'+k; s.append(b,' '+(v<-79?'< −80':Math.round(v).toString().replace('-','−'))+' dB'); box.append(s); }
+}
+const fmtHz=f=>(Math.round(f*10)/10).toLocaleString('fr-FR')+' Hz';
+
+/* ================= Rebuild + info ================= */
+let rbT=0;
+function rebuild(){ clearTimeout(rbT); rbT=setTimeout(rebuildNow,40); }
+function rebuildNow(){
+  const S=settings();
+  $('#durV').textContent=S.dur.toFixed(1).replace('.',',')+' s';
+  $('#bitsV').textContent=S.bits+' bits';
+  $('#thrV').textContent=Math.round(+thrEl.value*100)+' %';
+  $('#nDrawV').textContent=S.nDraw>0?'σ = '+Math.round(S.nDraw*100)+' % (figé dans la période)':'aucun';
+  $('#nSigV').textContent=isFinite(S.snr)?'RSB '+S.snr+' dB':'aucun';
+  $('#satV').textContent=S.sat>0?'gain +'+S.sat+' dB':'aucune';
+  $('#clipV').textContent=S.clip>0?'coupé à '+Math.round((1-S.clip)*100)+' % de la crête':'aucun';
+  $('#asym').disabled=!(S.sat>0||S.clip>0);
+  $('#dur').disabled=S.mode==='once';
+  const r=synth(S,pieces.filter(p=>p.include));
+  const info=$('#info'); info.textContent='';
+  if (!r.data){ last=null; info.textContent=r.msg; drawAll(); setBtns(false); return; }
+  last=r; setBtns(true);
+  const dur=r.data.length/r.fs;
+  const add=(lab,val)=>{ if (info.childNodes.length) info.append(' · '); info.append(lab+' '); const b=document.createElement('b'); b.textContent=val; info.append(b); };
+  add('durée',dur.toFixed(2).replace('.',',')+' s');
+  if (S.mode==='loop' && r.wavCount && S.carrier==='drawn') add('dessin répété', Math.round(dur*r.fc).toLocaleString('fr-FR')+' fois');
+  if (!SIMPLE) add('échantillons',r.data.length.toLocaleString('fr-FR'));
+  if (!SIMPLE) add('débit',(r.fs*S.bits/1000).toLocaleString('fr-FR',{maximumFractionDigits:1})+' kbit/s');
+  if (isFinite(S.snr)) add('rapport signal/bruit',S.snr+' dB');
+  if (S.sat>0||S.clip>0) add('distorsion',[S.sat>0?'saturation':'',S.clip>0?'écrêtage':'',S.asym?'asymétrique':''].filter(Boolean).join(' + '));
+  if (r.envCount) add('enveloppe',r.envCount+' feuille'+(r.envCount>1?'s':''));
+  if (S.mode==='once' && dur<0.1) { info.append(document.createElement('br')); info.append('Très court : ajoutez des feuilles C ou passez en « Boucler ».'); }
+  drawAll();
+}
+function setBtns(on){ for (const id of ['#play','#btnWav','#btnCsv']) $(id).disabled=!on; }
+
+/* ================= Drawing pad ================= */
+const pad={n:(X1-X0)*SCALE, vals:null};
+pad.vals=new Float32Array(pad.n).fill(NaN);
+function padGeom(){ const cv=$('#pad'); const k=cv.width/(X1-X0); return {cv,k,top:38,zeroY:(110-38)*k,amp:62*k}; }
+function drawPad(){
+  const {cv,k}=padGeom(), ctx=cv.getContext('2d');
+  ctx.save(); ctx.fillStyle='#fff'; ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.translate(-X0*k,-38*k);
+  const ops=sheetOps('A').filter(o=>o.k==='l');
+  for (const o of ops){ ctx.strokeStyle=o.c; ctx.lineWidth=Math.max(1,o.w*k); ctx.setLineDash((o.dash||[]).map(v=>v*k)); ctx.beginPath(); ctx.moveTo(o.x1*k,o.y1*k); ctx.lineTo(o.x2*k,o.y2*k); ctx.stroke(); }
+  ctx.restore(); ctx.setLineDash([]);
+  const g=padGeom();
+  ctx.strokeStyle='#111'; ctx.lineWidth=3; ctx.lineJoin='round'; ctx.beginPath(); let on=false;
+  for (let c=0;c<pad.n;c++){ const v=pad.vals[c]; if (isNaN(v)){ on=false; continue; } const x=(c+0.5)/pad.n*cv.width, y=g.zeroY-v*g.amp; on?ctx.lineTo(x,y):ctx.moveTo(x,y); on=true; }
+  ctx.stroke();
+}
+(()=>{
+  const cv=$('#pad'); let lastC=null,lastV=null,down=false;
+  const at=e=>{ const r=cv.getBoundingClientRect(), g=padGeom(); const x=(e.clientX-r.left)/r.width*cv.width, y=(e.clientY-r.top)/r.height*cv.height;
+    return [Math.max(0,Math.min(pad.n-1,Math.round(x/cv.width*pad.n-0.5))), Math.max(-1.15,Math.min(1.15,(g.zeroY-y)/g.amp))]; };
+  const put=(c,v)=>{ if (lastC===null){ pad.vals[c]=v; } else { const a=Math.min(lastC,c), b=Math.max(lastC,c); for (let k=a;k<=b;k++){ const t=b===a?1:(k-lastC)/(c-lastC); pad.vals[k]=lastV+(v-lastV)*t; } } lastC=c; lastV=v; drawPad(); };
+  cv.addEventListener('pointerdown',e=>{ down=true; cv.setPointerCapture(e.pointerId); lastC=null; const [c,v]=at(e); put(c,v); });
+  cv.addEventListener('pointermove',e=>{ if(!down) return; const [c,v]=at(e); put(c,v); });
+  const up=()=>{ down=false; lastC=null; };
+  cv.addEventListener('pointerup',up); cv.addEventListener('pointercancel',up);
+  $('#padClear').onclick=()=>{ pad.vals.fill(NaN); drawPad(); };
+  const padPiece=name=>{
+    const filled=pad.vals.filter(v=>!isNaN(v)).length;
+    if (filled<pad.n*0.3){ toast('Tracez la courbe sur au moins un tiers de la largeur.'); return null; }
+    const p={id:nextId++,name,include:true,type:'A',typeLocked:true,bands:[],ok:false};
+    p.R=virtualSheet('A',[()=>pad.vals]).R; p.bg=localBg(p.R,SW*SCALE,SH*SCALE,10*SCALE); p.base=makeBase(p.R); extractPiece(p);
+    return p;
+  };
+  $('#padPlay').onclick=()=>{ const p=padPiece('dessin'); if (!p) return; const r=synth(settings(),[p]); if (r.data) playData(r); else toast(r.msg); };
+  $('#padAdd').onclick=()=>{
+    const p=padPiece('Dessin à la souris '+(pieces.filter(q=>q.name.startsWith('Dessin à la souris')).length+1));
+    if (!p) return;
+    pieces.push(p); userPieceAdded(); renderCards(); rebuild(); showCard(p);
+  };
+  drawPad();
+})();
+// Render a sheet with a pen curve directly in rectified space (used by the pad).
+function virtualSheet(t,bandVals){
+  const cv=document.createElement('canvas'); cv.width=SW*SCALE; cv.height=SH*SCALE;
+  const ctx=cv.getContext('2d'); drawOpsCanvas(ctx,sheetOps(t),SCALE);
+  ctx.save(); ctx.scale(SCALE,SCALE); ctx.strokeStyle='#111'; ctx.lineWidth=0.6; ctx.lineJoin='round';
+  TYPES[t].bands.forEach((b,i)=>{
+    const vals=bandVals[i](); let on=false; ctx.beginPath();
+    for (let c=0;c<vals.length;c++){ let v=vals[c]; if (isNaN(v)){ on=false; continue; } const x=X0+(c+0.5)/SCALE, y=b.zero-v*b.amp; on?ctx.lineTo(x,y):ctx.moveTo(x,y); on=true; }
+    ctx.stroke();
+  });
+  ctx.restore();
+  const d=ctx.getImageData(0,0,cv.width,cv.height).data, R=new Uint8Array(cv.width*cv.height);
+  for (let i=0,j=0;i<R.length;i++,j+=4) R[i]=Math.max(d[j],d[j+1],d[j+2]);
+  return {R};
+}
+
+/* ================= Example "photos" (simulated, run through the real pipeline) ================= */
+function fakePhoto(t, curve, rot, seed){
+  const W=1900,H=1400, cv=document.createElement('canvas'); cv.width=W; cv.height=H;
+  const ctx=cv.getContext('2d');
+  const g=ctx.createLinearGradient(0,0,W,H); g.addColorStop(0,'#7a6d5c'); g.addColorStop(1,'#4f463b');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  const k=5.6;
+  ctx.save(); ctx.translate(W/2+seed*14,H/2-seed*9); ctx.rotate(rot); ctx.translate(-SW*k/2,-SH*k/2);
+  ctx.shadowColor='rgba(0,0,0,.35)'; ctx.shadowBlur=18; ctx.fillStyle='#fff'; ctx.fillRect(0,0,SW*k,SH*k); ctx.shadowBlur=0;
+  drawOpsCanvas(ctx,sheetOps(t),k);
+  ctx.scale(k,k); ctx.strokeStyle='#1b1b1f'; ctx.lineWidth=0.6; ctx.lineJoin='round'; ctx.lineCap='round';
+  TYPES[t].bands.forEach((b,i)=>{
+    ctx.beginPath();
+    for (let x=X0+0.6;x<=X1-0.6;x+=0.4){ const u=(x-X0)/(X1-X0); const y=b.zero-curve(u,i)*b.amp; x===X0+0.6?ctx.moveTo(x,y):ctx.lineTo(x,y); }
+    ctx.stroke();
+  });
+  ctx.restore();
+  const sh=ctx.createRadialGradient(W*0.2,H*0.15,50,W*0.5,H*0.5,W*0.8);
+  sh.addColorStop(0,'rgba(255,250,235,0)'); sh.addColorStop(1,'rgba(40,30,20,.28)');
+  ctx.fillStyle=sh; ctx.fillRect(0,0,W,H);
+  return cv;
+}
+function addExample(name,t,curve,rot,seed,include){
+  const p=newPiece(name,true); p.include=include;
+  const cv=fakePhoto(t,curve,rot,seed), {G,w,h}=grayFrom(cv,cv.width,cv.height);
+  analyze(p,G,w,h);
+}
+function loadExamples(){
+  const wob=(u,a,f,ph)=>a*Math.sin(2*Math.PI*f*u+ph);
+  addExample('Exemple — sinusoïde à main levée','A',
+    u=>0.82*Math.sin(2*Math.PI*u)+0.14*Math.sin(4*Math.PI*u+0.6)*Math.sin(Math.PI*u)+wob(u,0.025,9,1)+wob(u,0.015,23,2), -0.045, 0, true);
+  addExample('Exemple — enveloppe « pincée »','B',
+    u=>{ const a=u<0.05?u/0.05:Math.exp(-(u-0.05)*4.2); return 0.95*a*(1+wob(u,0.02,11,0)); }, 0.03, 1, true);
+  addExample('Exemple — 4 bandes, triangle tremblé','C',
+    (u,i)=>{ const x=(u*8)%1, tri=x<0.25?4*x:x<0.75?2-4*x:4*x-4; return 0.8*tri*(1+wob(u,0.06,3,i))+wob(u,0.03,37,i*1.7); }, 0.07, -1, false);
+}
+
+/* ================= Wiring ================= */
+// A hand-made sheet, in mm on A4 landscape: squares drawn freehand, optional pencil axis, the curve.
+const HAND_SQ=[[20,21,10.5,0.06],[276,19,9.5,-0.05],[277,190,10,0.04],[21,191,9,-0.03]];
+function drawHandSheet(ctx,k,curve,notes){
+  ctx.save(); ctx.scale(k,k);
+  ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,SW,SH);
+  ctx.fillStyle='#151515';
+  for (const [x,y,s,a] of HAND_SQ){ ctx.save(); ctx.translate(x,y); ctx.rotate(a); ctx.fillRect(-s/2,-s/2,s,s); ctx.restore(); }
+  const xl=30, xr=267, ym=105.5, A=82;
+  ctx.strokeStyle='#C9C9C9'; ctx.lineWidth=0.3; ctx.setLineDash([3,2]);
+  ctx.beginPath(); ctx.moveTo(xl,ym); ctx.lineTo(xr,ym); ctx.stroke(); ctx.setLineDash([]);
+  ctx.strokeStyle='#1b1b1f'; ctx.lineWidth=0.7; ctx.lineJoin='round'; ctx.lineCap='round'; ctx.beginPath();
+  for (let x=xl;x<=xr;x+=0.4){ const y=ym-curve((x-xl)/(xr-xl))*A; x===xl?ctx.moveTo(x,y):ctx.lineTo(x,y); }
+  ctx.stroke();
+  if (notes){
+    ctx.fillStyle='#1C5FC2'; ctx.strokeStyle='#1C5FC2'; ctx.lineWidth=0.4;
+    ctx.font='500 6.5px "IBM Plex Sans", Arial, sans-serif';
+    ctx.fillText('≈ 1 cm, bien noirci',30,24);
+    ctx.fillText('axe 0 : crayon léger (facultatif)',150,101);
+    ctx.fillText('début',30,200); ctx.textAlign='right'; ctx.fillText('fin',267,200);
+    ctx.textAlign='center'; ctx.fillText('pas de cadre, pas de texte entre les carrés',148.5,200);
+  }
+  ctx.restore();
+}
+const HAND_DEMO=u=>0.8*Math.sin(2*Math.PI*u)+0.15*Math.sin(6*Math.PI*u)+0.03*Math.sin(2*Math.PI*11*u);
+function drawPreviews(){
+  for (const t of ['A','B','C']){ const cv=$('#pv'+t); drawOpsCanvas(cv.getContext('2d'),sheetOps(t),cv.width/SW); }
+  const cv=$('#pvH'); drawHandSheet(cv.getContext('2d'),cv.width/SW,HAND_DEMO,true);
+}
+function fakeHandPhoto(curve,rot){
+  const W=1700,H=1300, cv=document.createElement('canvas'); cv.width=W; cv.height=H;
+  const ctx=cv.getContext('2d'); ctx.fillStyle='#5d5448'; ctx.fillRect(0,0,W,H);
+  const k=5.2; ctx.save(); ctx.translate(W/2,H/2); ctx.rotate(rot); ctx.translate(-SW*k/2,-SH*k/2);
+  drawHandSheet(ctx,k,curve,false); ctx.restore();
+  return cv;
+}
+$('#btnPdf').onclick=async()=>{
+  if (!window.jspdf){ $('#pdfNote').textContent='Le module PDF n’a pas pu être chargé.'; return; }
+  const doc=new window.jspdf.jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  ['A','B','C'].forEach((t,i)=>{ if (i) doc.addPage('a4','landscape'); drawOpsPdf(doc,sheetOps(t)); });
+  await saveFile('feuilles-dessin-son.pdf',doc.output('arraybuffer'));
+};
+$('#play').onclick=()=>{ if (src){ stopAudio(); return; } rebuildNow(); if (last) playData(last); };
+$('#btnWav').onclick=()=>{
+  if (!last) return; const f=Math.round(last.S.f);
+  const base='dessin-son-'+f+'Hz-'+last.fs+'-'+last.S.bits+'bits';
+  const wav=wavBytes(last.data,last.fs);
+  if (IN_CLAUDE) saveFile(base+'.zip',zipOne(base+'.wav',wav));   // claude.ai only accepts a .wav inside a .zip
+  else saveFile(base+'.wav',new Blob([wav],{type:'audio/wav'}));
+};
+const IN_CLAUDE=!!(window.claude&&typeof window.claude.use==='function');
+if (!IN_CLAUDE) $('#btnWav').textContent='WAV';
+$('#btnCsv').onclick=()=>{
+  if (!last) return;
+  const lines=['segment;indice;valeur'];
+  last.segs.forEach((s,si)=>{ for (let i=0;i<s.len;i++) lines.push((si+1)+';'+i+';'+last.W[s.start+i].toFixed(5)); });
+  saveFile('dessin-son-points.csv',lines.join('\n'));
+};
+for (const id of ['#zoom','#showAna','#showHold']) $(id).addEventListener('input',()=>{ if (last) drawScope(last); });
+$('#reseed').onclick=()=>{ noiseSeed=(Math.random()*1e9)|0; rebuild(); };
+$('#btnClearEx').onclick=()=>{ pieces=pieces.filter(p=>!p.example); renderCards(); rebuild(); };
+thrEl.oninput=()=>{ for (const p of pieces) if (p.R) extractPiece(p); renderCards(); rebuild(); };
+$('#fPreset').onchange=e=>{ if (e.target.value){ $('#f').value=Math.round(+e.target.value*100)/100; e.target.value=''; rebuild(); } };
+for (const el of document.querySelectorAll('.controls input, .controls select')) el.addEventListener(el.type==='range'||el.type==='number'?'input':'change',rebuild);
+const fileEl=$('#file'), drop=$('#drop');
+fileEl.onchange=()=>{ addFiles([...fileEl.files]); fileEl.value=''; };
+['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{ e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{ e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop',e=>addFiles([...e.dataTransfer.files]));
+new ResizeObserver(()=>drawAll()).observe($('#cvS'));
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',drawAll);
+new MutationObserver(drawAll).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+if (SIMPLE){
+  // Hide everything about digitisation, noise and distortion; hidden inputs keep neutral defaults
+  // (44,1 kHz, 16 bits, anti-aliasing on, no noise, no distortion).
+  for (const id of ['#fs','#bits','#nDraw','#nSig','#reseed','#sat','#clip']) $(id).closest('.field').hidden=true;
+  for (const id of ['#aa','#asym']) $(id).closest('.field').hidden=true;
+  $('#showAna').closest('.checks').hidden=true;
+  document.querySelector('.legend').hidden=true;
+  $('#btnCsv').hidden=true;
+}
+drawPreviews();
+loadExamples();
+renderCards();
+rebuildNow();
+(document.fonts?document.fonts.ready:Promise.resolve()).then(()=>{ drawPreviews(); drawPad(); drawAll(); });
+window.__ds={pieces,detectCorners,analyze,analyzeHand,synth,settings,grayFrom,fakePhoto,fakeHandPhoto,HAND_DEMO};
+</script>
+
+</body>
+</html>
