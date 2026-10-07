@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Spectre en direct</title>
+<style>
+:root{--bg:#0f1419;--panel:#171e26;--line:#2a3441;--fg:#e6edf3;--mut:#9aa7b6;--acc:#4cc9f0;--warm:#ffb703}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color-scheme:dark}
+.wrap{max-width:1100px;margin:0 auto;padding:16px}
+nav{font-size:14px;display:flex;gap:6px 16px;flex-wrap:wrap;margin-bottom:6px}
+nav a{color:var(--mut);text-decoration:none}
+nav a:hover,nav a[aria-current]{color:var(--acc)}
+h1{font-size:30px;margin:.2em 0 .1em;line-height:1.2}
+p.lead{color:var(--mut);margin:.2em 0 1em;max-width:72ch}
+.bar{display:flex;gap:12px 18px;flex-wrap:wrap;align-items:flex-end;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px}
+label{display:flex;flex-direction:column;font-size:13px;color:var(--mut);gap:4px}
+label b{color:var(--fg);font-weight:600}
+select{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:7px 8px;font:inherit}
+input[type=range]{width:200px;accent-color:var(--acc)}
+button{background:var(--acc);color:#04202b;border:0;border-radius:8px;padding:9px 16px;font:inherit;font-weight:600;cursor:pointer}
+button:hover{filter:brightness(1.1)}
+button.sec{background:transparent;color:var(--fg);border:1px solid var(--line)}
+button.rec{background:#ef476f;color:#fff}
+button:disabled{opacity:.4;cursor:default}
+canvas{width:100%;display:block;background:#0b0f14;border:1px solid var(--line);border-radius:10px}
+.stats{display:flex;gap:12px;flex-wrap:wrap;margin:12px 0}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 14px;min-width:150px}
+.stat b{display:block;font-size:24px;font-variant-numeric:tabular-nums;line-height:1.3}
+.stat span{font-size:12px;color:var(--mut)}
+details{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:12px 0}
+summary{cursor:pointer;font-weight:600}
+details p,details li{color:var(--mut);max-width:80ch}
+pre{background:#0b0f14;border:1px solid var(--line);border-radius:8px;padding:12px;overflow:auto;font-size:13px;line-height:1.45;color:#cfe3f1}
+code{font-family:ui-monospace,Consolas,monospace}
+.msg{color:var(--warm);min-height:1.5em;font-size:14px;margin:4px 0}
+.warn{color:var(--warm);font-size:13px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+#wave{height:130px;margin-bottom:12px}
+#spec{height:400px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav><a href="index.html">Accueil</a><a href="01-spectre.html" aria-current="page">1. Spectre</a><a href="02-spectrogramme.html">2. Spectrogramme</a><a href="03-chipmunk.html">3. Chipmunk</a><a href="04-robot.html">4. Robot</a><a href="05-note.html">5. Note</a></nav>
+<h1>Spectre en direct</h1>
+<p class="lead">Un son est une somme de sinusoïdes. Le spectre indique quelles fréquences sont présentes et avec quelle force. Chante, siffle, parle, puis compare avec des sons purs générés par l'ordinateur.</p>
+
+<div class="bar">
+  <button id="go">Démarrer</button>
+  <label>Source
+    <select id="source">
+      <option value="mic">Micro</option>
+      <option value="sine">Sinus (son pur)</option>
+      <option value="square">Signal carré</option>
+      <option value="sawtooth">Dent de scie</option>
+      <option value="noise">Bruit blanc</option>
+    </select>
+  </label>
+  <label id="freqL" hidden>Fréquence générée : <b id="freqV">440 Hz</b>
+    <input id="freq" type="range" min="0" max="1000" value="496">
+  </label>
+  <label id="volL" hidden>Volume des haut-parleurs
+    <input id="vol" type="range" min="0" max="100" value="15">
+  </label>
+  <label>Axe des fréquences
+    <select id="scale"><option value="lin">Linéaire</option><option value="log">Logarithmique</option></select>
+  </label>
+  <label>Fréquence max
+    <select id="fmax">
+      <option value="1000">1 kHz</option><option value="2000">2 kHz</option>
+      <option value="5000" selected>5 kHz</option><option value="10000">10 kHz</option><option value="20000">20 kHz</option>
+    </select>
+  </label>
+  <label>Taille de la FFT
+    <select id="fft">
+      <option value="2048">2048</option><option value="4096">4096</option>
+      <option value="8192" selected>8192</option><option value="16384">16384</option>
+    </select>
+  </label>
+  <button id="freeze" class="sec">Figer l'image</button>
+</div>
+<div class="msg" id="msg"></div>
+
+<canvas id="wave" aria-label="Signal temporel"></canvas>
+<canvas id="spec" aria-label="Spectre"></canvas>
+
+<div class="stats">
+  <div class="stat"><b id="peakF">…</b><span>fréquence du pic principal</span></div>
+  <div class="stat"><b id="peakN">…</b><span>note la plus proche</span></div>
+  <div class="stat"><b id="res">…</b><span>résolution en fréquence</span></div>
+  <div class="stat"><b id="sr">…</b><span>fréquence d'échantillonnage</span></div>
+</div>
+
+<details>
+  <summary>À essayer</summary>
+  <ul>
+    <li>Sinus à 440 Hz : un seul pic. Le signal du haut est une vague régulière dont la période est 1/440 s.</li>
+    <li>Passe au signal carré, puis à la dent de scie : des pics apparaissent aux multiples de la fréquence. Ce sont les harmoniques, et ce sont elles qui donnent le timbre.</li>
+    <li>Chante « aaa » puis « iii » sur la même note : la hauteur ne bouge pas, la forme du spectre change.</li>
+    <li>Siffle : un pic net. Dis « ssss » : un spectre étalé, proche d'un bruit.</li>
+    <li>Change la taille de la FFT : plus elle est grande, plus la résolution en fréquence est fine, mais plus le spectre est moyenné sur une longue durée.</li>
+    <li>Pour une voix, le pic le plus haut n'est pas toujours la fondamentale. La page 5 mesure la hauteur autrement.</li>
+  </ul>
+</details>
+
+<details>
+  <summary>Ouvrir le capot : le code</summary>
+  <p>Tout le calcul de la transformée de Fourier est fait par le navigateur. Il reste à lire le résultat et à le dessiner.</p>
+<pre>// JavaScript (cette page)
+const ctx = new AudioContext();
+const analyseur = ctx.createAnalyser();
+analyseur.fftSize = 8192;                    // nombre d'échantillons analysés
+
+const flux = await navigator.mediaDevices.getUserMedia({ audio: true });
+ctx.createMediaStreamSource(flux).connect(analyseur);
+
+const db = new Float32Array(analyseur.frequencyBinCount);
+analyseur.getFloatFrequencyData(db);         // niveau en dB pour chaque fréquence
+// la case i correspond à la fréquence  i * ctx.sampleRate / analyseur.fftSize</pre>
+<pre># Python (même idée, sur un fichier enregistré)
+import numpy as np, matplotlib.pyplot as plt
+from scipy.io import wavfile
+
+fs, x = wavfile.read("voix.wav")
+x = x[:, 0] if x.ndim &gt; 1 else x           # un seul canal
+N = 2**14
+X = np.abs(np.fft.rfft(x[:N] * np.hanning(N)))
+f = np.fft.rfftfreq(N, 1/fs)
+
+plt.plot(f, 20*np.log10(X + 1e-9))
+plt.xlim(0, 5000); plt.xlabel("Fréquence (Hz)"); plt.ylabel("Niveau (dB)")
+plt.show()</pre>
+</details>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const NOMS = ['Do','Do♯','Ré','Ré♯','Mi','Fa','Fa♯','Sol','Sol♯','La','La♯','Si'];
+const nomNote = f => { const m = Math.round(69 + 12*Math.log2(f/440)); return NOMS[(m%12+12)%12] + (Math.floor(m/12)-1); };
+const FMIN_LOG = 50;
+const fmtF = f => f >= 1000 ? (f/1000).toString().replace('.',',') + ' kHz' : Math.round(f) + ' Hz';
+
+let ctx = null, an = null, micStream = null, gen = null, genOut = null, nodes = [];
+let running = false, frozen = false, db = null, tb = null;
+const spec = $('#spec'), wave = $('#wave');
+
+function fit(c){
+  const r = c.getBoundingClientRect(), d = window.devicePixelRatio || 1;
+  c.width = Math.round(r.width*d); c.height = Math.round(r.height*d); c._d = d;
+}
+function fitAll(){ fit(spec); fit(wave); if (!running || frozen) draw(true); }
+new ResizeObserver(fitAll).observe(document.body);
+
+const msg = t => $('#msg').textContent = t || '';
+const freqFromSlider = v => FMIN_LOG * Math.pow(80, v/1000);          // 50 Hz à 4 kHz, échelle log
+const xToF = (x, W, fmax, log) => log ? FMIN_LOG*Math.pow(fmax/FMIN_LOG, x/W) : x/W*fmax;
+const fToX = (f, W, fmax, log) => log ? Math.log(Math.max(f,FMIN_LOG)/FMIN_LOG)/Math.log(fmax/FMIN_LOG)*W : f/fmax*W;
+
+function updateRes(){
+  if (!an) return;
+  $('#res').textContent = (ctx.sampleRate/an.fftSize).toFixed(1).replace('.',',') + ' Hz';
+  $('#sr').textContent = ctx.sampleRate + ' Hz';
+}
+
+async function start(){
+  if (!ctx){
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    an = ctx.createAnalyser();
+    an.smoothingTimeConstant = 0.5;
+    applyFft();
+  }
+  await ctx.resume();
+  const ok = await setSource($('#source').value);
+  if (ok === false) return;
+  running = true; $('#go').textContent = 'Arrêter';
+}
+function stop(){
+  stopSource();
+  if (micStream){ micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+  if (ctx) ctx.suspend();
+  running = false; $('#go').textContent = 'Démarrer';
+}
+function applyFft(){
+  an.fftSize = +$('#fft').value;
+  tb = new Float32Array(an.fftSize);
+  db = new Float32Array(an.frequencyBinCount);
+  updateRes();
+}
+function stopSource(){
+  if (gen){ try { gen.stop(); } catch(e){} }
+  nodes.forEach(n => { try { n.disconnect(); } catch(e){} });
+  nodes = []; gen = null; genOut = null;
+}
+async function setSource(type){
+  stopSource(); msg('');
+  $('#freqL').hidden = !(type === 'sine' || type === 'square' || type === 'sawtooth');
+  $('#volL').hidden = type === 'mic';
+  if (type === 'mic'){
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      msg("Le micro n'est pas disponible ici : la page doit être ouverte en https ou depuis localhost."); return false;
+    }
+    try {
+      if (!micStream) micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation:false, noiseSuppression:false, autoGainControl:false } });
+    } catch(e){ msg("Accès au micro refusé. Autorise le micro dans le navigateur, ou choisis une source générée."); return false; }
+    const s = ctx.createMediaStreamSource(micStream);
+    s.connect(an); nodes = [s];
+    return true;
+  }
+  const amp = ctx.createGain(); amp.gain.value = 0.5;
+  const out = ctx.createGain(); out.gain.value = (+$('#vol').value/100) ** 2;
+  let s;
+  if (type === 'noise'){
+    const b = ctx.createBuffer(1, ctx.sampleRate*2, ctx.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random()*2 - 1;
+    s = ctx.createBufferSource(); s.buffer = b; s.loop = true;
+  } else {
+    s = ctx.createOscillator(); s.type = type; s.frequency.value = freqFromSlider(+$('#freq').value);
+  }
+  s.connect(amp); amp.connect(an); amp.connect(out); out.connect(ctx.destination);
+  s.start(); gen = s; genOut = out; nodes = [s, amp, out];
+  return true;
+}
+
+$('#go').onclick = () => running ? stop() : start();
+$('#source').onchange = async () => { if (running) { const ok = await setSource($('#source').value); if (ok === false) stop(); } else { $('#freqL').hidden = !['sine','square','sawtooth'].includes($('#source').value); $('#volL').hidden = $('#source').value === 'mic'; } };
+$('#fft').onchange = () => an && applyFft();
+$('#freeze').onclick = () => { frozen = !frozen; $('#freeze').textContent = frozen ? "Reprendre" : "Figer l'image"; };
+$('#freq').oninput = () => {
+  const f = freqFromSlider(+$('#freq').value);
+  $('#freqV').textContent = Math.round(f) + ' Hz';
+  if (gen && gen.frequency) gen.frequency.setTargetAtTime(f, ctx.currentTime, 0.02);
+};
+$('#vol').oninput = () => { if (genOut) genOut.gain.value = (+$('#vol').value/100) ** 2; };
+['scale','fmax'].forEach(id => $('#'+id).onchange = () => draw(true));
+$('#freq').oninput();
+
+function drawWave(){
+  const g = wave.getContext('2d'), d = wave._d, W = wave.width, H = wave.height;
+  g.clearRect(0,0,W,H);
+  g.strokeStyle = '#222c38'; g.lineWidth = d;
+  g.beginPath(); g.moveTo(0,H/2); g.lineTo(W,H/2); g.stroke();
+  g.fillStyle = '#9aa7b6'; g.font = `${12*d}px system-ui`;
+  const n = 1024;
+  if (!an){ g.fillText('Signal temporel', 8*d, 16*d); return; }
+  an.getFloatTimeDomainData(tb);
+  let s0 = Math.max(0, tb.length - 2*n);
+  for (let i = s0 + 1; i < tb.length - n; i++){ if (tb[i-1] < 0 && tb[i] >= 0){ s0 = i; break; } }
+  let p = 0.02;
+  for (let i = 0; i < n; i++) p = Math.max(p, Math.abs(tb[s0+i]));
+  g.strokeStyle = '#4cc9f0'; g.lineWidth = 2*d; g.beginPath();
+  for (let i = 0; i < n; i++){
+    const x = i/(n-1)*W, y = H/2 - tb[s0+i]/p*0.9*H/2;
+    i ? g.lineTo(x,y) : g.moveTo(x,y);
+  }
+  g.stroke();
+  g.fillStyle = '#9aa7b6';
+  g.fillText(`Signal temporel (fenêtre de ${(n/ctx.sampleRate*1000).toFixed(0)} ms, amplitude ajustée automatiquement)`, 8*d, 16*d);
+}
+
+function ticks(fmax, log){
+  if (log) return [100,200,500,1000,2000,5000,10000,20000].filter(f => f <= fmax);
+  const steps = [100,200,250,500,1000,2000,2500,5000];
+  const st = steps.find(s => fmax/s <= 10) || 5000, t = [];
+  for (let f = 0; f <= fmax; f += st) t.push(f);
+  return t;
+}
+
+function drawSpec(){
+  const g = spec.getContext('2d'), d = spec._d, W = spec.width, H = spec.height;
+  const fmax = +$('#fmax').value, log = $('#scale').value === 'log';
+  const L = 46*d, R = 10*d, T = 8*d, B = 28*d, pw = W-L-R, ph = H-T-B;
+  g.clearRect(0,0,W,H);
+  g.font = `${12*d}px system-ui`; g.lineWidth = d;
+  // grille niveaux
+  for (let v = -20; v >= -80; v -= 20){
+    const y = T + ph*(-10-v)/90;
+    g.strokeStyle = '#222c38'; g.beginPath(); g.moveTo(L,y); g.lineTo(L+pw,y); g.stroke();
+    g.fillStyle = '#9aa7b6'; g.textAlign = 'right'; g.fillText(v + ' dB', L-6*d, y+4*d);
+  }
+  // grille fréquences
+  g.textAlign = 'center';
+  for (const f of ticks(fmax, log)){
+    const x = L + fToX(f, pw, fmax, log);
+    g.strokeStyle = '#222c38'; g.beginPath(); g.moveTo(x,T); g.lineTo(x,T+ph); g.stroke();
+    g.fillStyle = '#9aa7b6'; g.fillText(fmtF(f), Math.min(Math.max(x, L+16*d), W-24*d), H-8*d);
+  }
+  if (!an || !ctx) return;
+  an.getFloatFrequencyData(db);
+  for (let i = 0; i < db.length; i++) if (!isFinite(db[i])) db[i] = -140;
+  const binHz = ctx.sampleRate/an.fftSize, nb = db.length;
+  const lvl = v => T + ph*(-10-Math.max(-100,Math.min(-10,v)))/90;
+  g.beginPath(); g.moveTo(L, T+ph);
+  for (let px = 0; px <= pw; px++){
+    const f0 = xToF(px,pw,fmax,log), f1 = xToF(px+1,pw,fmax,log);
+    let v;
+    if (f1 - f0 < binHz){
+      const b = f0/binHz, i = Math.min(Math.floor(b), nb-2), t = b - i;
+      v = db[i]*(1-t) + db[i+1]*t;
+    } else {
+      const i0 = Math.min(Math.floor(f0/binHz), nb-1), i1 = Math.min(Math.floor(f1/binHz), nb-1);
+      v = -200; for (let i = i0; i <= i1; i++) if (db[i] > v) v = db[i];
+    }
+    g.lineTo(L+px, lvl(v));
+  }
+  g.lineTo(L+pw, T+ph); g.closePath();
+  g.fillStyle = 'rgba(76,201,240,0.22)'; g.fill();
+  g.strokeStyle = '#4cc9f0'; g.lineWidth = 1.5*d; g.stroke();
+
+  // pic principal (interpolation parabolique)
+  const i0 = Math.max(2, Math.ceil(60/binHz)), i1 = Math.min(nb-2, Math.floor(fmax/binHz));
+  let m = i0;
+  for (let i = i0; i <= i1; i++) if (db[i] > db[m]) m = i;
+  if (db[m] > -75){
+    const a = db[m-1], b = db[m], c = db[m+1], den = a - 2*b + c;
+    const dl = den ? 0.5*(a-c)/den : 0;
+    const f = (m+dl)*binHz, x = L + fToX(f, pw, fmax, log);
+    g.setLineDash([6*d,5*d]); g.strokeStyle = '#ffb703'; g.lineWidth = 1.5*d;
+    g.beginPath(); g.moveTo(x,T); g.lineTo(x,T+ph); g.stroke(); g.setLineDash([]);
+    g.fillStyle = '#ffb703'; g.textAlign = x > W*0.8 ? 'right' : 'left';
+    g.fillText(Math.round(f) + ' Hz', x + (x > W*0.8 ? -6 : 6)*d, T+14*d);
+    $('#peakF').textContent = Math.round(f) + ' Hz';
+    $('#peakN').textContent = nomNote(f);
+  } else {
+    $('#peakF').textContent = '…'; $('#peakN').textContent = '…';
+  }
+}
+
+function draw(force){ if (!force && frozen) return; drawWave(); drawSpec(); }
+function loop(){ requestAnimationFrame(loop); if (!frozen) draw(); }
+fitAll(); loop();
+</script>
+</body>
+</html>

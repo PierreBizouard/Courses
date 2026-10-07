@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Spectrogramme en direct</title>
+<style>
+:root{--bg:#0f1419;--panel:#171e26;--line:#2a3441;--fg:#e6edf3;--mut:#9aa7b6;--acc:#4cc9f0;--warm:#ffb703}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color-scheme:dark}
+.wrap{max-width:1100px;margin:0 auto;padding:16px}
+nav{font-size:14px;display:flex;gap:6px 16px;flex-wrap:wrap;margin-bottom:6px}
+nav a{color:var(--mut);text-decoration:none}
+nav a:hover,nav a[aria-current]{color:var(--acc)}
+h1{font-size:30px;margin:.2em 0 .1em;line-height:1.2}
+p.lead{color:var(--mut);margin:.2em 0 1em;max-width:72ch}
+.bar{display:flex;gap:12px 18px;flex-wrap:wrap;align-items:flex-end;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px}
+label{display:flex;flex-direction:column;font-size:13px;color:var(--mut);gap:4px}
+label b{color:var(--fg);font-weight:600}
+select{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:7px 8px;font:inherit}
+input[type=range]{width:200px;accent-color:var(--acc)}
+button{background:var(--acc);color:#04202b;border:0;border-radius:8px;padding:9px 16px;font:inherit;font-weight:600;cursor:pointer}
+button:hover{filter:brightness(1.1)}
+button.sec{background:transparent;color:var(--fg);border:1px solid var(--line)}
+button.rec{background:#ef476f;color:#fff}
+button:disabled{opacity:.4;cursor:default}
+canvas{width:100%;display:block;background:#0b0f14;border:1px solid var(--line);border-radius:10px}
+.stats{display:flex;gap:12px;flex-wrap:wrap;margin:12px 0}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 14px;min-width:150px}
+.stat b{display:block;font-size:24px;font-variant-numeric:tabular-nums;line-height:1.3}
+.stat span{font-size:12px;color:var(--mut)}
+details{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:12px 0}
+summary{cursor:pointer;font-weight:600}
+details p,details li{color:var(--mut);max-width:80ch}
+pre{background:#0b0f14;border:1px solid var(--line);border-radius:8px;padding:12px;overflow:auto;font-size:13px;line-height:1.45;color:#cfe3f1}
+code{font-family:ui-monospace,Consolas,monospace}
+.msg{color:var(--warm);min-height:1.5em;font-size:14px;margin:4px 0}
+.warn{color:var(--warm);font-size:13px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+.sgbox{display:flex;gap:0;position:relative;height:460px}
+#ax{width:64px;flex:none;border-radius:10px 0 0 10px;border-right:0;height:100%}
+#sg{flex:1;min-width:0;border-radius:0 10px 10px 0;height:100%;cursor:crosshair}
+#hl{position:absolute;left:64px;right:0;height:0;border-top:1px dashed #ffb703;pointer-events:none;display:none}
+.cap{font-size:13px;color:var(--mut);margin:6px 2px 0;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav><a href="index.html">Accueil</a><a href="01-spectre.html">1. Spectre</a><a href="02-spectrogramme.html" aria-current="page">2. Spectrogramme</a><a href="03-chipmunk.html">3. Chipmunk</a><a href="04-robot.html">4. Robot</a><a href="05-note.html">5. Note</a></nav>
+<h1>Spectrogramme en direct</h1>
+<p class="lead">Le spectre montre un instant. Le spectrogramme empile les spectres au fil du temps : l'axe horizontal est le temps, l'axe vertical la fréquence, la couleur le niveau. C'est l'image du son.</p>
+
+<div class="bar">
+  <button id="go">Démarrer</button>
+  <label>Source
+    <select id="source">
+      <option value="mic">Micro</option>
+      <option value="chirp">Balayage 100 à 4000 Hz</option>
+      <option value="sine">Sinus 440 Hz</option>
+      <option value="square">Signal carré 220 Hz</option>
+      <option value="noise">Bruit blanc</option>
+    </select>
+  </label>
+  <label>Fréquence max
+    <select id="fmax">
+      <option value="2000">2 kHz</option><option value="5000" selected>5 kHz</option>
+      <option value="10000">10 kHz</option><option value="20000">20 kHz</option>
+    </select>
+  </label>
+  <label>Axe des fréquences
+    <select id="scale"><option value="lin">Linéaire</option><option value="log">Logarithmique</option></select>
+  </label>
+  <label>Défilement
+    <select id="speed"><option value="60">Lent</option><option value="120" selected>Normal</option><option value="240">Rapide</option></select>
+  </label>
+  <label>Sensibilité
+    <input id="sens" type="range" min="50" max="115" value="90">
+  </label>
+  <button id="pause" class="sec">Figer</button>
+  <button id="clear" class="sec">Effacer</button>
+</div>
+<div class="msg" id="msg"></div>
+
+<div class="sgbox" id="box">
+  <canvas id="ax"></canvas>
+  <canvas id="sg"></canvas>
+  <div id="hl"></div>
+</div>
+<div class="cap"><span id="hover">Survole l'image pour lire une fréquence.</span><span id="win"></span></div>
+
+<details>
+  <summary>À essayer</summary>
+  <ul>
+    <li>Le balayage dessine une droite en échelle linéaire et une courbe en échelle logarithmique. Une oreille entend les notes en échelle logarithmique.</li>
+    <li>Dis les voyelles a, e, i, o, u à la suite : les bandes horizontales brillantes (les formants) se déplacent, alors que ta hauteur reste la même.</li>
+    <li>Chante une note qui monte : les lignes horizontales des harmoniques montent ensemble, en éventail.</li>
+    <li>Prononce « ch », « s », « t » : les consonnes sont du bruit, étalé sur beaucoup de fréquences.</li>
+    <li>Fais claquer tes doigts : un trait vertical, car un son bref contient toutes les fréquences.</li>
+  </ul>
+</details>
+
+<details>
+  <summary>Ouvrir le capot : le code</summary>
+  <p>À chaque image, on lit le spectre, on le colore, et on le dessine comme une colonne de pixels sur le bord droit. Le reste de l'image est décalé vers la gauche.</p>
+<pre>// JavaScript (cette page)
+analyseur.getFloatFrequencyData(db);              // un spectre = une colonne
+for (let y = 0; y &lt; hauteur; y++) {
+  const f = fmax * (1 - y / hauteur);             // fréquence de cette ligne de pixels
+  const niveau = db[Math.round(f / (fs / fft))];  // niveau en dB à cette fréquence
+  const t = (niveau - plancher) / (plafond - plancher);
+  pixel[y] = couleur(t);                          // du noir au jaune
+}
+g.drawImage(canvas, -dx, 0);                      // décale l'image vers la gauche
+g.putImageData(colonne, largeur - dx, 0);         // ajoute la nouvelle colonne</pre>
+<pre># Python (sur un fichier enregistré)
+import numpy as np, matplotlib.pyplot as plt
+from scipy.io import wavfile
+from scipy.signal import spectrogram
+
+fs, x = wavfile.read("voix.wav")
+x = x[:, 0] if x.ndim &gt; 1 else x
+f, t, S = spectrogram(x, fs, nperseg=2048, noverlap=1536)
+plt.pcolormesh(t, f, 10*np.log10(S + 1e-12), shading="auto", cmap="inferno")
+plt.ylim(0, 5000); plt.xlabel("Temps (s)"); plt.ylabel("Fréquence (Hz)")
+plt.colorbar(label="Niveau (dB)"); plt.show()</pre>
+</details>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const NOMS = ['Do','Do♯','Ré','Ré♯','Mi','Fa','Fa♯','Sol','Sol♯','La','La♯','Si'];
+const nomNote = f => { const m = Math.round(69 + 12*Math.log2(f/440)); return NOMS[(m%12+12)%12] + (Math.floor(m/12)-1); };
+const FMIN = 50;
+const fmtF = f => f >= 1000 ? (f/1000).toString().replace('.',',') + ' kHz' : Math.round(f) + ' Hz';
+const msg = t => $('#msg').textContent = t || '';
+
+// palette du noir au jaune (type « inferno »)
+const STOPS = [[0,[0,0,4]],[.25,[66,10,104]],[.5,[147,38,103]],[.75,[221,81,58]],[.9,[252,165,10]],[1,[252,255,164]]];
+const LUT = Array.from({length:256}, (_, i) => {
+  const t = i/255; let k = 0;
+  while (k < STOPS.length-2 && t > STOPS[k+1][0]) k++;
+  const [t0,c0] = STOPS[k], [t1,c1] = STOPS[k+1], u = Math.min(1, Math.max(0,(t-t0)/(t1-t0)));
+  return c0.map((v,j) => Math.round(v + (c1[j]-v)*u));
+});
+
+let ctx = null, an = null, micStream = null, nodes = [], gen = null, running = false, paused = false;
+let db = null, d = 1, acc = 0, last = 0;
+const sg = $('#sg'), ax = $('#ax');
+
+function setup(){
+  d = window.devicePixelRatio || 1;
+  for (const c of [sg, ax]){ const r = c.getBoundingClientRect(); c.width = Math.round(r.width*d); c.height = Math.round(r.height*d); }
+  clearSg(); drawAxis(); showWindow();
+}
+function clearSg(){ const g = sg.getContext('2d'); g.fillStyle = `rgb(${LUT[0]})`; g.fillRect(0,0,sg.width,sg.height); }
+new ResizeObserver(setup).observe($('#box'));
+
+const fmax = () => +$('#fmax').value, isLog = () => $('#scale').value === 'log';
+const yToF = (y, H) => isLog() ? FMIN*Math.pow(fmax()/FMIN, 1 - y/H) : fmax()*(1 - y/H);
+const fToY = (f, H) => isLog() ? H*(1 - Math.log(Math.max(f,FMIN)/FMIN)/Math.log(fmax()/FMIN)) : H*(1 - f/fmax());
+
+function drawAxis(){
+  const g = ax.getContext('2d'), W = ax.width, H = ax.height;
+  g.fillStyle = '#0b0f14'; g.fillRect(0,0,W,H);
+  g.font = `${12*d}px system-ui`; g.fillStyle = '#9aa7b6'; g.strokeStyle = '#2a3441'; g.textAlign = 'right'; g.lineWidth = d;
+  let t;
+  if (isLog()) t = [100,200,500,1000,2000,5000,10000,20000].filter(f => f <= fmax());
+  else { const st = [100,200,250,500,1000,2000,2500,5000].find(s => fmax()/s <= 10) || 5000; t = []; for (let f = 0; f <= fmax(); f += st) t.push(f); }
+  for (const f of t){
+    const y = Math.min(Math.max(fToY(f,H), 8*d), H-4*d);
+    g.fillText(fmtF(f), W-8*d, y+4*d);
+    g.beginPath(); g.moveTo(W-4*d, fToY(f,H)); g.lineTo(W, fToY(f,H)); g.stroke();
+  }
+}
+function showWindow(){ const w = sg.width/(+$('#speed').value*d); $('#win').textContent = `L'image représente environ ${w.toFixed(0)} s`; }
+
+async function start(){
+  if (!ctx){
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    an = ctx.createAnalyser(); an.fftSize = 4096; an.smoothingTimeConstant = 0;
+    db = new Float32Array(an.frequencyBinCount);
+  }
+  await ctx.resume();
+  if (await setSource($('#source').value) === false) return;
+  running = true; last = performance.now(); $('#go').textContent = 'Arrêter';
+}
+function stop(){
+  stopSource();
+  if (micStream){ micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+  if (ctx) ctx.suspend();
+  running = false; $('#go').textContent = 'Démarrer';
+}
+function stopSource(){
+  if (gen){ try { gen.stop(); } catch(e){} }
+  nodes.forEach(n => { try { n.disconnect(); } catch(e){} }); nodes = []; gen = null;
+}
+async function setSource(type){
+  stopSource(); msg('');
+  if (type === 'mic'){
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ msg("Le micro n'est pas disponible ici : ouvre la page en https ou depuis localhost."); return false; }
+    try { if (!micStream) micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation:false, noiseSuppression:false, autoGainControl:false } }); }
+    catch(e){ msg("Accès au micro refusé. Autorise-le dans le navigateur, ou choisis une source générée."); return false; }
+    const s = ctx.createMediaStreamSource(micStream); s.connect(an); nodes = [s]; return true;
+  }
+  const amp = ctx.createGain(); amp.gain.value = 0.5;
+  const out = ctx.createGain(); out.gain.value = 0.04;       // volume faible dans les haut-parleurs
+  let s;
+  if (type === 'noise'){
+    const b = ctx.createBuffer(1, ctx.sampleRate*2, ctx.sampleRate), x = b.getChannelData(0);
+    for (let i = 0; i < x.length; i++) x[i] = Math.random()*2 - 1;
+    s = ctx.createBufferSource(); s.buffer = b; s.loop = true;
+  } else if (type === 'chirp'){
+    s = ctx.createOscillator(); s.type = 'sine';
+    const t0 = ctx.currentTime + 0.05;
+    for (let k = 0; k < 200; k++){                          // 200 balayages de 6 s enchaînés
+      s.frequency.setValueAtTime(100, t0 + 6*k);
+      s.frequency.exponentialRampToValueAtTime(4000, t0 + 6*k + 5.95);
+    }
+  } else {
+    s = ctx.createOscillator(); s.type = type;
+    s.frequency.value = type === 'sine' ? 440 : 220;
+  }
+  s.connect(amp); amp.connect(an); amp.connect(out); out.connect(ctx.destination);
+  s.start(); gen = s; nodes = [s, amp, out]; return true;
+}
+
+function lookup(f0, f1, binHz, nb){
+  if (f1 - f0 < binHz){
+    const b = (f0+f1)/2/binHz, i = Math.min(Math.floor(b), nb-2), t = b - i;
+    return db[i]*(1-t) + db[i+1]*t;
+  }
+  const i0 = Math.min(Math.floor(f0/binHz), nb-1), i1 = Math.min(Math.floor(f1/binHz), nb-1);
+  let v = -200; for (let i = i0; i <= i1; i++) if (db[i] > v) v = db[i];
+  return v;
+}
+
+function step(now){
+  requestAnimationFrame(step);
+  const dt = Math.min(0.1, (now-last)/1000); last = now;
+  if (!running || paused || !an) return;
+  acc += +$('#speed').value*d*dt;
+  const dx = Math.floor(acc); if (dx < 1) return; acc -= dx;
+  const g = sg.getContext('2d'), W = sg.width, H = sg.height;
+  an.getFloatFrequencyData(db);
+  for (let i = 0; i < db.length; i++) if (!isFinite(db[i])) db[i] = -140;
+  const binHz = ctx.sampleRate/an.fftSize, nb = db.length;
+  const floor = -(+$('#sens').value), ceil = -20;
+  g.drawImage(sg, dx, 0, W-dx, H, 0, 0, W-dx, H);
+  const img = g.createImageData(dx, H), px = img.data;
+  for (let y = 0; y < H; y++){
+    const v = lookup(yToF(y+1,H), yToF(y,H), binHz, nb);
+    const c = LUT[Math.max(0, Math.min(255, Math.round((v-floor)/(ceil-floor)*255)))];
+    for (let x = 0; x < dx; x++){ const k = (y*dx+x)*4; px[k]=c[0]; px[k+1]=c[1]; px[k+2]=c[2]; px[k+3]=255; }
+  }
+  g.putImageData(img, W-dx, 0);
+}
+
+$('#go').onclick = () => running ? stop() : start();
+$('#source').onchange = async () => { if (running && await setSource($('#source').value) === false) stop(); };
+$('#pause').onclick = () => { paused = !paused; $('#pause').textContent = paused ? 'Reprendre' : 'Figer'; };
+$('#clear').onclick = clearSg;
+$('#fmax').onchange = $('#scale').onchange = () => { clearSg(); drawAxis(); };
+$('#speed').onchange = showWindow;
+
+sg.addEventListener('pointermove', e => {
+  const r = sg.getBoundingClientRect(), y = (e.clientY - r.top)/r.height*sg.height;
+  const f = yToF(y, sg.height), x = (e.clientX - r.left)/r.width*sg.width;
+  const ago = (sg.width - x)/(+$('#speed').value*d);
+  $('#hover').textContent = `${fmtF(f)}  (${nomNote(f)})  ·  il y a ${ago.toFixed(1).replace('.',',')} s`;
+  const hl = $('#hl'); hl.style.display = 'block'; hl.style.top = (e.clientY - $('#box').getBoundingClientRect().top) + 'px';
+});
+sg.addEventListener('pointerleave', () => { $('#hl').style.display = 'none'; });
+
+requestAnimationFrame(step);
+</script>
+</body>
+</html>

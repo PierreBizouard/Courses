@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quelle note chantes-tu ?</title>
+<style>
+:root{--bg:#0f1419;--panel:#171e26;--line:#2a3441;--fg:#e6edf3;--mut:#9aa7b6;--acc:#4cc9f0;--warm:#ffb703}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color-scheme:dark}
+.wrap{max-width:1100px;margin:0 auto;padding:16px}
+nav{font-size:14px;display:flex;gap:6px 16px;flex-wrap:wrap;margin-bottom:6px}
+nav a{color:var(--mut);text-decoration:none}
+nav a:hover,nav a[aria-current]{color:var(--acc)}
+h1{font-size:30px;margin:.2em 0 .1em;line-height:1.2}
+p.lead{color:var(--mut);margin:.2em 0 1em;max-width:72ch}
+.bar{display:flex;gap:12px 18px;flex-wrap:wrap;align-items:flex-end;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px}
+label{display:flex;flex-direction:column;font-size:13px;color:var(--mut);gap:4px}
+label b{color:var(--fg);font-weight:600}
+select{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:7px 8px;font:inherit}
+input[type=range]{width:200px;accent-color:var(--acc)}
+button{background:var(--acc);color:#04202b;border:0;border-radius:8px;padding:9px 16px;font:inherit;font-weight:600;cursor:pointer}
+button:hover{filter:brightness(1.1)}
+button.sec{background:transparent;color:var(--fg);border:1px solid var(--line)}
+button.rec{background:#ef476f;color:#fff}
+button:disabled{opacity:.4;cursor:default}
+canvas{width:100%;display:block;background:#0b0f14;border:1px solid var(--line);border-radius:10px}
+.stats{display:flex;gap:12px;flex-wrap:wrap;margin:12px 0}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 14px;min-width:150px}
+.stat b{display:block;font-size:24px;font-variant-numeric:tabular-nums;line-height:1.3}
+.stat span{font-size:12px;color:var(--mut)}
+details{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:12px 0}
+summary{cursor:pointer;font-weight:600}
+details p,details li{color:var(--mut);max-width:80ch}
+pre{background:#0b0f14;border:1px solid var(--line);border-radius:8px;padding:12px;overflow:auto;font-size:13px;line-height:1.45;color:#cfe3f1}
+code{font-family:ui-monospace,Consolas,monospace}
+.msg{color:var(--warm);min-height:1.5em;font-size:14px;margin:4px 0}
+.warn{color:var(--warm);font-size:13px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+#wv{height:150px;margin-bottom:12px}
+#ac{height:200px}
+.big{font-size:64px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.tuner{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:12px 0}
+.head{display:flex;gap:28px;align-items:baseline;flex-wrap:wrap}
+.hz{font-size:28px;color:var(--mut);font-variant-numeric:tabular-nums}
+.gauge{position:relative;height:18px;margin:16px 0 6px;background:linear-gradient(90deg,transparent calc(50% - 1px),var(--mut) calc(50% - 1px),var(--mut) calc(50% + 1px),transparent calc(50% + 1px)),#0b0f14;border:1px solid var(--line);border-radius:9px}
+.needle{position:absolute;top:-4px;width:6px;height:24px;margin-left:-3px;border-radius:3px;background:var(--acc);left:50%;transition:left .08s linear}
+.scale{display:flex;justify-content:space-between;font-size:12px;color:var(--mut)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav><a href="index.html">Accueil</a><a href="01-spectre.html">1. Spectre</a><a href="02-spectrogramme.html">2. Spectrogramme</a><a href="03-chipmunk.html">3. Chipmunk</a><a href="04-robot.html">4. Robot</a><a href="05-note.html" aria-current="page">5. Note</a></nav>
+<h1>Quelle note chantes-tu ?</h1>
+<p class="lead">Une voix chantée est presque périodique : elle se répète toutes les T secondes. L'autocorrélation compare le signal à lui-même décalé dans le temps, et le décalage qui lui ressemble le plus donne T, donc la hauteur f = 1/T. C'est la première brique d'un autotune.</p>
+
+<div class="bar">
+  <button id="go">Démarrer</button>
+  <label>Source
+    <select id="source"><option value="mic">Micro (chante une note tenue)</option><option value="gen">Générateur (dent de scie)</option></select>
+  </label>
+  <label id="gfL" hidden>Fréquence générée : <b id="gfV">220 Hz</b>
+    <input id="gf" type="range" min="80" max="800" value="220">
+  </label>
+</div>
+<div class="msg" id="msg"></div>
+
+<div class="tuner">
+  <div class="head">
+    <div class="big" id="note">…</div>
+    <div class="hz" id="hz">…</div>
+    <div class="hz" id="cents"></div>
+  </div>
+  <div class="gauge"><div class="needle" id="needle"></div></div>
+  <div class="scale"><span>−50 cents (trop bas)</span><span>juste</span><span>+50 cents (trop haut)</span></div>
+</div>
+
+<canvas id="wv" aria-label="Signal temporel"></canvas>
+<canvas id="ac" aria-label="Autocorrélation"></canvas>
+
+<div class="stats">
+  <div class="stat"><b id="sT">…</b><span>période T détectée</span></div>
+  <div class="stat"><b id="sCl">…</b><span>netteté de la périodicité (0 à 1)</span></div>
+  <div class="stat"><b id="sTarget">…</b><span>note cible d'un autotune</span></div>
+  <div class="stat"><b id="sFactor">…</b><span>facteur de correction</span></div>
+</div>
+
+<details>
+  <summary>À essayer</summary>
+  <ul>
+    <li>Chante une note tenue, « aaaa » : une courbe d'autocorrélation avec des pics réguliers, un pic principal net, et la jauge qui se stabilise.</li>
+    <li>Chante en glissant du grave à l'aigu : la jauge traverse toutes les notes, et le décalage T se raccourcit.</li>
+    <li>Chante faux volontairement : le facteur de correction indique de combien l'autotune devrait multiplier la hauteur. Il vaut 1 quand tu es juste.</li>
+    <li>Parle ou chuchote : la périodicité est faible, la netteté chute et plus aucune note n'est affichée.</li>
+    <li>Compare avec la page 3 : accélérer la lecture applique aussi un facteur sur la hauteur, mais en changeant la durée. Un vrai autotune applique le facteur sans changer la durée.</li>
+  </ul>
+</details>
+
+<details>
+  <summary>Ouvrir le capot : le code</summary>
+  <p>On calcule la ressemblance du signal avec lui-même décalé de τ échantillons, pour tous les décalages possibles de voix (de 70 Hz à 1000 Hz). Le décalage du premier grand pic est la période.</p>
+<pre>// JavaScript (cette page) : une version normalisée de l'autocorrélation
+for (let tau = tauMin; tau &lt;= tauMax; tau++) {
+  let r = 0, m = 0;
+  for (let j = 0; j &lt; W; j++) {
+    r += x[j] * x[j + tau];                  // produit du signal et du signal décalé
+    m += x[j]*x[j] + x[j + tau]*x[j + tau];
+  }
+  nsdf[tau] = 2 * r / m;                     // entre -1 et 1 : 1 = identique
+}
+// le premier grand pic donne la période T = tau / fs, donc f = fs / tau
+// note = 69 + 12 * log2(f / 440) ; écart = (note - round(note)) * 100 centièmes</pre>
+<pre># Python (même idée, version simple)
+import numpy as np
+from scipy.io import wavfile
+
+fs, x = wavfile.read("voix.wav")
+x = (x[:, 0] if x.ndim &gt; 1 else x)[:4096].astype(float)
+r = np.correlate(x, x, "full")[len(x) - 1:]            # autocorrélation r[tau]
+tmin, tmax = fs // 1000, fs // 70
+tau = tmin + np.argmax(r[tmin:tmax])
+f0 = fs / tau
+midi = 69 + 12 * np.log2(f0 / 440)
+print(f"{f0:.1f} Hz, écart {100 * (midi - round(midi)):+.0f} centièmes")</pre>
+</details>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const NOMS = ['Do','Do♯','Ré','Ré♯','Mi','Fa','Fa♯','Sol','Sol♯','La','La♯','Si'];
+const midiNom = m => NOMS[(m%12+12)%12] + (Math.floor(m/12)-1);
+const msg = t => $('#msg').textContent = t || '';
+const fmtN = (v, n=1) => v.toFixed(n).replace('.', ',');
+
+let ctx = null, an = null, tb = null, micStream = null, nodes = [], gen = null, running = false;
+let frame = 0, res = null, miss = 0, hist = [];
+const wv = $('#wv'), ac = $('#ac');
+
+function fit(c){ const r = c.getBoundingClientRect(), d = window.devicePixelRatio || 1; c.width = Math.round(r.width*d); c.height = Math.round(r.height*d); c._d = d; }
+new ResizeObserver(() => { fit(wv); fit(ac); }).observe(document.body);
+
+/* ---------- détection : autocorrélation normalisée ---------- */
+function detect(x, sr){
+  const N = x.length, minLag = Math.floor(sr/1000), maxLag = Math.min(Math.floor(sr/70), (N>>1));
+  const W = N - maxLag;
+  let e = 0; for (let i = 0; i < W; i++) e += x[i]*x[i];
+  if (Math.sqrt(e/W) < 0.008) return null;                       // trop silencieux
+  const nsdf = new Float32Array(maxLag+1);
+  let sqT = e;                                                    // somme des x[j+tau]^2 pour tau = 0
+  for (let tau = 0; tau <= maxLag; tau++){
+    let r = 0; for (let j = 0; j < W; j++) r += x[j]*x[j+tau];
+    const m = e + sqT; nsdf[tau] = m > 0 ? 2*r/m : 0;
+    if (tau < maxLag) sqT += x[W+tau]*x[W+tau] - x[tau]*x[tau];
+  }
+  const peaks = []; let mx = 0;
+  for (let t = minLag+1; t < maxLag; t++){
+    if (nsdf[t] > nsdf[t-1] && nsdf[t] >= nsdf[t+1] && nsdf[t] > 0.5){ peaks.push(t); mx = Math.max(mx, nsdf[t]); }
+  }
+  if (!peaks.length) return { nsdf, maxLag, f: null };
+  const t = peaks.find(p => nsdf[p] >= 0.9*mx);
+  const a = nsdf[t-1], b = nsdf[t], c = nsdf[t+1], den = a - 2*b + c, dl = den ? 0.5*(a-c)/den : 0;
+  const lag = t + dl;
+  return { nsdf, maxLag, lag, clarity: b, f: sr/lag, sr };
+}
+
+/* ---------- audio ---------- */
+async function start(){
+  if (!ctx){ ctx = new (window.AudioContext || window.webkitAudioContext)(); an = ctx.createAnalyser(); an.fftSize = 4096; an.smoothingTimeConstant = 0; tb = new Float32Array(4096); }
+  await ctx.resume();
+  if (await setSource() === false) return;
+  running = true; $('#go').textContent = 'Arrêter';
+}
+function stop(){
+  stopSource(); if (micStream){ micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+  if (ctx) ctx.suspend(); running = false; $('#go').textContent = 'Démarrer';
+}
+function stopSource(){ if (gen){ try { gen.stop(); } catch(e){} } nodes.forEach(n => { try { n.disconnect(); } catch(e){} }); nodes = []; gen = null; }
+async function setSource(){
+  stopSource(); msg(''); const type = $('#source').value;
+  $('#gfL').hidden = type !== 'gen';
+  if (type === 'mic'){
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ msg("Le micro n'est pas disponible ici (https ou localhost requis)."); return false; }
+    try { if (!micStream) micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation:false, noiseSuppression:false, autoGainControl:false } }); }
+    catch(e){ msg("Accès au micro refusé. Autorise-le dans le navigateur, ou choisis le générateur."); return false; }
+    const s = ctx.createMediaStreamSource(micStream); s.connect(an); nodes = [s]; return true;
+  }
+  const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = +$('#gf').value;
+  const a = ctx.createGain(); a.gain.value = 0.4; const out = ctx.createGain(); out.gain.value = 0.03;
+  o.connect(a); a.connect(an); a.connect(out); out.connect(ctx.destination); o.start(); gen = o; nodes = [o, a, out]; return true;
+}
+
+/* ---------- affichage ---------- */
+function drawWave(){
+  const g = wv.getContext('2d'), d = wv._d, W = wv.width, H = wv.height, n = 2048;
+  g.clearRect(0,0,W,H); g.strokeStyle = '#222c38'; g.lineWidth = d; g.beginPath(); g.moveTo(0,H/2); g.lineTo(W,H/2); g.stroke();
+  g.font = `${12*d}px system-ui`; g.fillStyle = '#9aa7b6'; g.textAlign = 'left';
+  if (!an || !running){ g.fillText('Signal temporel', 8*d, 16*d); return; }
+  const x0 = tb.length - n; let p = 0.02;
+  for (let i = 0; i < n; i++) p = Math.max(p, Math.abs(tb[x0+i]));
+  g.strokeStyle = '#4cc9f0'; g.lineWidth = 2*d; g.beginPath();
+  for (let i = 0; i < n; i++){ const x = i/(n-1)*W, y = H/2 - tb[x0+i]/p*0.9*H/2; i ? g.lineTo(x,y) : g.moveTo(x,y); }
+  g.stroke();
+  if (res && res.f){      // une marque par période détectée
+    g.strokeStyle = 'rgba(255,183,3,0.55)'; g.setLineDash([4*d,4*d]); g.lineWidth = d;
+    const step = res.lag/(n-1)*W;
+    for (let x = W - step; x > 0; x -= step){ g.beginPath(); g.moveTo(x,0); g.lineTo(x,H); g.stroke(); }
+    g.setLineDash([]);
+  }
+  g.fillStyle = '#9aa7b6'; g.fillText(`Signal temporel (${fmtN(n/ctx.sampleRate*1000, 0)} ms). Traits pointillés : une période T chacun`, 8*d, 16*d);
+}
+function drawAc(){
+  const g = ac.getContext('2d'), d = ac._d, W = ac.width, H = ac.height;
+  const L = 36*d, R = 10*d, T = 8*d, B = 26*d, pw = W-L-R, ph = H-T-B;
+  g.clearRect(0,0,W,H); g.font = `${12*d}px system-ui`; g.lineWidth = d;
+  const sr = ctx ? ctx.sampleRate : 48000, maxMs = 1000/70;
+  g.fillStyle = '#9aa7b6'; g.textAlign = 'right';
+  for (const v of [1, 0, -1]){ const y = T + ph*(1-v)/2; g.strokeStyle = '#222c38'; g.beginPath(); g.moveTo(L,y); g.lineTo(L+pw,y); g.stroke(); g.fillText(v, L-6*d, y+4*d); }
+  g.textAlign = 'center';
+  for (let ms = 0; ms <= 14; ms += 2){ const x = L + ms/maxMs*pw; g.fillStyle = '#9aa7b6'; g.fillText(ms + ' ms', x, H-8*d); }
+  if (!res || !res.nsdf){ g.textAlign = 'left'; g.fillStyle = '#9aa7b6'; g.fillText('Autocorrélation : ressemblance du signal avec lui-même décalé de τ', L+6*d, T+14*d); return; }
+  const n = res.nsdf;
+  g.strokeStyle = '#4cc9f0'; g.lineWidth = 2*d; g.beginPath();
+  for (let t = 0; t <= res.maxLag; t++){ const x = L + (t/sr*1000)/maxMs*pw, y = T + ph*(1-n[t])/2; t ? g.lineTo(x,y) : g.moveTo(x,y); }
+  g.stroke();
+  if (res.f){
+    const x = L + (res.lag/sr*1000)/maxMs*pw;
+    g.strokeStyle = '#ffb703'; g.setLineDash([6*d,4*d]); g.lineWidth = 1.5*d; g.beginPath(); g.moveTo(x,T); g.lineTo(x,T+ph); g.stroke(); g.setLineDash([]);
+    g.fillStyle = '#ffb703'; g.textAlign = 'left'; g.fillText(`T = ${fmtN(res.lag/sr*1000, 2)} ms  →  f = 1/T = ${Math.round(res.f)} Hz`, x + 8*d, T+14*d);
+  }
+  g.textAlign = 'left'; g.fillStyle = '#9aa7b6'; g.fillText('décalage τ', L+pw-70*d, T+ph-6*d);
+}
+function updateReadout(){
+  let f = null, clarity = 0;
+  if (res && res.f && res.clarity >= 0.85){ f = res.f; clarity = res.clarity; miss = 0; hist.push(f); if (hist.length > 5) hist.shift(); }
+  else { miss++; if (miss > 6) hist = []; }
+  if (!hist.length){
+    $('#note').textContent = '…'; $('#hz').textContent = 'pas de note nette'; $('#cents').textContent = '';
+    ['sT','sTarget','sFactor'].forEach(id => $('#'+id).textContent = '…'); $('#sCl').textContent = res && res.clarity ? fmtN(res.clarity, 2) : '…';
+    return;
+  }
+  const fm = [...hist].sort((a,b) => a-b)[hist.length>>1];          // médiane des dernières mesures
+  const m = 69 + 12*Math.log2(fm/440), mr = Math.round(m), cents = (m-mr)*100, target = 440*Math.pow(2, (mr-69)/12);
+  $('#note').textContent = midiNom(mr); $('#hz').textContent = Math.round(fm) + ' Hz';
+  $('#cents').textContent = (cents >= 0 ? '+' : '−') + Math.abs(Math.round(cents)) + ' cents';
+  $('#needle').style.left = (50 + Math.max(-50, Math.min(50, cents))) + '%';
+  $('#needle').style.background = Math.abs(cents) < 8 ? '#7bd88f' : '#4cc9f0';
+  $('#sT').textContent = fmtN(1000/fm, 2) + ' ms'; $('#sCl').textContent = fmtN(clarity || 0, 2);
+  $('#sTarget').textContent = midiNom(mr) + ' (' + fmtN(target, 1) + ' Hz)';
+  $('#sFactor').textContent = '×' + fmtN(target/fm, 3);
+}
+function loop(){
+  requestAnimationFrame(loop);
+  if (running && an){
+    an.getFloatTimeDomainData(tb);
+    if ((frame++ & 1) === 0){ res = detect(tb, ctx.sampleRate); updateReadout(); }
+  }
+  drawWave(); drawAc();
+}
+
+/* ---------- commandes ---------- */
+$('#go').onclick = () => running ? stop() : start();
+$('#source').onchange = async () => { $('#gfL').hidden = $('#source').value !== 'gen'; if (running && await setSource() === false) stop(); };
+$('#gf').oninput = () => { $('#gfV').textContent = $('#gf').value + ' Hz'; if (gen) gen.frequency.setTargetAtTime(+$('#gf').value, ctx.currentTime, 0.02); };
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

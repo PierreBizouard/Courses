@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Voix de chipmunk</title>
+<style>
+:root{--bg:#0f1419;--panel:#171e26;--line:#2a3441;--fg:#e6edf3;--mut:#9aa7b6;--acc:#4cc9f0;--warm:#ffb703}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color-scheme:dark}
+.wrap{max-width:1100px;margin:0 auto;padding:16px}
+nav{font-size:14px;display:flex;gap:6px 16px;flex-wrap:wrap;margin-bottom:6px}
+nav a{color:var(--mut);text-decoration:none}
+nav a:hover,nav a[aria-current]{color:var(--acc)}
+h1{font-size:30px;margin:.2em 0 .1em;line-height:1.2}
+p.lead{color:var(--mut);margin:.2em 0 1em;max-width:72ch}
+.bar{display:flex;gap:12px 18px;flex-wrap:wrap;align-items:flex-end;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px}
+label{display:flex;flex-direction:column;font-size:13px;color:var(--mut);gap:4px}
+label b{color:var(--fg);font-weight:600}
+select{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:7px 8px;font:inherit}
+input[type=range]{width:200px;accent-color:var(--acc)}
+button{background:var(--acc);color:#04202b;border:0;border-radius:8px;padding:9px 16px;font:inherit;font-weight:600;cursor:pointer}
+button:hover{filter:brightness(1.1)}
+button.sec{background:transparent;color:var(--fg);border:1px solid var(--line)}
+button.rec{background:#ef476f;color:#fff}
+button:disabled{opacity:.4;cursor:default}
+canvas{width:100%;display:block;background:#0b0f14;border:1px solid var(--line);border-radius:10px}
+.stats{display:flex;gap:12px;flex-wrap:wrap;margin:12px 0}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 14px;min-width:150px}
+.stat b{display:block;font-size:24px;font-variant-numeric:tabular-nums;line-height:1.3}
+.stat span{font-size:12px;color:var(--mut)}
+details{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:12px 0}
+summary{cursor:pointer;font-weight:600}
+details p,details li{color:var(--mut);max-width:80ch}
+pre{background:#0b0f14;border:1px solid var(--line);border-radius:8px;padding:12px;overflow:auto;font-size:13px;line-height:1.45;color:#cfe3f1}
+code{font-family:ui-monospace,Consolas,monospace}
+.msg{color:var(--warm);min-height:1.5em;font-size:14px;margin:4px 0}
+.warn{color:var(--warm);font-size:13px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+#wf{height:120px;margin-bottom:12px}
+#sp{height:320px}
+.presets button{padding:7px 12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav><a href="index.html">Accueil</a><a href="01-spectre.html">1. Spectre</a><a href="02-spectrogramme.html">2. Spectrogramme</a><a href="03-chipmunk.html" aria-current="page">3. Chipmunk</a><a href="04-robot.html">4. Robot</a><a href="05-note.html">5. Note</a></nav>
+<h1>Voix de chipmunk</h1>
+<p class="lead">Enregistre ta voix, puis lis-la plus vite ou plus lentement. La hauteur et la durée sont liées : accélérer un son le rend plus aigu et plus court. Le spectre montre tout ce qui se décale.</p>
+
+<div class="bar">
+  <button id="rec" class="rec">● Enregistrer</button>
+  <button id="synth" class="sec">Voix synthétique (secours)</button>
+  <span id="info" class="warn">Aucun son pour l'instant. Enregistre jusqu'à 8 secondes, par exemple « aaaa » ou une phrase.</span>
+</div>
+<div class="msg" id="msg"></div>
+
+<canvas id="wf" aria-label="Forme d'onde"></canvas>
+
+<div class="bar">
+  <button id="play" disabled>▶ Lire</button>
+  <button id="stopb" class="sec" disabled>■ Stop</button>
+  <label>Vitesse de lecture : <b id="rateV">×1,00</b>
+    <input id="rate" type="range" min="0.25" max="3" step="0.01" value="1" style="width:260px">
+  </label>
+  <div class="row presets">
+    <button class="sec" data-r="0.7">Voix grave ×0,7</button>
+    <button class="sec" data-r="1">Normale ×1</button>
+    <button class="sec" data-r="1.6">Chipmunk ×1,6</button>
+    <button class="sec" data-r="2">Octave au-dessus ×2</button>
+  </div>
+  <label style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" id="loop" checked> En boucle</label>
+</div>
+
+<div class="stats">
+  <div class="stat"><b id="sRate">×1,00</b><span>vitesse de lecture</span></div>
+  <div class="stat"><b id="sSemi">0 demi-ton</b><span>décalage de hauteur</span></div>
+  <div class="stat"><b id="sDur">…</b><span>durée de lecture</span></div>
+</div>
+
+<div class="bar">
+  <button id="ref" class="sec" disabled>Mémoriser la référence</button>
+  <button id="clr" class="sec" disabled>Effacer la référence</button>
+  <label>Axe des fréquences
+    <select id="scale"><option value="lin">Linéaire</option><option value="log">Logarithmique</option></select>
+  </label>
+  <label>Fréquence max
+    <select id="fmax"><option value="2000">2 kHz</option><option value="4000" selected>4 kHz</option><option value="8000">8 kHz</option></select>
+  </label>
+  <span class="warn">Lance la lecture à ×1, clique sur « Mémoriser la référence » (courbe grise), puis déplace la vitesse.</span>
+</div>
+<canvas id="sp" aria-label="Spectre du son lu"></canvas>
+
+<details>
+  <summary>À essayer</summary>
+  <ul>
+    <li>À ×2, chaque pic du spectre se retrouve exactement deux fois plus haut en fréquence : une octave de plus. À ×0,5, une octave de moins.</li>
+    <li>Passe à l'axe logarithmique : multiplier une fréquence par un facteur revient à décaler toute la courbe vers la droite, sans la déformer.</li>
+    <li>Regarde la durée : à ×2, le son dure deux fois moins longtemps. Impossible de changer la hauteur sans changer la durée avec cette méthode.</li>
+    <li>Question pour la classe : comment un logiciel d'autotune corrige-t-il une note trop basse sans accélérer la voix ? (Réponse en page 5.)</li>
+  </ul>
+</details>
+
+<details>
+  <summary>Ouvrir le capot : le code</summary>
+  <p>Un son numérique est une liste de nombres, accompagnée d'une fréquence d'échantillonnage qui dit combien de nombres on lit par seconde. Lire la même liste plus vite multiplie toutes les fréquences et divise la durée.</p>
+<pre>// JavaScript (cette page)
+const lecteur = ctx.createBufferSource();
+lecteur.buffer = enregistrement;
+lecteur.playbackRate.value = 1.6;     // 1,6 fois plus vite
+lecteur.connect(ctx.destination);
+lecteur.start();
+
+// décalage en demi-tons : 12 * log2(1.6) = +8,1 demi-tons</pre>
+<pre># Python
+from scipy.io import wavfile
+fs, x = wavfile.read("voix.wav")
+wavfile.write("chipmunk.wav", int(fs * 1.6), x)   # mêmes nombres, lus 1,6 fois plus vite
+
+# Autre version : on garde fs et on saute des échantillons (rééchantillonnage)
+import numpy as np
+r = 1.6
+y = np.interp(np.arange(0, len(x) - 1, r), np.arange(len(x)), x)
+wavfile.write("chipmunk2.wav", fs, y.astype(x.dtype))</pre>
+</details>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const msg = t => $('#msg').textContent = t || '';
+const fmtN = (v, n=2) => v.toFixed(n).replace('.', ',');
+const fmtF = f => f >= 1000 ? (f/1000).toString().replace('.',',') + ' kHz' : Math.round(f) + ' Hz';
+const FMIN = 50;
+
+let ctx = null, an = null, buffer = null, src = null, playing = false;
+let pos = 0, lastT = 0, rec = null, recTimer = null, env = null, envW = 0, db = null, ref = null;
+const wf = $('#wf'), sp = $('#sp');
+
+function ensureCtx(){
+  if (ctx) return;
+  ctx = new (window.AudioContext || window.webkitAudioContext)();
+  an = ctx.createAnalyser(); an.fftSize = 8192; an.smoothingTimeConstant = 0.6;
+  db = new Float32Array(an.frequencyBinCount);
+  an.connect(ctx.destination);
+}
+function fit(c){ const r = c.getBoundingClientRect(), d = window.devicePixelRatio || 1; c.width = Math.round(r.width*d); c.height = Math.round(r.height*d); c._d = d; }
+new ResizeObserver(() => { fit(wf); fit(sp); env = null; }).observe(document.body);
+
+/* ---------- source : enregistrement ou voix synthétique ---------- */
+function normalise(b){
+  let p = 0;
+  for (let c = 0; c < b.numberOfChannels; c++){ const x = b.getChannelData(c); for (let i = 0; i < x.length; i++) p = Math.max(p, Math.abs(x[i])); }
+  if (p > 0) for (let c = 0; c < b.numberOfChannels; c++){ const x = b.getChannelData(c); for (let i = 0; i < x.length; i++) x[i] *= 0.8/p; }
+}
+function newBuffer(b, label){
+  stopPlay(); buffer = b; normalise(buffer); env = null; pos = 0;
+  $('#info').textContent = `${label} : ${fmtN(buffer.duration,1)} s`;
+  ['play','stopb','ref','clr'].forEach(id => $('#'+id).disabled = false);
+  updateStats();
+}
+async function toggleRec(){
+  if (rec){ rec.stop(); return; }
+  ensureCtx(); await ctx.resume(); msg('');
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder){
+    msg("L'enregistrement n'est pas disponible ici (la page doit être en https ou sur localhost). Utilise la voix synthétique."); return;
+  }
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation:false, noiseSuppression:false, autoGainControl:false } }); }
+  catch(e){ msg("Accès au micro refusé. Autorise-le dans le navigateur, ou utilise la voix synthétique."); return; }
+  const chunks = []; const r = new MediaRecorder(stream);
+  r.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+  r.onstop = async () => {
+    stream.getTracks().forEach(t => t.stop()); clearInterval(recTimer); rec = null;
+    $('#rec').textContent = '● Enregistrer'; $('#rec').classList.add('rec');
+    try {
+      const ab = await new Blob(chunks, { type: r.mimeType }).arrayBuffer();
+      newBuffer(await ctx.decodeAudioData(ab), 'Enregistrement');
+    } catch(e){ msg("Impossible de décoder l'enregistrement."); }
+  };
+  rec = r; r.start(); const t0 = performance.now();
+  $('#rec').textContent = '■ Arrêter (8 s max)';
+  recTimer = setInterval(() => {
+    const s = (performance.now()-t0)/1000;
+    $('#info').textContent = `Enregistrement… ${fmtN(s,1)} s`;
+    if (s >= 8 && rec) rec.stop();
+  }, 100);
+}
+async function synthVoice(){
+  ensureCtx(); await ctx.resume(); msg('');
+  const sr = 44100, dur = 2.5, oc = new OfflineAudioContext(1, sr*dur, sr);
+  const o = oc.createOscillator(); o.type = 'sawtooth';
+  o.frequency.setValueAtTime(120, 0); o.frequency.linearRampToValueAtTime(150, 1.2); o.frequency.linearRampToValueAtTime(120, dur);
+  const lfo = oc.createOscillator(), lg = oc.createGain(); lfo.frequency.value = 5; lg.gain.value = 2; lfo.connect(lg); lg.connect(o.frequency);
+  const sum = oc.createGain();
+  for (const [f, q, g] of [[750, 6, 1], [1200, 8, 0.7], [2700, 10, 0.4]]){     // formants d'un « a »
+    const b = oc.createBiquadFilter(); b.type = 'bandpass'; b.frequency.value = f; b.Q.value = q;
+    const gg = oc.createGain(); gg.gain.value = g; o.connect(b); b.connect(gg); gg.connect(sum);
+  }
+  const e = oc.createGain();
+  e.gain.setValueAtTime(0, 0); e.gain.linearRampToValueAtTime(1, 0.1); e.gain.setValueAtTime(1, dur-0.2); e.gain.linearRampToValueAtTime(0, dur);
+  sum.connect(e); e.connect(oc.destination); o.start(); lfo.start();
+  newBuffer(await oc.startRendering(), 'Voix synthétique');
+}
+
+/* ---------- lecture ---------- */
+const rate = () => +$('#rate').value;
+function updateStats(){
+  const r = rate();
+  $('#rateV').textContent = '×' + fmtN(r); $('#sRate').textContent = '×' + fmtN(r);
+  const s = 12*Math.log2(r);
+  $('#sSemi').textContent = (s > 0.05 ? '+' : '') + fmtN(Math.abs(s) < 0.05 ? 0 : s, 1) + ' demi-tons';
+  $('#sDur').textContent = buffer ? `${fmtN(buffer.duration/r)} s (au lieu de ${fmtN(buffer.duration)} s)` : '…';
+}
+function play(){
+  if (!buffer) return;
+  ensureCtx(); ctx.resume(); stopPlay();
+  const s = ctx.createBufferSource();
+  s.buffer = buffer; s.loop = $('#loop').checked; s.playbackRate.value = rate();
+  s.connect(an);
+  s.onended = () => { if (src === s){ playing = false; src = null; } };
+  s.start(); src = s; playing = true; pos = 0; lastT = performance.now();
+}
+function stopPlay(){ if (src){ const s = src; src = null; try { s.stop(); } catch(e){} s.disconnect(); } playing = false; }
+
+/* ---------- dessin ---------- */
+function drawWave(){
+  const g = wf.getContext('2d'), d = wf._d, W = wf.width, H = wf.height;
+  g.clearRect(0,0,W,H);
+  g.strokeStyle = '#222c38'; g.lineWidth = d; g.beginPath(); g.moveTo(0,H/2); g.lineTo(W,H/2); g.stroke();
+  if (!buffer){ g.fillStyle = '#9aa7b6'; g.font = `${13*d}px system-ui`; g.fillText('Forme d\'onde', 8*d, 18*d); return; }
+  if (!env || envW !== W){
+    const x = buffer.getChannelData(0), per = x.length/W; env = new Float32Array(W*2); envW = W;
+    for (let px = 0; px < W; px++){
+      let mn = 0, mx = 0; const a = Math.floor(px*per), b = Math.min(x.length, Math.floor((px+1)*per));
+      for (let i = a; i < b; i++){ if (x[i] < mn) mn = x[i]; if (x[i] > mx) mx = x[i]; }
+      env[2*px] = mn; env[2*px+1] = mx;
+    }
+  }
+  g.strokeStyle = '#4cc9f0'; g.lineWidth = d; g.beginPath();
+  for (let px = 0; px < W; px++){ g.moveTo(px, H/2 - env[2*px+1]*H/2); g.lineTo(px, H/2 - env[2*px]*H/2); }
+  g.stroke();
+  if (playing){
+    const x = pos/buffer.duration*W;
+    g.strokeStyle = '#ffb703'; g.lineWidth = 2*d; g.beginPath(); g.moveTo(x,0); g.lineTo(x,H); g.stroke();
+  }
+}
+const fmax = () => +$('#fmax').value, isLog = () => $('#scale').value === 'log';
+const fToX = (f, W) => isLog() ? Math.log(Math.max(f,FMIN)/FMIN)/Math.log(fmax()/FMIN)*W : f/fmax()*W;
+const xToF = (x, W) => isLog() ? FMIN*Math.pow(fmax()/FMIN, x/W) : x/W*fmax();
+
+function drawSpec(){
+  const g = sp.getContext('2d'), d = sp._d, W = sp.width, H = sp.height;
+  const L = 12*d, R = 12*d, T = 10*d, B = 28*d, pw = W-L-R, ph = H-T-B;
+  g.clearRect(0,0,W,H); g.font = `${12*d}px system-ui`; g.lineWidth = d; g.textAlign = 'center';
+  const ticks = isLog() ? [100,200,500,1000,2000,4000,8000].filter(f => f <= fmax()) : (() => { const st = fmax() <= 2000 ? 250 : fmax() <= 4000 ? 500 : 1000, t = []; for (let f = 0; f <= fmax(); f += st) t.push(f); return t; })();
+  for (const f of ticks){
+    const x = L + fToX(f, pw);
+    g.strokeStyle = '#222c38'; g.beginPath(); g.moveTo(x,T); g.lineTo(x,T+ph); g.stroke();
+    g.fillStyle = '#9aa7b6'; g.fillText(fmtF(f), Math.min(Math.max(x, 22*d), W-22*d), H-8*d);
+  }
+  if (!an) return;
+  an.getFloatFrequencyData(db);
+  for (let i = 0; i < db.length; i++) if (!isFinite(db[i])) db[i] = -140;
+  const binHz = ctx.sampleRate/an.fftSize, nb = db.length;
+  const curve = arr => {
+    const ys = new Float32Array(pw+1);
+    for (let px = 0; px <= pw; px++){
+      const f0 = xToF(px,pw), f1 = xToF(px+1,pw); let v;
+      if (f1-f0 < binHz){ const b = f0/binHz, i = Math.min(Math.floor(b), nb-2), t = b-i; v = arr[i]*(1-t)+arr[i+1]*t; }
+      else { const i0 = Math.min(Math.floor(f0/binHz), nb-1), i1 = Math.min(Math.floor(f1/binHz), nb-1); v = -200; for (let i = i0; i <= i1; i++) if (arr[i] > v) v = arr[i]; }
+      ys[px] = T + ph*(-10 - Math.max(-100, Math.min(-10, v)))/90;
+    }
+    return ys;
+  };
+  if (ref){
+    const ys = curve(ref); g.strokeStyle = '#9aa7b6'; g.lineWidth = 2*d; g.setLineDash([6*d,4*d]); g.beginPath();
+    ys.forEach((y,px) => px ? g.lineTo(L+px,y) : g.moveTo(L+px,y)); g.stroke(); g.setLineDash([]);
+  }
+  const ys = curve(db);
+  g.beginPath(); g.moveTo(L,T+ph); ys.forEach((y,px) => g.lineTo(L+px,y)); g.lineTo(L+pw,T+ph); g.closePath();
+  g.fillStyle = 'rgba(76,201,240,0.22)'; g.fill();
+  g.strokeStyle = '#4cc9f0'; g.lineWidth = 1.5*d; g.beginPath(); ys.forEach((y,px) => px ? g.lineTo(L+px,y) : g.moveTo(L+px,y)); g.stroke();
+  if (ref){ g.fillStyle = '#9aa7b6'; g.textAlign = 'left'; g.fillText('référence (courbe grise en pointillés)', L+6*d, T+14*d); }
+}
+function loop(now){
+  requestAnimationFrame(loop);
+  if (playing && buffer){
+    pos += (now-lastT)/1000*rate();
+    if (pos > buffer.duration) pos = $('#loop').checked ? pos % buffer.duration : buffer.duration;
+  }
+  lastT = now;
+  drawWave(); drawSpec();
+}
+
+/* ---------- commandes ---------- */
+$('#rec').onclick = toggleRec;
+$('#synth').onclick = synthVoice;
+$('#play').onclick = play;
+$('#stopb').onclick = stopPlay;
+$('#loop').onchange = () => { if (src) src.loop = $('#loop').checked; };
+$('#rate').oninput = () => { updateStats(); if (src) src.playbackRate.setTargetAtTime(rate(), ctx.currentTime, 0.02); };
+document.querySelectorAll('[data-r]').forEach(b => b.onclick = () => { $('#rate').value = b.dataset.r; $('#rate').oninput(); });
+$('#ref').onclick = () => { if (db) ref = Float32Array.from(db); };
+$('#clr').onclick = () => { ref = null; };
+updateStats();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
