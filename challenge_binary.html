@@ -131,6 +131,15 @@ button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 .enemy.sat b{font-size:15px}
 .enemy.sat small{font-size:9px}
 .enemy.dive{border-color:var(--bad);box-shadow:0 0 16px rgba(255,90,90,.6)}
+.deadline.ground{background:#5a4a3a;height:4px;opacity:1}
+.slot{position:absolute;border:1px dashed rgba(255,255,255,.14);border-radius:3px;z-index:1;pointer-events:none}
+.brick{position:absolute;background:#c8643a;border:2px solid #7a3b1f;border-radius:3px;box-shadow:inset 0 -3px 0 rgba(0,0,0,.18);z-index:2;pointer-events:none;transition:left .5s ease-out,top .5s ease-out}
+.ledge{position:absolute;background:#5a4a3a;border-radius:4px 0 0 4px;z-index:2;pointer-events:none}
+.critter{position:absolute;font-size:34px;line-height:1;transform:translate(-50%,-100%);z-index:3;pointer-events:none;transition:left .3s,top .3s}
+.critter.wave{animation:help .6s ease-in-out infinite alternate}
+@keyframes help{to{transform:translate(-50%,-112%) rotate(-8deg)}}
+.stairinfo{position:absolute;text-align:center;font:500 13px var(--f-body);color:var(--muted);z-index:3;pointer-events:none}
+.stairinfo b{color:var(--amber);font:700 16px var(--f-mono)}
 .enemy.carrier{border-color:var(--good);box-shadow:0 0 18px rgba(110,231,160,.45)}
 .enemy em{display:block;margin:0 auto 2px;padding:1px 6px;width:max-content;border-radius:3px;background:var(--good);color:#06210f;font:700 11px var(--f-display);font-style:normal}
 .bonus{position:absolute;left:0;top:0;transform:translate(-50%,-50%);z-index:20;padding:9px 11px;border:0;border-radius:6px;background:var(--good);color:#06210f;font:700 12px var(--f-display);box-shadow:0 0 18px rgba(110,231,160,.5)}
@@ -393,9 +402,9 @@ addEventListener('pagehide',()=>{ if(SCORM){ try{ Store.save(); SCORM.LMSFinish(
 // dans le rapport de l'activité (question, réponse de l'élève, bonne réponse).
 const ErrLog={
   base:null, n:0,
-  add(lv,q,given,expected){
+  add(lv,q,given,expected,result){
     try{
-      const e=Store.data.err||(Store.data.err=[]); e[lv]=(e[lv]||0)+1;
+      if(!result){ const e=Store.data.err||(Store.data.err=[]); e[lv]=(e[lv]||0)+1; }
       if(!SCORM || this.n>=300) return;
       if(this.base==null) this.base=+SCORM.LMSGetValue('cmi.interactions._count')||0;
       const k='cmi.interactions.'+(this.base+this.n++)+'.';
@@ -406,7 +415,7 @@ const ErrLog={
       SCORM.LMSSetValue(k+'time',t);
       SCORM.LMSSetValue(k+'student_response',String(given).slice(0,250));
       SCORM.LMSSetValue(k+'correct_responses.0.pattern',String(expected).slice(0,250));
-      SCORM.LMSSetValue(k+'result','wrong');
+      SCORM.LMSSetValue(k+'result',result||'wrong');
       if(this.n%10===0) SCORM.LMSCommit('');
     }catch(err){}
   }
@@ -426,7 +435,8 @@ function hud(){
 }
 function digits(n){ const t=String(n); return [...t].map((c,i)=>`<span class="dg${(t.length-1-i)%4}">${c}</span>`).join(''); }
 function setCombo(n){ $('#combo').textContent = n>1 ? 'x'+n : ''; }
-function addScore(n,x,y){ n=Math.round(n); G.score+=n; Seal.add(n); hud(); if(x!=null) floatTxt(x,y,'+'+n,'good'); }
+function addScore(n,x,y){ n=Math.round(n); G.score+=n; Seal.add(n); hud();
+  if(G.id<NL){ if(G.tp[0]==null && G.score>=UNLOCK[G.id]) G.tp[0]=G.time; if(G.tp[1]==null && G.score>=STAR[G.id]) G.tp[1]=G.time; } if(x!=null) floatTxt(x,y,'+'+n,'good'); }
 function loseLife(msg){
   G.lives--; hud(); shake(); flash('bad');
   if(msg) banner(msg,'bad');
@@ -481,7 +491,7 @@ addEventListener('keydown', e=>{
 let last=0;
 function frame(ts){
   const dt = Math.min(0.05, (ts-last)/1000 || 0); last=ts;
-  if(G.run && !G.pause && !G.tuto && G.lv) G.lv.update(dt);
+  if(G.run && !G.pause && !G.tuto && G.lv){ G.time+=dt; G.lv.update(dt); }
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
@@ -489,26 +499,34 @@ requestAnimationFrame(frame);
 /* ---------- screens ---------- */
 function showOverlay(html){ $('#overcard').innerHTML=html; $('#over').hidden=false; }
 function hideOverlay(){ $('#over').hidden=true; }
+// niveaux qui proposent deux façons de jouer (le record est commun)
+const MODES={
+  1:{ list:[['a','Attaque : 3 vies, ça accélère'],['s','Sauvetage : construis un escalier, sans perdre de vie']],
+      note:'En mode sauvetage, chaque bonne réponse donne une brique. Construis l\'escalier pour sauver les animaux coincés en haut !', tag:{s:'[sauvetage] '}, tuto:{s:'l1s'} },
+  2:{ list:[['b','Boules : une boule = un bit'],['u','Unités : chaque bille vaut 1']],
+      note:'En mode unités, le récipient 16 contient exactement 16 billes, le 8 en contient 8…', tag:{u:'[unités] '}, tuto:{u:'l2u'} }
+};
 function chooseMode(id){
+  const M=MODES[id];
   showOverlay(`<h2>${LEVELS[id].name}</h2><p>Choisis ton mode de jeu.</p>
-    <div class="row"><button class="btn ok" id="o-m1">Boules : une boule = un bit</button><button class="btn ok" id="o-mu">Unités : chaque bille vaut 1</button></div>
-    <p class="dim">En mode unités, le récipient 16 contient exactement 16 billes, le 8 en contient 8… Le record est commun aux deux modes.</p>
+    <div class="row">${M.list.map(([k,t])=>`<button class="btn ok" data-m="${k}">${t}</button>`).join('')}</div>
+    <p class="dim">${M.note} Le record est commun aux deux modes.</p>
     <div class="row"><button class="btn" id="o-menu">Menu</button></div>`);
-  $('#o-m1').onclick=()=>startLevel(id,'b'); $('#o-mu').onclick=()=>startLevel(id,'u');
-  $('#o-menu').onclick=()=>{ hideOverlay(); if(!G.run) toMenu(); else toMenu(); };
+  $('#overcard').querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>startLevel(id,b.dataset.m));
+  $('#o-menu').onclick=()=>{ hideOverlay(); toMenu(); };
 }
-const MODE_LV=2;
-function tkey(id){ return id===MODE_LV && G.mode==='u' ? 'l2u' : id; }
+function tkey(id){ return (MODES[id] && MODES[id].tuto[G.mode]) || id; }
 function startLevel(id,mode){
   document.body.classList.remove('paused');
-  if(id===MODE_LV && !mode){ G.run=false; if(G.tuto) Tuto.end(); return chooseMode(id); }
-  G.mode=mode||'b';
+  if(MODES[id] && !mode){ G.run=false; if(G.tuto) Tuto.end(); return chooseMode(id); }
+  G.mode=mode||(MODES[id]?MODES[id].list[0][0]:'');
+  $('#lives').style.visibility='';
   if(G.tuto) Tuto.end();
   hideOverlay();
   stage.innerHTML=''; stage.onpointerdown=stage.onpointermove=stage.onpointerup=stage.onpointercancel=stage.onpointerleave=null; stage.className=''; delete stage.dataset.flash;
-  Seal.reset(); Object.assign(G,{ id, score:0, lives:3, run:true, pause:false });
+  Seal.reset(); Object.assign(G,{ id, score:0, lives:3, run:true, pause:false, time:0, tp:[null,null] });
   $('#menu').hidden=true; $('#app').hidden=false;
-  $('#lvname').textContent = (id===MODE_LV && G.mode==='u' ? '[unités] ' : '') + (id===SECRET ? 'Jeu secret · '+LEVELS[id].name : (id+1)+' · '+LEVELS[id].name+' · palier '+UNLOCK[id]+' · ★ '+STAR[id]);
+  $('#lvname').textContent = ((MODES[id] && MODES[id].tag[G.mode]) || '') + (id===SECRET ? 'Jeu secret · '+LEVELS[id].name : (id+1)+' · '+LEVELS[id].name+' · palier '+UNLOCK[id]+' · ★ '+STAR[id]);
   hud(); setCombo(0); Buf.clear();
   G.lv = LEVELS[id].make();
   G.lv.start(); measure(); G.lv.layout && G.lv.layout(); G.lv.update(0);
@@ -545,8 +563,22 @@ function gameOver(){
       if(nStars()===NL && starsBefore<NL) msg+='<br><b class="gold">Les '+NL+' étoiles sont réunies : le jeu secret est ouvert !</b>';
     }
   } else msg='Le jeu secret se rejoue à volonté pour battre ton record.';
+  // temps de réalisation des paliers, par niveau et par mode (pour comparer les modes)
+  const mm=t=>Math.floor(t/60)+' min '+String(Math.round(t%60)).padStart(2,'0')+' s';
+  let tmsg='';
+  if(id<NL){
+    const key=id+(G.mode||''), tb=(Store.data.tbest||(Store.data.tbest={}))[key]||(Store.data.tbest[key]=[null,null]);
+    const modeName=MODES[id] ? ' ('+MODES[id].list.find(m=>m[0]===G.mode)[1].split(' :')[0].toLowerCase()+')' : '';
+    G.tp.forEach((t,k)=>{ if(t==null) return;
+      const was=tb[k]; if(was==null || t<was) tb[k]=t;
+      tmsg+=`Palier ${k+1} atteint en <b>${mm(t)}</b>${was!=null && t<was ? ' : nouveau meilleur temps !' : tb[k]!=null && was!=null ? ' (meilleur : '+mm(tb[k])+')' : ''}<br>`;
+      ErrLog.add(id,'temps palier '+(k+1)+modeName,Math.round(t)+' s','','neutral');
+    });
+    if(tmsg) tmsg='<p class="dim">'+tmsg+(modeName?'Mode'+modeName.replace(/[()]/g,''):'')+'</p>';
+    Store.save();
+  }
   showOverlay(`<h2>Partie terminée</h2><div class="big">${digits(G.score)}</div>
-    <p>${rec ? 'Nouveau record !' : 'Record : '+top}</p><p>${msg}</p>
+    <p>${rec ? 'Nouveau record !' : 'Record : '+top}</p><p>${msg}</p>${tmsg}
     <div class="row"><button class="btn ok" id="o-again">Rejouer</button>
     ${id<NL-1 && unlocked(id+1) ? '<button class="btn" id="o-next">Niveau suivant</button>' : ''}
     ${id!==SECRET && unlocked(SECRET) && nStars()===NL ? '<button class="btn" id="o-secret">Jeu secret</button>' : ''}
@@ -719,6 +751,9 @@ function L0(){
    ========================================================= */
 function L1(){
   const S={ en:[], bo:[], spawn:0.4, bonus:rand(6,9), wave:1, kills:0, freeze:0, combo:0, rush:1, since:0, boss:null, launch:4 };
+  // mode sauvetage : pas de vies, pas de boss ; chaque bonne réponse pose une brique de l'escalier
+  const R = G.mode==='s';
+  const ANIMALS=[['🐭','la souris',3],['🦉','la chouette',4],['🦔','le hérisson',5]];
   const BOSS_EVERY=20;
   function setRush(v){ S.rush=clamp(v,1,3); const e=stage.querySelector('.rush'); if(e){ e.textContent = S.rush>1.05 ? 'Vitesse ×'+S.rush.toFixed(1) : ''; e.classList.toggle('hot',S.rush>=2); } }
   // au début, pas plus de 5 bits (≤ 31) ; 6 bits (≤ 63) en approchant du palier ; ensuite jusqu'à 8 bits
@@ -736,7 +771,7 @@ function L1(){
     const mode = carrier ? (Math.random()<.7?'d2b':'b2d') : (Math.random()<.5?'b2d':'d2b');
     let val, n=0;
     do{ val = carrier ? randi(1<<(bits-1),(1<<bits)-1) : randi(1,(1<<bits)-1); }while(S.en.some(e=>e.val===val) && ++n<20);
-    const b = carrier ? pick(G.lives<5 && Math.random()<.3 ? BON : BON.slice(0,3)) : null;
+    const b = carrier ? pick(!R && G.lives<5 && Math.random()<.3 ? BON : BON.slice(0,3)) : null;
     const q = mode==='b2d' ? `<span class="pre">0b</span>${bin(val,bits)}` : `${val}`;
     const ans = mode==='b2d' ? String(val) : val.toString(2);
     const el = mk('div','enemy '+mode+(b?' carrier':''), `${b?`<em>${b.t}</em>`:''}<b>${q}</b><small>${mode==='b2d'?'→ en décimal':'→ en binaire'}</small><i>${ans}</i>`);
@@ -761,6 +796,48 @@ function L1(){
   }
   const shielded = o => o.boss && S.en.some(e=>e.sat===o);
   function dive(o){ o.sat=null; o.x0=o.tx=o.x; o.amp=0; o.vy=70+S.wave*6; o.el.classList.add('dive'); }
+  function stairs(){
+    const A=ANIMALS[S.ri], N=A[2], floor=H-52;
+    const bw=Math.min(46,(W-90)/(N+1)), bh=Math.min(28,(H-240)/(N+1));
+    stage.querySelectorAll('.brick,.slot,.ledge,.critter,.stairinfo').forEach(e=>e.remove());
+    S.slots=[]; S.bricks=[]; S.done=false;
+    for(let k=0;k<N;k++) for(let r=0;r<=k;r++){
+      const x=16+k*bw, y=floor-(r+1)*bh; S.slots.push({x,y});
+      const g=mk('div','slot'); g.style.cssText=`left:${x}px;top:${y}px;width:${bw}px;height:${bh}px`;
+    }
+    const lx=16+N*bw, ly=floor-N*bh;
+    const L=mk('div','ledge'); L.style.cssText=`left:${lx}px;top:${ly}px;width:${W-lx}px;height:10px`;
+    S.critter=mk('div','critter wave',A[0]); S.cpos={x:lx+(W-lx)/2,y:ly}; place(S.critter,S.cpos.x,S.cpos.y);
+    S.info=mk('div','stairinfo'); S.info.style.cssText=`left:${lx}px;top:${ly-78}px;width:${W-lx}px`;
+    S.geo={bw,bh,floor,N};
+    stairInfo();
+  }
+  function stairInfo(){ const A=ANIMALS[S.ri]; S.info.innerHTML=`Sauve ${A[1]} !<br><b>${S.bricks.length} / ${S.slots.length}</b> briques`; }
+  function addBrick(x,y){
+    if(!R || S.done) return;
+    const sl=S.slots[S.bricks.length]; if(!sl) return;
+    const b=mk('div','brick'); b.style.cssText=`left:${x-S.geo.bw/2}px;top:${y}px;width:${S.geo.bw}px;height:${S.geo.bh}px`;
+    S.bricks.push(b); void b.offsetWidth; b.style.left=sl.x+'px'; b.style.top=sl.y+'px';
+    stairInfo();
+    if(S.bricks.length===S.slots.length) rescue();
+  }
+  // animation pilotée par update() : elle s'arrête proprement pendant la pause
+  function rescue(){
+    S.done=true; const {bw,bh,floor,N}=S.geo;
+    const path=[]; for(let k=N-1;k>=0;k--) path.push({x:16+k*bw+bw/2, y:floor-(k+1)*bh}); path.push({x:16, y:floor});
+    S.critter.classList.remove('wave');
+    S.anim={ path, i:0, t:0 };
+  }
+  function animStep(dt){
+    const a=S.anim; a.t+=dt;
+    if(a.i<a.path.length){ if(a.t>=.35){ a.t=0; const p=a.path[a.i++]; place(S.critter,Math.max(14,p.x),p.y); } return; }
+    if(a.phase==null && a.t>=.35){ a.phase=1; a.t=0; addScore(60*(S.ri+1),W/2,H*.35); flash('good'); banner(`Bravo, tu as sauvé ${ANIMALS[S.ri][1]} !`,'good'); return; }
+    if(a.phase===1 && a.t>=1.6){
+      S.anim=null;
+      if(++S.ri>=ANIMALS.length){ banner('Tous les animaux sont sauvés !','good'); S.endIn=1.2; }
+      else stairs();
+    }
+  }
   function kill(o, good){
     S.en.splice(S.en.indexOf(o),1);
     if(good){ o.el.classList.add('boom'); setTimeout(()=>o.el.remove(),300); } else o.el.remove();
@@ -769,7 +846,7 @@ function L1(){
     banner('Bonus gagné ! '+b.d,'good');
     if(b.k==='reveal') S.en.filter(e=>!e.el.classList.contains('rev')).sort((a,c)=>c.y-a.y).slice(0,2).forEach(e=>e.el.classList.add('rev'));
     if(b.k==='freeze') S.freeze=4;
-    if(b.k==='bomb') S.en.filter(e=>!e.boss).sort((a,c)=>c.y-a.y).slice(0,2).forEach(e=>{ addScore(e.bits*2,e.x,e.y); kill(e,true); });
+    if(b.k==='bomb') S.en.filter(e=>!e.boss).sort((a,c)=>c.y-a.y).slice(0,2).forEach(e=>{ addScore(e.bits*2,e.x,e.y); addBrick(e.x,e.y); kill(e,true); });
     if(b.k==='life'){ G.lives=Math.min(5,G.lives+1); hud(); }
   }
   // aide : la valeur tapée est décomposée sur les poids 128…1 (poids entourés = bits à 1)
@@ -793,29 +870,34 @@ function L1(){
     if(!hits.length){
       const near=S.en.length ? S.en.reduce((a,b)=>a.y>b.y?a:b) : null;
       if(near) ErrLog.add(1,near.mode==='b2d'?bin(near.val,near.bits)+' en decimal':near.val+' en binaire',v,near.mode==='b2d'?near.val:near.val.toString(2));
-      S.combo=0; setCombo(0); flash('bad'); floatTxt(W/2,H-50,'Raté : '+v+' → ça accélère','bad');
+      S.combo=0; setCombo(0); flash('bad');
+      if(R){ floatTxt(W/2,H/2,'Raté : '+v+', ça accélère','bad'); S.en.forEach(o=>o.y+=14); setRush(S.rush+.25); return; }
+      floatTxt(W/2,H-50,'Raté : '+v+' → ça accélère','bad');
       S.en.forEach(o=>o.y+=14); setRush(S.rush+.25);
       return;
     }
     const o=hits.reduce((a,b)=>a.y>b.y?a:b);
     S.combo++; setCombo(S.combo); setRush(S.rush-.1);
     addScore((5*o.bits + (o.mode==='d2b'?5:0)) * (1+Math.min(S.combo,10)*.1), o.x, o.y);
-    kill(o,true); S.kills++;
+    kill(o,true); S.kills++; addBrick(o.x,o.y);
     if(o.b){ addScore(10*o.bits,o.x,o.y-30); applyBonus(o.b); }
     if(o.boss){ S.boss=null; addScore(80+S.wave*10,o.x,o.y-30); banner('BOSS vaincu ! Bonus : '+(()=>{ const b=pick(G.lives<5?BON:BON.slice(0,3)); applyBonus(b); return b.t; })(),'good'); }
-    else if(!o.sat && !o.dive && !S.boss && ++S.since>=BOSS_EVERY){ S.since=0; S.bossIn=.9; }
+    else if(!R && !o.sat && !o.dive && !S.boss && ++S.since>=BOSS_EVERY){ S.since=0; S.bossIn=.9; }
     if(S.kills%8===0){ S.wave++; banner(`Vague ${S.wave} : nombres sur ${bitsFor(S.wave)} bits`); }
   }
   return {
     start(){
       Buf.allowed='0123456789'; Buf.max=8;
       setKeys('0123456789'.split('').map(c=>({label:c,k:c})).concat([{label:'⌫',k:'BACK',cls:'alt'},{label:'OK',k:'OK',cls:'ok'}]), 'Tape la conversion, puis OK');
-      mk('div','deadline'); mk('div','rush');
+      mk('div',R?'deadline ground':'deadline'); mk('div','rush');
+      if(R){ $('#lives').style.visibility='hidden'; S.ri=0; measure(); stairs(); }
       S.wEl=mk('div','weights',[128,64,32,16,8,4,2,1].map(w=>`<span>${w}<small>0</small></span>`).join('')); S.aide=mk('div','aide'); S.lastV=null;
-      banner('Convertis les nombres avant qu\'ils touchent la ligne rouge');
+      banner(R ? 'Chaque bonne réponse donne une brique : construis l\'escalier !' : 'Convertis les nombres avant qu\'ils touchent la ligne rouge');
     },
     update(dt){
       if(Buf.v!==S.lastV) aide();
+      if(S.anim) animStep(dt);
+      if(S.endIn>0 && (S.endIn-=dt)<=0){ gameOver(); return; }
       if((S.spawn-=dt)<=0){
         if(!S.boss && S.en.length < 2+S.wave) spawn();
         S.spawn = Math.max(1.1, 3.6-S.wave*.25) * rand(.7,1.3);
@@ -847,6 +929,9 @@ function L1(){
         place(o.el,o.x,o.y);
         o.el.classList.toggle('danger', o.y>H*.7);
         if(o.y > H-52){
+          if(R){ kill(o,false); S.combo=0; setCombo(0); setRush(S.rush+.25); floatTxt(o.x,H-70,'brique perdue','bad');
+            ErrLog.add(1,o.mode==='b2d'?bin(o.val,o.bits)+' en decimal':o.val+' en binaire','(pas de réponse)',o.mode==='b2d'?o.val:o.val.toString(2));
+            continue; }
           kill(o,false); S.combo=0; setCombo(0); setRush(S.rush+.25);
           if(o.boss){ S.boss=null; G.lives--; hud(); }
           ErrLog.add(1,o.mode==='b2d'?bin(o.val,o.bits)+' en decimal':o.val+' en binaire','(pas de réponse)',o.mode==='b2d'?o.val:o.val.toString(2));
@@ -1547,6 +1632,13 @@ TUTOS[0] = [
   { t:'Une bille au mauvais endroit ? <b>Touche le récipient</b> (ou touches 1 à 5) : la bille est <b>repoussée vers le haut</b> et retombe au milieu. Tu peux alors la mettre dans une autre colonne.', el:'.l0-rack' },
   { t:'La barre de temps : finis vite pour gagner un <b>bonus de temps</b> (les secondes restantes rapportent des points, et plus de la moitié du temps restant donne <b>×1,5</b>). À zéro, tu perds une vie.', el:'.timebar' },
   { t:'Atteins <b>'+UNLOCK[0]+' points</b> pour débloquer le niveau 2, et <b>'+STAR[0]+'</b> pour l\'étoile ★. C\'est parti !', el:'#helpbtn' }
+];
+TUTOS.l1s = [
+  { t:'<b>Mode sauvetage</b> : un petit animal est coincé en haut ! Aide-le à descendre en construisant un <b>escalier</b>.', el:'.critter' },
+  { t:'Des nombres tombent. Ceux qui commencent par <b>0b</b> sont en binaire : écris-les en décimal. Les autres sont en décimal : écris-les en binaire.' },
+  { t:'Chaque bonne réponse donne une <b>brique</b>. Ici, tu vois combien il en manque.', el:'.stairinfo' },
+  { t:'Pas de vies à perdre : une erreur ne coûte rien, et un nombre qui tombe fait juste perdre une brique. En bas, l\'<b>aide</b> décompose ce que tu tapes.', el:'.weights' },
+  { t:'Sauve la souris, la chouette et le hérisson ! Les nombres verts donnent des bonus.' }
 ];
 TUTOS.l2u = [
   { t:'<b>Mode unités</b> : ici chaque bille vaut <b>1</b>. Le récipient 16 contient exactement <b>16 billes</b>, le 8 en contient 8, etc. Leur taille montre leur volume.', el:'.vessel' },
