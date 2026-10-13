@@ -1113,6 +1113,7 @@ const QCM_BANK = [
   ['Combien de chiffres hexadécimaux pour écrire un octet ?', ['2','1','4','8']]
 ];
 let qcmDeck=[];
+const QCM_T=20; // secondes pour répondre au QCM (le chrono de la conversion est arrêté pendant ce temps)
 function nextQcm(){ if(!qcmDeck.length) qcmDeck=shuffle(QCM_BANK.slice()); return qcmDeck.pop(); }
 
 function L3(){
@@ -1161,7 +1162,7 @@ function L3(){
   function clean(){ S.blur=false; tabEl.classList.remove('blurry'); stainEl.innerHTML=''; S.stains=0; }
   function openQcm(bonus){
     const [q,ch]=nextQcm();
-    S.qcm={ q, ch, good:ch[0], tl:6, lock:0, bonus };
+    S.qcm={ q, ch, good:ch[0], tl:QCM_T, lock:0, bonus };
     qcmEl=mk('div','qcm');
     drawQcm(); refreshKeys(true);
   }
@@ -1183,7 +1184,7 @@ function L3(){
     } else { ErrLog.add(3,'QCM '+Q.q,Q.order[i],Q.good); retry('Faux ! La question revient…'); }
   }
   function retry(msg){
-    const Q=S.qcm; Q.lock=.8; Q.tl=6;
+    const Q=S.qcm; Q.lock=.8; Q.tl=QCM_T;
     qcmEl.classList.remove('wrong'); void qcmEl.offsetWidth; qcmEl.classList.add('wrong');
     qcmEl.querySelector('.msg').textContent=msg;
     qcmEl.querySelectorAll('.choices button').forEach(b=>b.disabled=true);
@@ -1206,7 +1207,7 @@ function L3(){
       if(S.qcm){
         const Q=S.qcm;
         if(Q.lock>0) Q.lock-=dt;
-        else { Q.tl-=dt; Q.barEl.style.transform=`scaleX(${Math.max(0,Q.tl/6)})`; if(Q.tl<=0) retry('Trop lent ! La question revient…'); }
+        else { Q.tl-=dt; Q.barEl.style.transform=`scaleX(${Math.max(0,Q.tl/QCM_T)})`; if(Q.tl<=0) retry('Trop lent ! La question revient…'); }
         return;
       }
       if(S.hold>0) S.hold-=dt; else S.tl-=dt;
@@ -1607,7 +1608,7 @@ const TUTOS = [
     { t:'La conversion à faire : <b>hexadécimal → binaire</b> ou <b>binaire → hexadécimal</b>, sur 4 ou 8 bits.', el:'.l3-q' },
     { t:'Le tableau de conversion t\'aide : chaque chiffre hexa correspond à <b>4 bits</b>. Pour 8 bits, convertis chaque moitié séparément. Mais le tableau bouge…', el:'.hextab' },
     { t:'Quand le temps passe, le tableau rougit et accélère. À zéro, <b>il t\'attaque</b> et tu perds une vie.', el:'.timebar' },
-    { t:'Parfois le tableau devient <b>flou</b> ou se couvre de <b>taches</b>. Un <b>QCM éclair</b> apparaît alors : réponds juste en 6 secondes pour le nettoyer. La question revient tant que la réponse est fausse.' },
+    { t:'Parfois le tableau devient <b>flou</b> ou se couvre de <b>taches</b>. Un <b>QCM éclair</b> apparaît alors : réponds juste en 20 secondes pour le nettoyer. La question revient tant que la réponse est fausse.' },
     { t:'Tape ta réponse ici puis <b>OK</b>. Les touches qui ne servent pas sont grisées.', el:'#inputrow' },
     { t:'Une question avec l\'étiquette <b>BONUS</b> est plus dure (8 bits, moins de temps). Réussis-la pour gagner un bonus : NETTOYAGE du tableau, points ×2 ou +1 ♥. Atteins <b>'+UNLOCK[3]+' points</b> pour débloquer le niveau 5.' }
   ],
