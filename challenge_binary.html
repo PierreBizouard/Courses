@@ -1,0 +1,1648 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>Binaire Attack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=JetBrains+Mono:wght@500;700&family=Atkinson+Hyperlegible:wght@400;700&family=Press+Start+2P&display=swap">
+<style>
+body.paused #stage>*,body.paused #inputrow{visibility:hidden}
+body.paused #stage::after{content:'⏸ Pause';position:absolute;inset:0;display:grid;place-items:center;font:700 22px var(--f-display);color:var(--muted)}
+/* Layout: one-screen arcade cabinet — HUD strip, play field, on-screen keypad deck. Single dark look by choice. */
+:root{
+  color-scheme: dark;
+  --bg:#110f26; --panel:#1c1940; --deep:#16132f; --line:#3a3468; --fg:#ece8ff; --muted:#9d96cc;
+  --amber:#ffb547; --cyan:#5ce1e6; --pink:#ff6aa8; --good:#6ee7a0; --bad:#ff5a5a; --ink:#1a1300;
+  --f-display:'Silkscreen','Courier New',monospace;
+  --f-mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  --f-body:'Atkinson Hyperlegible',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+[hidden]{display:none!important}
+html{height:100%;box-sizing:border-box}
+*,*::before,*::after{box-sizing:inherit}
+body{height:100%;margin:0;background:var(--bg);color:var(--fg);font:15px/1.4 var(--f-body);overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
+button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+
+/* ---------- menu ---------- */
+#menu{height:100%;max-width:860px;margin:0 auto;padding-inline:16px;padding-block:20px;overflow:auto;display:flex;flex-direction:column;gap:20px}
+.brand h1{margin:0;font:700 clamp(34px,9vw,64px)/.95 var(--f-display);color:var(--amber);letter-spacing:.02em;text-wrap:balance}
+.brand h1 span{color:var(--cyan)}
+.brand p{margin:10px 0 0;max-width:60ch;color:var(--muted)}
+.bits{font:500 12px var(--f-mono);color:var(--line);letter-spacing:.3em;overflow:hidden;white-space:nowrap}
+.levels{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:12px}
+.lvcard{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;text-align:left;background:var(--panel);border:1px solid var(--line);border-bottom-width:4px;border-radius:10px;padding:14px 16px}
+.lvcard:hover{border-color:var(--amber)}
+.lvcard:active{transform:translateY(2px)}
+.lvcard .n{grid-row:span 3;font:700 30px var(--f-display);color:var(--amber);line-height:1}
+.lvcard .t{font:700 16px var(--f-display);letter-spacing:.03em}
+.lvcard .d{color:var(--muted);font-size:14px}
+.lvcard .b{font:500 12px var(--f-mono);color:var(--cyan)}
+.foot{color:var(--muted);font-size:13px;margin:0;max-width:65ch}
+.lvcard.locked{opacity:.55;border-bottom-width:1px;cursor:not-allowed}
+.lvcard.secret{border-color:var(--amber);border-style:dashed}
+.lvcard.secret:not(.locked){border-style:solid;background:linear-gradient(135deg,var(--panel),#2a2150)}
+.medal{margin-left:8px;font:700 18px var(--f-body);color:var(--line)} .medal.on{color:var(--amber)}
+.stars{margin:0;font:700 15px var(--f-body);color:var(--muted)} .stars .gold,.gold{color:var(--amber)} .stars .dim{color:var(--line)}
+.lvcard.locked .n{font-size:22px}
+.lvcard.nope{animation:shake .3s}
+.linkbtn{background:none;border:0;padding:0;color:var(--muted);text-decoration:underline;font-size:13px}
+.codein{width:100%;min-height:44px;padding:0 12px;border-radius:8px;border:1px solid var(--line);background:var(--deep);color:var(--fg);font:700 18px var(--f-mono);text-align:center;letter-spacing:.1em;user-select:text;-webkit-user-select:text}
+.err{color:var(--bad)!important;min-height:1.2em}
+.tagb{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:3px;background:var(--good);color:#06210f;font:700 11px var(--f-display);vertical-align:middle}
+
+/* ---------- game frame ---------- */
+#app{height:100%;max-width:820px;margin:0 auto;padding-inline:16px;padding-block:8px;display:grid;grid-template-rows:auto minmax(0,1fr) auto;grid-template-columns:minmax(0,1fr);gap:8px}
+#hud{display:flex;align-items:center;gap:12px;min-height:40px}
+#hud .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:400 12px var(--f-display);color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+#score{font:700 22px var(--f-mono);font-variant-numeric:tabular-nums;color:var(--amber)}
+/* chaque rang du score a sa police : unités, dizaines, centaines, milliers */
+.dg0{font-family:'JetBrains Mono',monospace}
+.dg1{font-family:'Silkscreen',monospace;font-weight:400}
+.dg2{font-family:'Atkinson Hyperlegible',sans-serif;font-style:italic}
+.dg3{font-family:'Press Start 2P',monospace;font-size:.72em;font-weight:400}
+#lives{color:var(--pink);font-size:18px;letter-spacing:2px}
+#combo{font:700 13px var(--f-mono);color:var(--cyan);min-width:2.5em}
+.iconbtn{width:40px;height:40px;border-radius:8px;background:var(--panel);border:1px solid var(--line);font:700 14px var(--f-mono)}
+#stage{position:relative;min-width:0;overflow:hidden;border:1px solid var(--line);border-radius:10px;touch-action:none;
+  background:
+    linear-gradient(rgba(92,225,230,.05) 1px,transparent 1px) 0 0/100% 32px,
+    linear-gradient(90deg,rgba(92,225,230,.05) 1px,transparent 1px) 0 0/32px 100%,
+    var(--deep)}
+#stage[data-flash="bad"]{box-shadow:inset 0 0 0 3px var(--bad),inset 0 0 60px rgba(255,90,90,.35)}
+#stage[data-flash="good"]{box-shadow:inset 0 0 0 3px var(--good)}
+#stage.shake{animation:shake .35s}
+@keyframes shake{20%{transform:translate(-6px,3px)}40%{transform:translate(5px,-4px)}60%{transform:translate(-4px,2px)}80%{transform:translate(3px,-1px)}}
+#inputrow{display:grid;gap:6px}
+#bufrow{display:flex;gap:8px;align-items:stretch}
+#buffer{flex:1;min-width:0;min-height:46px;display:flex;align-items:center;padding:0 12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;font:700 26px var(--f-mono);letter-spacing:.14em;color:var(--fg);overflow:hidden}
+#buffer.empty::before{content:attr(data-ph);font:400 14px var(--f-body);letter-spacing:0;color:var(--muted)}
+#buffer:not(.empty)::after{content:'';width:3px;height:26px;margin-left:4px;background:var(--amber);animation:blink 1s steps(2) infinite}
+#buffer.nope{animation:shake .25s}
+@keyframes blink{50%{opacity:0}}
+#keys{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.key{height:48px;background:var(--panel);border:1px solid var(--line);border-bottom-width:3px;border-radius:8px;font:700 20px var(--f-mono)}
+.key:active{transform:translateY(2px);border-bottom-width:1px}
+.key.ok{background:var(--amber);color:var(--ink);border-color:#c98a24}
+.key.alt{color:var(--muted);font-size:16px}
+.key.small{font-size:15px}
+.key:disabled{opacity:.22}
+
+/* ---------- shared fx ---------- */
+.float{position:absolute;transform:translate(-50%,-50%);font:700 18px var(--f-mono);pointer-events:none;z-index:60;animation:rise .9s forwards;white-space:nowrap}
+.float.good{color:var(--good)} .float.bad{color:var(--bad)}
+@keyframes rise{to{transform:translate(-50%,-160%);opacity:0}}
+.banner{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);z-index:70;max-width:90%;text-align:center;padding:8px 14px;border-radius:8px;background:rgba(17,15,38,.92);border:1px solid var(--amber);font:700 14px var(--f-body);pointer-events:none;animation:ban 1.6s forwards}
+.banner.bad{border-color:var(--bad)} .banner.good{border-color:var(--good)}
+@keyframes ban{0%{opacity:0;transform:translate(-50%,-30%)}12%{opacity:1;transform:translate(-50%,-50%)}80%{opacity:1}100%{opacity:0}}
+.timebar{position:absolute;left:12px;right:12px;height:6px;background:var(--line);border-radius:3px;overflow:hidden;z-index:6}
+.timebar span{display:block;height:100%;width:100%;background:var(--amber);transform-origin:left}
+.timebar.low span{background:var(--bad)}
+
+/* ---------- level 1 ---------- */
+.enemy{position:absolute;left:0;top:0;transform:translate(-50%,-50%);padding:4px 9px;background:var(--panel);border:2px solid var(--cyan);border-radius:6px;text-align:center;white-space:nowrap;box-shadow:0 0 14px rgba(92,225,230,.25);z-index:10}
+.enemy.d2b{border-color:var(--amber);box-shadow:0 0 14px rgba(255,181,71,.25)}
+.enemy b{display:block;font:700 19px var(--f-mono);letter-spacing:.06em}
+.enemy sub{font-size:11px;color:var(--muted)}
+.enemy small{display:block;font:400 11px var(--f-body);color:var(--muted)}
+.enemy i{display:none;font:700 14px var(--f-mono);font-style:normal;color:var(--good)}
+.enemy.rev i{display:block}
+.enemy.danger{border-color:var(--bad);animation:pulse .4s infinite alternate}
+.enemy.glitch{opacity:.4;filter:blur(1.5px)}
+.enemy.boom{animation:boom .3s forwards;pointer-events:none}
+@keyframes pulse{to{box-shadow:0 0 22px rgba(255,90,90,.6)}}
+@keyframes boom{to{transform:translate(-50%,-50%) scale(1.8);opacity:0}}
+#stage.frozen .enemy{border-color:#cfefff;background:#23305a}
+.rush{position:absolute;right:10px;top:8px;font:700 13px var(--f-mono);color:var(--amber);pointer-events:none;z-index:15}
+.rush.hot{color:var(--bad)}
+.deadline{position:absolute;left:0;right:0;bottom:50px;height:2px;background:repeating-linear-gradient(90deg,var(--bad) 0 10px,transparent 10px 18px);opacity:.7}
+.weights{position:absolute;left:0;right:0;bottom:4px;display:flex;justify-content:center;gap:4px;font:500 12px var(--f-mono);color:var(--muted);pointer-events:none}
+.weights span{display:flex;flex-direction:column;align-items:center;min-width:32px;padding:1px 0;border:2px solid transparent;border-radius:12px}
+.weights span small{font:700 13px var(--f-mono);color:var(--line)}
+.weights span.on{border-color:var(--amber);color:var(--amber)}
+.weights span.on small{color:var(--amber)}
+.aide{position:absolute;left:0;right:0;bottom:54px;text-align:center;font:700 14px var(--f-mono);color:var(--amber);pointer-events:none;z-index:1}
+.enemy.boss{padding:8px 16px;border-color:var(--bad);border-width:3px;z-index:11}
+.enemy.boss b{font-size:30px}
+.enemy.boss em{background:var(--bad);color:#fff}
+.enemy.boss.shield{box-shadow:0 0 0 7px rgba(255,90,90,.22),0 0 30px rgba(255,90,90,.6)}
+.enemy.sat{padding:2px 6px;z-index:12}
+.enemy.sat b{font-size:15px}
+.enemy.sat small{font-size:9px}
+.enemy.dive{border-color:var(--bad);box-shadow:0 0 16px rgba(255,90,90,.6)}
+.enemy.carrier{border-color:var(--good);box-shadow:0 0 18px rgba(110,231,160,.45)}
+.enemy em{display:block;margin:0 auto 2px;padding:1px 6px;width:max-content;border-radius:3px;background:var(--good);color:#06210f;font:700 11px var(--f-display);font-style:normal}
+.bonus{position:absolute;left:0;top:0;transform:translate(-50%,-50%);z-index:20;padding:9px 11px;border:0;border-radius:6px;background:var(--good);color:#06210f;font:700 12px var(--f-display);box-shadow:0 0 18px rgba(110,231,160,.5)}
+.bonus.life{background:var(--pink);color:#2a0716}
+.bonus.freeze{background:#cfefff;color:#0b2233}
+
+/* ---------- level 2 ---------- */
+.l2-target{position:absolute;top:18px;left:0;right:0;text-align:center;font:400 15px var(--f-body);color:var(--muted);z-index:5;pointer-events:none}
+.l2-target b{display:block;font:700 40px var(--f-mono);color:var(--amber);line-height:1.1}
+.l2-sum{position:absolute;left:0;right:0;bottom:4px;text-align:center;font:500 13px var(--f-mono);color:var(--muted);pointer-events:none}
+.dropzone{position:absolute;left:12px;right:12px;top:96px;height:34px;border:1px dashed var(--line);border-radius:8px;display:grid;place-items:center;font-size:12px;color:var(--muted);pointer-events:none}
+.vessel{position:absolute;left:0;top:0;border:3px solid var(--fg);border-top:0;border-radius:0 0 12px 12px;background:rgba(255,255,255,.03);z-index:4}
+.vessel .liq{position:absolute;left:0;right:0;bottom:3px;display:flex;flex-direction:column-reverse;align-items:center;gap:3px}
+.vessel .liq i,.drop{width:var(--ball,22px);height:var(--ball,22px);border-radius:50%;background:radial-gradient(circle at 35% 30%,#d9fbfd,var(--cyan) 45%,#1f7f8a)}
+.vessel .liq i{animation:land .2s}
+@keyframes land{from{transform:translateY(-12px)}}
+.vessel.u{border-radius:0 0 4px 4px;margin-left:0}
+.vessel.u+.vessel.u{border-left-width:1px}
+.l2-base{position:absolute;height:6px;border-radius:3px;background:var(--fg);z-index:4;pointer-events:none}
+.vessel.u .liq{left:2px;right:2px;flex-direction:row;flex-wrap:wrap-reverse;justify-content:center;align-items:flex-end;gap:2px}
+.vessel.u .liq i{animation:none}
+.vessel.u .bit{font-size:18px}
+.vessel.full{border-color:var(--amber)}
+.vessel.full .liq i{background:radial-gradient(circle at 35% 30%,#fff1d6,var(--amber) 45%,#a8621a)}
+.vessel .w{position:absolute;top:-24px;left:50%;transform:translateX(-50%);font:700 15px var(--f-mono);color:var(--muted)}
+.vessel .bit{position:absolute;bottom:-30px;left:50%;transform:translateX(-50%);font:700 22px var(--f-mono);color:var(--muted)}
+.vessel.full .bit{color:var(--amber)}
+.drop{position:absolute;left:0;top:0;transform:translate(-50%,-50%);z-index:3;pointer-events:none}
+.l0-left{position:absolute;top:84px;left:0;right:0;text-align:center;font:500 14px var(--f-body);color:var(--muted);z-index:5;pointer-events:none}
+.l0-left b{color:var(--cyan);font:700 18px var(--f-mono)}
+.l0-dots i{display:inline-block;width:10px;height:10px;margin:0 2px;border-radius:50%;background:var(--cyan);vertical-align:middle}
+.l0-chute{position:absolute;width:2px;background:repeating-linear-gradient(var(--line) 0 6px,transparent 6px 12px);pointer-events:none}
+.l0-rack{position:absolute;height:6px;border-radius:3px;background:var(--line);z-index:3;pointer-events:none}
+.drop.up{opacity:.75}
+.splash{position:absolute;width:var(--ball,22px);height:var(--ball,22px);transform:translate(-50%,-50%);border-radius:50%;background:var(--cyan);opacity:.7;animation:spl .5s forwards;pointer-events:none}
+@keyframes spl{40%{transform:translate(-50%,-110%)}to{transform:translate(-50%,-50%) scale(.6);opacity:0}}
+
+/* ---------- level 3 ---------- */
+.l3-q{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:30;padding:6px 14px;text-align:center;white-space:nowrap;background:rgba(17,15,38,.94);border:2px solid var(--pink);border-radius:8px;pointer-events:none}
+.l3-q b{font:700 24px var(--f-mono);letter-spacing:.06em}
+.l3-q sub{font-size:12px;color:var(--muted)}
+.l3-q small{display:block;color:var(--muted);font-size:12px}
+.hextab{--rage:0;position:absolute;left:0;top:0;width:min(88%,330px);padding:6px;border-radius:10px;background:var(--panel);border:3px solid color-mix(in srgb,var(--bad) calc(var(--rage)*100%),var(--line));box-shadow:0 0 calc(var(--rage)*40px) rgba(255,90,90,.6);z-index:8;transform-origin:center}
+.hextab .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;transition:filter .4s}
+.hextab.blurry .grid{filter:blur(5px)}
+.cell{display:flex;gap:5px;justify-content:center;align-items:baseline;padding:5px 2px;background:var(--deep);border-radius:4px;font-family:var(--f-mono)}
+.cell b{color:var(--pink);font-size:16px}
+.cell span{color:var(--cyan);font-size:12px}
+.stain{position:absolute;background:radial-gradient(circle at 40% 40%,#4a3518,#2b1d0b 55%,#1d1407);border-radius:43% 57% 61% 39%/46% 38% 62% 54%;box-shadow:0 0 0 3px rgba(43,29,11,.55);pointer-events:none}
+.hextab .eyes{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font:700 14px var(--f-mono);color:var(--bad);opacity:var(--rage);white-space:nowrap}
+.qcm{position:absolute;inset:8px;z-index:80;display:flex;flex-direction:column;gap:10px;padding:14px;overflow:auto;background:rgba(17,15,38,.97);border:2px solid var(--amber);border-radius:10px}
+.qcm .tag{font:700 12px var(--f-display);color:var(--amber);letter-spacing:.06em}
+.qcm .qq{font:700 18px var(--f-body);text-wrap:balance}
+.qcm .qbar{position:relative;height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.qcm .qbar span{position:absolute;inset:0;background:var(--amber);transform-origin:left}
+.qcm .choices{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.qcm .choices button{min-height:48px;padding:8px 10px;text-align:left;background:var(--panel);border:1px solid var(--line);border-bottom-width:3px;border-radius:8px}
+.qcm .choices button kbd{font:700 12px var(--f-mono);color:var(--amber);margin-right:6px}
+.qcm .msg{min-height:1.4em;font-weight:700;color:var(--bad)}
+.qcm.wrong{animation:shake .3s}
+@media (max-width:440px){.qcm .choices{grid-template-columns:1fr}}
+
+/* ---------- level 4 ---------- */
+.l4{position:absolute;inset:0;padding:12px;display:flex;flex-direction:column;gap:10px;overflow:auto}
+.l4 .timebar{position:static;flex:none}
+.l4-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;align-items:baseline}
+.l4-head strong{font:700 14px var(--f-display);color:var(--amber);letter-spacing:.04em}
+.l4-head span{color:var(--muted);font-size:13px}
+.hexline{font:700 15px var(--f-mono);line-height:1.8;color:var(--amber);word-break:break-all}
+.hexline span{display:inline-block;animation:jit 1.1s ease-in-out infinite alternate}
+@keyframes jit{from{transform:translateY(-2px)}to{transform:translateY(2px)}}
+.canvaswrap{flex:1;min-width:0;min-height:150px;display:grid;grid-template-columns:minmax(0,1fr);place-items:center;overflow:hidden}
+.canvaswrap canvas{image-rendering:pixelated;max-width:100%}
+.ctrls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center}
+.btn{min-width:48px;min-height:46px;padding:0 14px;background:var(--panel);border:1px solid var(--line);border-bottom-width:3px;border-radius:8px;font:700 20px var(--f-mono)}
+.btn:active{transform:translateY(2px)}
+.btn.ok{background:var(--amber);color:var(--ink);border-color:#c98a24;font:700 15px var(--f-body)}
+.dim{font:500 15px var(--f-mono);text-align:center;min-width:12ch}
+.dim b{color:var(--cyan);font-size:20px}
+.lights{position:relative;flex:1;min-height:170px;background:#000;border-radius:10px;overflow:hidden;isolation:isolate}
+.light{position:absolute;left:0;top:0;border-radius:50%;mix-blend-mode:screen;transform:translate(-50%,-50%)}
+.swatches{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.sw{width:54px;height:40px;border-radius:6px;border:2px solid var(--line)}
+.sw.target{width:96px;height:70px;border:3px solid var(--fg);animation:jit 1.3s ease-in-out infinite alternate}
+.tgtlbl{font:700 15px var(--f-display);color:var(--amber)}
+.tarrow{font-size:30px;line-height:1;color:var(--amber);animation:tblink .7s steps(1) infinite}
+@keyframes tblink{50%{opacity:.1}}
+.chans{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.chan{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:4px;padding:6px;border-radius:8px;background:var(--panel);border:1px solid var(--line)}
+.chan .btn{min-width:38px;padding:0 6px}
+.chan .v{text-align:center;font:700 18px var(--f-mono)}
+.chan .v small{display:block;font:700 11px var(--f-display)}
+.chan.r small{color:#ff6b6b} .chan.g small{color:#6bff8f} .chan.b small{color:#6bb0ff}
+.qgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;flex:1;min-height:160px}
+.qgrid button{border-radius:10px;border:2px solid var(--line);min-height:70px;position:relative;animation:jit 1.4s ease-in-out infinite alternate}
+.qgrid button kbd{position:absolute;left:6px;top:4px;font:700 12px var(--f-mono);color:#fff;mix-blend-mode:difference}
+.bigcode{font:700 34px var(--f-mono);text-align:center;letter-spacing:.06em}
+@media (max-width:440px){.chans{grid-template-columns:1fr}.chan .v{display:flex;gap:10px;justify-content:center;align-items:baseline}}
+
+
+
+.l3-q.turbo{left:0;top:0;transform:none}
+.turbo-clock{position:absolute;right:12px;top:16px;font:700 22px var(--f-mono);color:var(--amber);z-index:5}
+.hextab.static{position:relative;left:auto;top:auto;width:100%;max-width:380px;margin:0 auto;flex:none;z-index:1}
+.l4-byte .canvaswrap{min-height:110px}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:10px;flex:1;min-height:150px}
+.pair figure{margin:0;display:flex;flex-direction:column;gap:4px;min-width:0}
+.pair .canvaswrap{min-height:110px}
+.pair figcaption{text-align:center;font-size:12px;color:var(--muted)}
+.layers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.layer{margin:0;display:flex;flex-direction:column;gap:4px;min-width:0;padding:6px;border-radius:8px;background:var(--panel);border:1px solid var(--line)}
+.layer .canvaswrap{min-height:60px;flex:none;height:70px}
+.lctl{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:2px}
+.lctl .btn{min-width:34px;padding:0 4px;min-height:40px}
+.lctl .v{text-align:center;font:700 15px var(--f-mono)}
+.lctl .v small{display:block;font:700 9px var(--f-display)}
+.layer.r .v small{color:#ff6b6b} .layer.g .v small{color:#6bff8f} .layer.b .v small{color:#6bb0ff}
+.bands{display:grid;gap:6px}
+.band{display:grid;grid-template-columns:auto repeat(3,minmax(0,1fr)) auto;gap:6px;align-items:center}
+.band .bl{font:700 11px var(--f-display);color:var(--muted)}
+.band .ch{min-width:0;padding:0 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1;font:700 15px var(--f-mono)}
+.band .ch small{font:700 10px var(--f-display)}
+.band .ch.r small{color:#ff6b6b} .band .ch.g small{color:#6bff8f} .band .ch.b small{color:#6bb0ff}
+.band code{font:700 13px var(--f-mono);color:var(--fg);min-width:7ch}
+.mycode{font-family:var(--f-mono);color:var(--fg)}
+.addemo{position:absolute;left:0;top:0;width:180px;height:160px;transform:translate(-50%,-50%);background:#000;border-radius:10px;isolation:isolate;z-index:50}
+.addemo i{position:absolute;width:86px;height:86px;border-radius:50%;mix-blend-mode:screen}
+/* ---------- tutoriel ---------- */
+#tuto{position:fixed;inset:0;z-index:150}
+.tbubble{position:fixed;z-index:151;width:min(320px,calc(100vw - 32px));padding:14px 16px 12px;background:#fff6e3;color:#1b1630;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.5);font:400 15px/1.45 var(--f-body);animation:pop .22s ease-out}
+.tbubble::before{content:'';position:absolute;left:var(--ax,50%);width:14px;height:14px;background:#fff6e3;transform:translateX(-50%) rotate(45deg)}
+.tbubble.below::before{top:-7px} .tbubble.above::before{bottom:-7px} .tbubble.center::before{display:none}
+.tbubble b{color:#a8460b}
+.tbubble .tstep{font:700 11px var(--f-display);color:#7a6fae;letter-spacing:.06em;margin-bottom:4px}
+.tbubble .tnav{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:10px}
+.tbubble button{min-height:40px;padding:0 14px;border-radius:8px;border:0;font:700 14px var(--f-body)}
+.tbubble .tskip{background:transparent;color:#6b6290;text-decoration:underline}
+.tbubble .tnext{background:var(--amber);color:var(--ink)}
+.tuto-hl{outline:3px solid var(--amber)!important;outline-offset:4px;animation:hl 1s ease-in-out infinite alternate}
+@keyframes hl{to{outline-color:rgba(255,181,71,.25)}}
+@keyframes pop{from{transform:scale(.9);opacity:0}}
+
+/* ---------- overlays ---------- */
+.overlay{position:fixed;inset:0;z-index:200;display:grid;place-items:center;padding:16px;background:rgba(8,6,20,.85)}
+.ocard{width:100%;max-width:380px;display:flex;flex-direction:column;gap:12px;padding:22px;text-align:center;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.ocard h2{margin:0;font:700 22px var(--f-display);color:var(--amber)}
+.ocard p{margin:0;color:var(--muted)}
+.ocard .big{font:700 40px var(--f-mono);color:var(--fg)}
+.ocard .row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.ocard .btn{font:700 15px var(--f-body)}
+
+@media (prefers-reduced-motion:reduce){
+  .hexline span,.sw.target,.qgrid button,#buffer:not(.empty)::after{animation:none}
+  #stage.shake{animation:none}
+}
+</style>
+
+<div id="menu">
+  <div class="bits" aria-hidden="true">01000010 01001001 01001110 01000001 01001001 01010010 01000101</div>
+  <header class="brand">
+    <h1>Binaire<br><span>Attack</span></h1>
+    <p>Cinq épreuves pour s'entraîner aux bases 2, 10 et 16 et au codage des images. Les nombres bougent, les tableaux s'enfuient : il faut savoir convertir, pas deviner.</p>
+  </header>
+  <p class="stars" id="stars"></p>
+  <div class="levels" id="levels"></div>
+  <p class="foot">Atteins l'objectif de points d'un niveau pour débloquer le suivant. Au clavier : chiffres, lettres A à F, Entrée pour valider, Retour arrière pour effacer, Échap pour la pause. Sur téléphone ou tablette, utilise le pavé affiché sous le jeu. <span id="where"></span></p>
+  <p class="foot"><button class="linkbtn" id="profbtn" type="button">Accès enseignant</button></p>
+</div>
+
+<div id="app" hidden>
+  <div id="hud">
+    <button class="iconbtn" id="menubtn" aria-label="Menu (enregistre le score)">☰</button>
+    <button class="iconbtn" id="pausebtn" aria-label="Pause">II</button>
+    <button class="iconbtn" id="helpbtn" aria-label="Revoir le tutoriel">?</button>
+    <div class="name" id="lvname"></div>
+    <span id="combo"></span>
+    <span id="lives" aria-label="Vies"></span>
+    <span id="score">0</span>
+  </div>
+  <div id="stage"></div>
+  <div id="inputrow">
+    <div id="bufrow"><div id="buffer" class="empty" data-ph="Tape ta réponse"></div></div>
+    <div id="keys"></div>
+  </div>
+</div>
+
+<div class="overlay" id="over" hidden><div class="ocard" id="overcard"></div></div>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const stage = $('#stage'), keysEl = $('#keys'), bufEl = $('#buffer');
+let W = 300, H = 300;
+function measure(){ const r = stage.getBoundingClientRect(); W = r.width; H = r.height; }
+addEventListener('resize', measure);
+
+const rand = (a,b) => a + Math.random()*(b-a);
+const randi = (a,b) => Math.floor(rand(a, b+1));
+const pick = a => a[Math.floor(Math.random()*a.length)];
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const bin = (n,b) => n.toString(2).padStart(b,'0');
+const hx = (n,d) => n.toString(16).toUpperCase().padStart(d,'0');
+const nib = s => s.replace(/(.{4})(?=.)/g,'$1 ');
+const shuffle = a => { for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+function mk(tag, cls, html, parent){ const e=document.createElement(tag); if(cls) e.className=cls; if(html!=null) e.innerHTML=html; (parent||stage).appendChild(e); return e; }
+function place(e,x,y){ e.style.left = x+'px'; e.style.top = y+'px'; }
+
+/* ---------- progression : ÉLÉA (SCORM 1.2) si présent, sinon cet appareil ---------- */
+const UNLOCK=[250,300,200,250,300];   // palier 1 : débloque le niveau suivant (et compte pour la note ÉLÉA)
+const STAR=[500,600,450,500,600]; // palier 2 : une étoile ; les 5 étoiles ouvrent le jeu secret
+const NL=5, SECRET=5;
+const TEACHER_CODE='SNT-PROF';
+const SCORM=(()=>{
+  let api=null;
+  try{ let w=window; for(let i=0;i<12 && w;i++){ if(w.API){ api=w.API; break; } if(w===w.parent) break; w=w.parent; } }catch(e){}
+  try{ if(!api && window.opener && window.opener.API) api=window.opener.API; }catch(e){}
+  if(api){ try{ if(String(api.LMSInitialize(''))!=='true') api=null; }catch(e){ api=null; } }
+  return api;
+})();
+// Sceau : une empreinte des scores, calculée avec une clé. Si quelqu'un modifie les records
+// (stockage du navigateur ou ÉLÉA) ou le score en cours depuis la console, l'empreinte ne colle plus.
+const Seal=(()=>{
+  const k=String.fromCharCode(83,78,84,126,98,97,126,55,51,113);
+  let sh=0;
+  const h=t=>{ let x=0x811c9dc5; for(const c of k+t+k){ x^=c.charCodeAt(0); x=Math.imul(x,0x01000193)>>>0; } return x.toString(36); };
+  return { sign:d=>h(JSON.stringify([d.best,!!d.prof])), reset(){ sh=0; }, add(n){ sh+=n; }, ok(v){ return v===sh; } };
+})();
+const Store={
+  tampered:false,
+  data:{ v:3, best:[0,0,0,0,0,0], tuto:{}, prof:false },
+  load(){
+    let raw=null;
+    try{ raw = SCORM ? SCORM.LMSGetValue('cmi.suspend_data') : localStorage.getItem('binaire-attack-data'); }catch(e){}
+    if(raw){ try{ const d=JSON.parse(raw);
+      // v1 (sans le niveau des billes) : on décale records et tutoriels d'un cran
+      if(!d.v){ d.best=[0].concat(d.best||[]); const t={}; for(const k in d.tuto||{}) t[isNaN(k)?k:+k+1]=1; d.tuto=t; d.v=2; }
+      const signed = d.v>=3; Object.assign(this.data,d);
+      if(signed && d.sig!==Seal.sign(this.data)){ this.tampered=true; this.data.best=this.data.best.map(()=>0); this.data.prof=false; }
+      this.data.v=3; }catch(e){} }
+    else if(!SCORM){ try{ for(let i=0;i<4;i++) this.data.best[i+1]=+localStorage.getItem('binaire-attack-best-'+i)||0; }catch(e){} }
+  },
+  save(){
+    this.data.sig=Seal.sign(this.data);
+    const raw=JSON.stringify(this.data);
+    try{
+      if(SCORM){
+        SCORM.LMSSetValue('cmi.suspend_data',raw);
+        const pct=Math.round(UNLOCK.reduce((a,u,i)=>a+Math.min(1,(this.data.best[i]||0)/u),0)*100/NL);
+        SCORM.LMSSetValue('cmi.core.score.min','0'); SCORM.LMSSetValue('cmi.core.score.max','100');
+        SCORM.LMSSetValue('cmi.core.score.raw',String(pct));
+        SCORM.LMSSetValue('cmi.core.lesson_status', pct>=100 ? 'passed' : 'incomplete');
+        SCORM.LMSCommit('');
+      } else localStorage.setItem('binaire-attack-data',raw);
+    }catch(e){}
+  }
+};
+Store.load();
+addEventListener('pagehide',()=>{ if(SCORM){ try{ Store.save(); SCORM.LMSFinish(''); }catch(e){} } });
+// Chaque erreur est envoyée à ÉLÉA comme une « interaction » SCORM : l'enseignant la voit
+// dans le rapport de l'activité (question, réponse de l'élève, bonne réponse).
+const ErrLog={
+  base:null, n:0,
+  add(lv,q,given,expected){
+    try{
+      const e=Store.data.err||(Store.data.err=[]); e[lv]=(e[lv]||0)+1;
+      if(!SCORM || this.n>=300) return;
+      if(this.base==null) this.base=+SCORM.LMSGetValue('cmi.interactions._count')||0;
+      const k='cmi.interactions.'+(this.base+this.n++)+'.';
+      const slug=String(q).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9]+/g,'_').replace(/^_|_$/g,'').slice(0,120);
+      const d=new Date(), t=[d.getHours(),d.getMinutes(),d.getSeconds()].map(x=>String(x).padStart(2,'0')).join(':');
+      SCORM.LMSSetValue(k+'id','niv'+(lv+1)+'_'+slug);
+      SCORM.LMSSetValue(k+'type','fill-in');
+      SCORM.LMSSetValue(k+'time',t);
+      SCORM.LMSSetValue(k+'student_response',String(given).slice(0,250));
+      SCORM.LMSSetValue(k+'correct_responses.0.pattern',String(expected).slice(0,250));
+      SCORM.LMSSetValue(k+'result','wrong');
+      if(this.n%10===0) SCORM.LMSCommit('');
+    }catch(err){}
+  }
+};
+if(Store.tampered){ ErrLog.add(0,'records modifies a la main','modifies','remis a zero'); Store.save(); }
+function best(id){ return Store.data.best[id]||0; }
+function saveBest(id,v){ if(v>best(id)){ Store.data.best[id]=v; } Store.save(); }
+function hasStar(i){ return best(i)>=STAR[i]; }
+function nStars(){ return STAR.filter((x,i)=>hasStar(i)).length; }
+function unlocked(i){ return i===0 || Store.data.prof || (i===SECRET ? nStars()===NL : best(i-1)>=UNLOCK[i-1]); }
+
+/* ---------- game state & shared helpers ---------- */
+const G = { lv:null, id:0, score:0, lives:3, run:false, pause:false };
+function hud(){
+  $('#score').innerHTML = digits(G.score);
+  $('#lives').textContent = '♥'.repeat(Math.max(0,G.lives));
+}
+function digits(n){ const t=String(n); return [...t].map((c,i)=>`<span class="dg${(t.length-1-i)%4}">${c}</span>`).join(''); }
+function setCombo(n){ $('#combo').textContent = n>1 ? 'x'+n : ''; }
+function addScore(n,x,y){ n=Math.round(n); G.score+=n; Seal.add(n); hud(); if(x!=null) floatTxt(x,y,'+'+n,'good'); }
+function loseLife(msg){
+  G.lives--; hud(); shake(); flash('bad');
+  if(msg) banner(msg,'bad');
+  if(G.lives<=0) setTimeout(gameOver, 600), G.run = false;
+}
+function floatTxt(x,y,t,cls){ const e=mk('div','float '+(cls||''),t); place(e,x,y); setTimeout(()=>e.remove(),900); }
+function banner(t,cls){ stage.querySelectorAll('.banner').forEach(b=>b.remove()); const e=mk('div','banner '+(cls||''),t); setTimeout(()=>e.remove(),1600); }
+function shake(){ stage.classList.remove('shake'); void stage.offsetWidth; stage.classList.add('shake'); }
+function flash(c){ stage.dataset.flash=c; clearTimeout(flash.t); flash.t=setTimeout(()=>{ delete stage.dataset.flash; },200); }
+
+const Buf = {
+  v:'', max:8, allowed:'0123456789',
+  set(v){ this.v=v; bufEl.textContent=v; bufEl.classList.toggle('empty',!v); },
+  push(c){
+    if(this.v.length<this.max && this.allowed.includes(c)) this.set(this.v+c);
+    else { bufEl.classList.remove('nope'); void bufEl.offsetWidth; bufEl.classList.add('nope'); }
+  },
+  back(){ this.set(this.v.slice(0,-1)); },
+  clear(){ this.set(''); }
+};
+
+function setKeys(list, ph){
+  keysEl.innerHTML='';
+  $('#inputrow').hidden = !list.length;
+  bufEl.dataset.ph = ph || 'Tape ta réponse';
+  for(const k of list){
+    const b=document.createElement('button');
+    b.className='key '+(k.cls||''); b.textContent=k.label; b.dataset.k=k.k;
+    if(k.span) b.style.gridColumn='span '+k.span;
+    b.addEventListener('pointerdown', ev=>{ ev.preventDefault(); press(k.k); });
+    keysEl.appendChild(b);
+  }
+}
+function refreshKeys(all){
+  keysEl.querySelectorAll('.key').forEach(b=>{ const k=b.dataset.k; if(k.length===1) b.disabled = !all && !Buf.allowed.includes(k); });
+}
+function press(k){ if(G.run && !G.pause && !G.tuto) G.lv.key(k); }
+
+addEventListener('keydown', e=>{
+  if(G.tuto){ if(e.key==='Enter'||e.key===' '||e.key==='ArrowRight'){ e.preventDefault(); Tuto.next(); } else if(e.key==='Escape') Tuto.end(); return; }
+  if(e.key==='Escape'){ if(G.run) togglePause(); return; }
+  if(!G.run || G.pause) return;
+  let k=e.key;
+  if(k==='Backspace' || k==='Delete') k='BACK';
+  else if(k==='Enter' || k===' ') k='OK';
+  else if(k.length===1) k=k.toUpperCase();
+  else if(!k.startsWith('Arrow')) return;
+  e.preventDefault(); G.lv.key(k);
+});
+
+/* ---------- loop ---------- */
+let last=0;
+function frame(ts){
+  const dt = Math.min(0.05, (ts-last)/1000 || 0); last=ts;
+  if(G.run && !G.pause && !G.tuto && G.lv) G.lv.update(dt);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ---------- screens ---------- */
+function showOverlay(html){ $('#overcard').innerHTML=html; $('#over').hidden=false; }
+function hideOverlay(){ $('#over').hidden=true; }
+function chooseMode(id){
+  showOverlay(`<h2>${LEVELS[id].name}</h2><p>Choisis ton mode de jeu.</p>
+    <div class="row"><button class="btn ok" id="o-m1">Boules : une boule = un bit</button><button class="btn ok" id="o-mu">Unités : chaque bille vaut 1</button></div>
+    <p class="dim">En mode unités, le récipient 16 contient exactement 16 billes, le 8 en contient 8… Le record est commun aux deux modes.</p>
+    <div class="row"><button class="btn" id="o-menu">Menu</button></div>`);
+  $('#o-m1').onclick=()=>startLevel(id,'b'); $('#o-mu').onclick=()=>startLevel(id,'u');
+  $('#o-menu').onclick=()=>{ hideOverlay(); if(!G.run) toMenu(); else toMenu(); };
+}
+const MODE_LV=2;
+function tkey(id){ return id===MODE_LV && G.mode==='u' ? 'l2u' : id; }
+function startLevel(id,mode){
+  document.body.classList.remove('paused');
+  if(id===MODE_LV && !mode){ G.run=false; if(G.tuto) Tuto.end(); return chooseMode(id); }
+  G.mode=mode||'b';
+  if(G.tuto) Tuto.end();
+  hideOverlay();
+  stage.innerHTML=''; stage.onpointerdown=stage.onpointermove=stage.onpointerup=stage.onpointercancel=stage.onpointerleave=null; stage.className=''; delete stage.dataset.flash;
+  Seal.reset(); Object.assign(G,{ id, score:0, lives:3, run:true, pause:false });
+  $('#menu').hidden=true; $('#app').hidden=false;
+  $('#lvname').textContent = (id===MODE_LV && G.mode==='u' ? '[unités] ' : '') + (id===SECRET ? 'Jeu secret · '+LEVELS[id].name : (id+1)+' · '+LEVELS[id].name+' · palier '+UNLOCK[id]+' · ★ '+STAR[id]);
+  hud(); setCombo(0); Buf.clear();
+  G.lv = LEVELS[id].make();
+  G.lv.start(); measure(); G.lv.layout && G.lv.layout(); G.lv.update(0);
+  if(!tutoSeen(tkey(id))) Tuto.run(tkey(id));
+}
+function toMenu(){
+  document.body.classList.remove('paused');
+  if(G.tuto) Tuto.end();
+  G.run=false; G.lv=null; hideOverlay(); stage.innerHTML=''; stage.onpointerdown=stage.onpointermove=stage.onpointerup=stage.onpointercancel=stage.onpointerleave=null;
+  $('#app').hidden=true; $('#menu').hidden=false; renderMenu();
+}
+function togglePause(){
+  if(!G.run) return;
+  G.pause=!G.pause;
+  document.body.classList.toggle('paused',G.pause); // en pause, le jeu est caché
+  if(G.pause){
+    showOverlay(`<h2>Pause</h2><p>Score : ${G.score}</p><div class="row"><button class="btn ok" id="o-resume">Reprendre</button><button class="btn" id="o-menu">Menu</button></div>`);
+    $('#o-resume').onclick=togglePause; $('#o-menu').onclick=quitToMenu;
+  } else { hideOverlay(); last=performance.now(); }
+}
+function gameOver(){
+  G.run=false;
+  const id=G.id, prev=best(id), starsBefore=nStars();
+  if(!Seal.ok(G.score)){ ErrLog.add(id,'score modifie a la main',G.score,'score non enregistre'); G.score=0; hud(); }
+  saveBest(id,G.score);
+  const top=Math.max(prev,G.score), rec=G.score>prev && G.score>0;
+  let msg='';
+  if(id<NL){
+    const goal=UNLOCK[id], star=STAR[id], lastLvl=id===NL-1;
+    if(top<goal) msg=`Encore <b>${goal-top}</b> points pour ${lastLvl?'valider ce niveau':'débloquer le niveau '+(id+2)} (palier 1 : ${goal}).`;
+    else{
+      if(prev<goal) msg+= lastLvl ? '<b>Niveau validé !</b> ' : `<b>Niveau ${id+2} débloqué !</b> `;
+      msg+= top>=star ? (prev<star ? '<b class="gold">★ Étoile gagnée !</b>' : '★ Étoile déjà gagnée.') : `Encore <b>${star-top}</b> points pour l'étoile ★ (palier 2 : ${star}).`;
+      if(nStars()===NL && starsBefore<NL) msg+='<br><b class="gold">Les '+NL+' étoiles sont réunies : le jeu secret est ouvert !</b>';
+    }
+  } else msg='Le jeu secret se rejoue à volonté pour battre ton record.';
+  showOverlay(`<h2>Partie terminée</h2><div class="big">${digits(G.score)}</div>
+    <p>${rec ? 'Nouveau record !' : 'Record : '+top}</p><p>${msg}</p>
+    <div class="row"><button class="btn ok" id="o-again">Rejouer</button>
+    ${id<NL-1 && unlocked(id+1) ? '<button class="btn" id="o-next">Niveau suivant</button>' : ''}
+    ${id!==SECRET && unlocked(SECRET) && nStars()===NL ? '<button class="btn" id="o-secret">Jeu secret</button>' : ''}
+    <button class="btn" id="o-menu">Menu</button></div>`);
+  $('#o-again').onclick=()=>startLevel(id,G.mode);
+  if($('#o-next')) $('#o-next').onclick=()=>startLevel(id+1);
+  if($('#o-secret')) $('#o-secret').onclick=()=>startLevel(SECRET);
+  $('#o-menu').onclick=toMenu;
+}
+// quitter en cours de partie : le score est enregistré (record, paliers, ÉLÉA)
+function quitToMenu(){
+  const id=G.id, sc=G.score, was=G.run && G.lv;
+  const okSc=Seal.ok(sc); if(!okSc) ErrLog.add(id,'score modifie a la main',sc,'score non enregistre');
+  if(was && sc>0 && okSc) saveBest(id,sc);
+  toMenu();
+  if(was && sc>0 && okSc){ const w=$('#where'); w.textContent=`Score enregistré : ${sc} points (record ${best(id)}). `+w.textContent; }
+}
+$('#menubtn').addEventListener('click', ()=>{ if(G.tuto) Tuto.end(); quitToMenu(); });
+$('#pausebtn').addEventListener('click', ()=>{ if(!G.tuto) togglePause(); });
+$('#helpbtn').addEventListener('click', ()=>{ if(G.run && !G.pause && !G.tuto) Tuto.run(tkey(G.id)); });
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden && G.run && !G.pause) togglePause(); });
+
+/* =========================================================
+   NIVEAU 1 — Les billes 16-8-4-2-1 (on déplace les récipients)
+   ========================================================= */
+function L0(){
+  const WTS=[16,8,4,2,1];
+  const S={ cols:[], fill:[0,0,0,0,0], ball:null, queue:0, ups:[], lvl:0, target:0, tmax:40, tl:40, lock:0, wait:.6,
+            rx:0, goal:0, drag:null, gap:50, cw:40, ch:40, top:300, bs:30 };
+  let tgtEl, leftEl, bar, sumEl, rack, chute;
+  const pop=v=>v.toString(2).split('1').length-1;
+  function newTarget(){
+    // au début peu de billes, puis jusqu'à 5
+    const maxPop = S.lvl<2 ? 2 : S.lvl<5 ? 3 : 5;
+    let n; do{ n=randi(1,31); }while(n===S.target || pop(n)>maxPop);
+    S.target=n; S.fill=[0,0,0,0,0]; S.queue=pop(n); S.ball=null; S.wait=.5;
+    S.tmax=Math.max(20, 12+pop(n)*7 - S.lvl*.8); S.tl=S.tmax;
+    tgtEl.innerHTML=`Écris en binaire<b>${n}</b>`;
+    paint();
+  }
+  function remaining(){ return S.queue + (S.ball?1:0) + S.ups.length; }
+  function paint(){
+    let sum=0; const bits=[];
+    S.cols.forEach((c,i)=>{
+      const f=S.fill[i]; c.el.classList.toggle('full',f===1);
+      if(c.liq.children.length!==f) c.liq.innerHTML='<i></i>'.repeat(f);
+      c.bit.textContent=f; bits.push(f); if(f) sum+=WTS[i];
+    });
+    const parts=WTS.filter((w,i)=>S.fill[i]);
+    sumEl.textContent=`${bits.join('')} = ${parts.length?parts.join(' + '):'0'} = ${sum}`;
+    const r=remaining();
+    leftEl.innerHTML=`Billes restantes : <b>${r}</b> <span class="l0-dots">${'<i></i>'.repeat(r)}</span>`;
+  }
+  function check(){
+    paint();
+    if(S.lock>0 || remaining()>0) return;
+    const ok=S.fill.every((f,i)=> !!(S.target & WTS[i]) === !!f);
+    if(ok){
+      const fast=S.tl>S.tmax/2, tb=Math.round(S.tl);
+      addScore((5*pop(S.target)+tb)*(fast?1.5:1), W/2, H*.35); flash('good');
+      banner(`Bravo : ${S.target} = ${bin(S.target,5)}. Bonus temps : +${tb}${fast?' ×1,5':''}`,'good');
+      S.lvl++; S.lock=1.2;
+      if(S.lvl%3===0) setTimeout(()=>G.run&&banner('Les billes tombent plus vite !'),1300);
+    } else banner('Toutes les billes sont placées mais ce n\'est pas le bon nombre : touche un récipient pour remonter sa bille.','bad');
+  }
+  // une bille posée remonte, puis retombe au milieu
+  function eject(i){
+    if(S.lock>0 || !G.run || G.pause) return;
+    if(!S.fill[i]){ floatTxt(S.cols[i].x,S.top-10,'vide','bad'); return; }
+    S.fill[i]=0; const c=S.cols[i];
+    S.ups.push({ el:mk('div','drop up'), x:c.x, y:S.top+S.ch/2, vy:-520 });
+    paint();
+  }
+  function colX(i){ return S.rx + (i-2)*S.gap; }
+  function snap(dir){
+    // aligne la colonne voisine sous le point de chute
+    let k=Math.round((W/2-S.rx)/S.gap)+2; k=clamp(k+dir,0,4);
+    S.goal=W/2-(k-2)*S.gap;
+  }
+  function layout(){
+    S.bs=Math.floor(clamp(W*.075,20,36)); S.cw=S.bs+10; S.ch=S.bs+8;
+    S.gap=Math.min(S.cw+40, (W/2-S.cw/2-6)/4);
+    S.top=H-S.ch-58;
+    stage.style.setProperty('--ball',S.bs+'px');
+    S.rx=S.goal=clamp(S.rx||W/2, W/2-2*S.gap, W/2+2*S.gap);
+    chute.style.cssText=`left:${W/2-1}px;top:96px;height:${S.top-96}px`;
+  }
+  return {
+    layout,
+    start(){
+      Buf.allowed=''; Buf.max=0;
+      setKeys([{label:'◀',k:'ArrowLeft'},{label:'▶',k:'ArrowRight'}], 'Glisse le doigt ou ◀ ▶ pour déplacer les récipients');
+      keysEl.querySelectorAll('.key').forEach(b=>b.style.gridColumn='span 3');
+      tgtEl=mk('div','l2-target');
+      leftEl=mk('div','l0-left');
+      const tb=mk('div','timebar'); tb.style.top='6px'; bar=mk('span','',null,tb); S.tb=tb;
+      chute=mk('div','l0-chute');
+      rack=mk('div','l0-rack');
+      sumEl=mk('div','l2-sum');
+      WTS.forEach((w,i)=>{
+        const el=mk('div','vessel',`<span class="w">${w}</span><div class="liq"></div><span class="bit">0</span>`);
+        el.addEventListener('pointerdown',ev=>{ ev.preventDefault(); ev.stopPropagation(); eject(i); });
+        S.cols.push({ el, liq:el.querySelector('.liq'), bit:el.querySelector('.bit'), x:0 });
+      });
+      stage.onpointerdown=ev=>{ if(!G.run||G.pause) return; S.drag={ x:ev.clientX, rx:S.rx }; };
+      stage.onpointermove=ev=>{ if(!S.drag) return; S.rx=S.goal=clamp(S.drag.rx+ev.clientX-S.drag.x, W/2-2*S.gap, W/2+2*S.gap); };
+      stage.onpointerup=stage.onpointercancel=stage.onpointerleave=()=>{ S.drag=null; };
+      measure(); layout(); S.rx=S.goal=W/2+2*S.gap; // la colonne 16 sous le point de chute
+      newTarget();
+    },
+    update(dt){
+      if(!S.bs) layout();
+      // déplacement doux vers la position visée (flèches)
+      if(!S.drag) S.rx += (S.goal-S.rx)*Math.min(1,dt*14);
+      S.cols.forEach((c,i)=>{ c.x=colX(i); c.el.style.cssText=`left:${c.x-S.cw/2}px;top:${S.top}px;width:${S.cw}px;height:${S.ch}px`; });
+      rack.style.cssText=`left:${colX(0)-S.cw/2-6}px;top:${S.top+S.ch-2}px;width:${4*S.gap+S.cw+12}px`;
+      const vfall = 90 + S.lvl*12;
+      // billes qui remontent
+      for(const u of [...S.ups]){
+        u.vy+=600*dt; u.y+=u.vy*dt; place(u.el,u.x,u.y);
+        if(u.vy>=0 || u.y<100){ u.el.remove(); S.ups.splice(S.ups.indexOf(u),1); S.queue++; S.wait=Math.max(S.wait,.3); paint(); }
+      }
+      // bille qui tombe au milieu
+      if(!S.ball && S.queue>0 && S.lock<=0){
+        S.wait-=dt;
+        if(S.wait<=0){ S.queue--; S.ball={ el:mk('div','drop'), x:W/2, y:100 }; paint(); }
+      }
+      const d=S.ball;
+      if(d){
+        const py=d.y; d.y+=vfall*dt; place(d.el,d.x,d.y);
+        if(py<S.top && d.y>=S.top){
+          const i=S.cols.findIndex(c=>Math.abs(c.x-d.x)<S.cw/2);
+          if(i>=0 && !S.fill[i]){ d.el.remove(); S.ball=null; S.fill[i]=1; S.wait=.6; check(); }
+          else if(i>=0){ // récipient déjà plein : la bille rebondit et revient
+            d.el.remove(); S.ball=null; S.queue++; S.wait=.8; floatTxt(d.x,S.top-10,'déjà plein','bad'); paint();
+          }
+        }
+        if(S.ball && d.y>H-6){
+          d.el.remove(); S.ball=null; S.queue++; S.wait=.8;
+          const s=mk('div','splash'); place(s,d.x,H-12); setTimeout(()=>s.remove(),500);
+          floatTxt(d.x,H-40,'ratée, elle revient','bad'); paint();
+        }
+      }
+      if(S.lock>0){
+        S.lock-=dt; if(S.lock<=0){ S.lock=0; newTarget(); }
+      } else {
+        S.tl-=dt;
+        bar.style.transform=`scaleX(${Math.max(0,S.tl/S.tmax)})`;
+        S.tb.classList.toggle('low', S.tl<5);
+        if(S.tl<=0){
+          ErrLog.add(0,'billes '+S.target,S.fill.join(''),bin(S.target,5));
+          loseLife(`Temps écoulé : ${S.target} = ${bin(S.target,5)}`);
+          if(!G.run) return;
+          if(S.ball){ S.ball.el.remove(); S.ball=null; }
+          S.ups.forEach(u=>u.el.remove()); S.ups=[];
+          S.lock=1.4;
+        }
+      }
+    },
+    key(k){
+      if(k==='ArrowLeft') snap(1);       // la rangée part à gauche : la colonne de droite arrive au milieu
+      else if(k==='ArrowRight') snap(-1);
+      else if(k>='1' && k<='5') eject(+k-1);
+    }
+  };
+}
+
+/* =========================================================
+   NIVEAU 2 — Attaque binaire (binaire <-> décimal)
+   ========================================================= */
+function L1(){
+  const S={ en:[], bo:[], spawn:0.4, bonus:rand(6,9), wave:1, kills:0, freeze:0, combo:0, rush:1, since:0, boss:null, launch:4 };
+  const BOSS_EVERY=20;
+  function setRush(v){ S.rush=clamp(v,1,3); const e=stage.querySelector('.rush'); if(e){ e.textContent = S.rush>1.05 ? 'Vitesse ×'+S.rush.toFixed(1) : ''; e.classList.toggle('hot',S.rush>=2); } }
+  const bitsFor = w => Math.min(8, 3+Math.floor(w/2));
+  const BON=[
+    {k:'reveal', t:'INDICE', d:'Indice : deux réponses sont affichées'},
+    {k:'freeze', t:'GEL',    d:'Gel : tout s\'arrête 4 secondes'},
+    {k:'bomb',   t:'BOUM',   d:'Boum : les deux plus proches explosent'},
+    {k:'life',   t:'+1 ♥',   d:'Une vie en plus'}
+  ];
+  function spawn(carrier){
+    // a bonus is carried by a harder number: 2 more bits, mostly decimal → binary, always full width
+    const bits = carrier ? Math.max(5, Math.min(8, bitsFor(S.wave)+2)) : bitsFor(S.wave);
+    const mode = carrier ? (Math.random()<.7?'d2b':'b2d') : (Math.random()<.5?'b2d':'d2b');
+    let val, n=0;
+    do{ val = carrier ? randi(1<<(bits-1),(1<<bits)-1) : randi(1,(1<<bits)-1); }while(S.en.some(e=>e.val===val) && ++n<20);
+    const b = carrier ? pick(G.lives<5 && Math.random()<.3 ? BON : BON.slice(0,3)) : null;
+    const q = mode==='b2d' ? `${bin(val,bits)}<sub>2</sub>` : `${val}<sub>10</sub>`;
+    const ans = mode==='b2d' ? String(val) : val.toString(2);
+    const el = mk('div','enemy '+mode+(b?' carrier':''), `${b?`<em>${b.t}</em>`:''}<b>${q}</b><small>${mode==='b2d'?'→ en décimal':'→ en binaire'}</small><i>${ans}</i>`);
+    const x0=rand(60,Math.max(61,W-60));
+    S.en.push({ el, mode, val, bits, b, x0, tx:x0, x:x0, y:-24, vy:(rand(13,20)+S.wave*3)*(b?.8:1), amp:rand(8,30+S.wave*3), f:rand(.8,2), ph:rand(0,6), jump:rand(2.5,6) });
+  }
+  // BOSS : un grand nombre protégé par des petits nombres qui tournent autour.
+  // De temps en temps un satellite fonce vers la ligne. Bouclier tant qu'il reste des satellites.
+  function spawnBoss(){
+    const val=randi(129,255), r=clamp(W*.2,60,88), x0=clamp(W/2,r+40,W-r-40);
+    const el=mk('div','enemy d2b boss shield',`<em>BOSS</em><b>${val}<sub>10</sub></b><small>→ en binaire</small><i>${val.toString(2)}</i>`);
+    const boss={ el, mode:'d2b', val, bits:8, b:null, boss:true, x0, tx:x0, x:x0, y:-40, vy:5+S.wave*.6, amp:Math.max(10,W/2-r-60), f:.5, ph:0, jump:99 };
+    S.en.push(boss); S.boss=boss; S.launch=4;
+    const ns=Math.min(6,3+Math.floor(S.wave/3));
+    for(let k=0;k<ns;k++){
+      const bits=randi(3,4), m=Math.random()<.5?'b2d':'d2b', v=randi(1,(1<<bits)-1);
+      const q = m==='b2d' ? `${bin(v,bits)}<sub>2</sub>` : `${v}<sub>10</sub>`;
+      const e=mk('div','enemy sat '+m,`<b>${q}</b><small>${m==='b2d'?'→ déc.':'→ bin.'}</small><i>${m==='b2d'?v:v.toString(2)}</i>`);
+      S.en.push({ el:e, mode:m, val:v, bits, b:null, sat:boss, ang:k*2*Math.PI/ns, r, x:x0, y:-40, x0, tx:x0, vy:0, amp:0, f:0, ph:0, jump:99 });
+    }
+    banner('Un BOSS arrive ! Détruis ses satellites pour briser son bouclier','bad');
+  }
+  const shielded = o => o.boss && S.en.some(e=>e.sat===o);
+  function dive(o){ o.sat=null; o.x0=o.tx=o.x; o.amp=0; o.vy=70+S.wave*6; o.el.classList.add('dive'); }
+  function kill(o, good){
+    S.en.splice(S.en.indexOf(o),1);
+    if(good){ o.el.classList.add('boom'); setTimeout(()=>o.el.remove(),300); } else o.el.remove();
+  }
+  function applyBonus(b){
+    banner('Bonus gagné ! '+b.d,'good');
+    if(b.k==='reveal') S.en.filter(e=>!e.el.classList.contains('rev')).sort((a,c)=>c.y-a.y).slice(0,2).forEach(e=>e.el.classList.add('rev'));
+    if(b.k==='freeze') S.freeze=4;
+    if(b.k==='bomb') S.en.filter(e=>!e.boss).sort((a,c)=>c.y-a.y).slice(0,2).forEach(e=>{ addScore(e.bits*2,e.x,e.y); kill(e,true); });
+    if(b.k==='life'){ G.lives=Math.min(5,G.lives+1); hud(); }
+  }
+  // aide : la valeur tapée est décomposée sur les poids 128…1 (poids entourés = bits à 1)
+  function aide(){
+    const v=Buf.v; S.lastV=v; let n=null, txt='';
+    if(/^[01]+$/.test(v)){ n=parseInt(v,2); }
+    else if(v){ n=parseInt(v,10); if(n>255) n=null; }
+    const W8=[128,64,32,16,8,4,2,1];
+    S.wEl.querySelectorAll('span').forEach((e,i)=>{ const on=n!=null && !!(n&W8[i]); e.classList.toggle('on',on); e.querySelector('small').textContent=on?1:0; });
+    if(n!=null){
+      const parts=W8.filter(w=>n&w), sum=parts.length?parts.join(' + '):'0';
+      txt = /^[01]+$/.test(v) ? `${v} en binaire = ${sum} = ${n}` : `${n} = ${sum} → ${n.toString(2)} en binaire`;
+    } else if(v) txt='plus grand que 255';
+    S.aide.textContent=txt;
+  }
+  function fire(){
+    const v=Buf.v; Buf.clear(); if(!v) return;
+    const match=o=> o.mode==='b2d' ? parseInt(v,10)===o.val : (/^[01]+$/.test(v) && parseInt(v,2)===o.val);
+    const hits=S.en.filter(o=> match(o) && !shielded(o));
+    if(!hits.length && S.en.some(o=>match(o))){ floatTxt(S.boss?S.boss.x:W/2,S.boss?S.boss.y+40:H/2,'Bouclier ! Détruis d\'abord les satellites','bad'); return; }
+    if(!hits.length){
+      const near=S.en.length ? S.en.reduce((a,b)=>a.y>b.y?a:b) : null;
+      if(near) ErrLog.add(1,near.mode==='b2d'?bin(near.val,near.bits)+' en decimal':near.val+' en binaire',v,near.mode==='b2d'?near.val:near.val.toString(2));
+      S.combo=0; setCombo(0); flash('bad'); floatTxt(W/2,H-50,'Raté : '+v+' → ça accélère','bad');
+      S.en.forEach(o=>o.y+=14); setRush(S.rush+.25);
+      return;
+    }
+    const o=hits.reduce((a,b)=>a.y>b.y?a:b);
+    S.combo++; setCombo(S.combo); setRush(S.rush-.1);
+    addScore((5*o.bits + (o.mode==='d2b'?5:0)) * (1+Math.min(S.combo,10)*.1), o.x, o.y);
+    kill(o,true); S.kills++;
+    if(o.b){ addScore(10*o.bits,o.x,o.y-30); applyBonus(o.b); }
+    if(o.boss){ S.boss=null; addScore(80+S.wave*10,o.x,o.y-30); banner('BOSS vaincu ! Bonus : '+(()=>{ const b=pick(G.lives<5?BON:BON.slice(0,3)); applyBonus(b); return b.t; })(),'good'); }
+    else if(!o.sat && !o.dive && !S.boss && ++S.since>=BOSS_EVERY){ S.since=0; S.bossIn=.9; }
+    if(S.kills%8===0){ S.wave++; banner(`Vague ${S.wave} : nombres sur ${bitsFor(S.wave)} bits`); }
+  }
+  return {
+    start(){
+      Buf.allowed='0123456789'; Buf.max=8;
+      setKeys('0123456789'.split('').map(c=>({label:c,k:c})).concat([{label:'⌫',k:'BACK',cls:'alt'},{label:'OK',k:'OK',cls:'ok'}]), 'Tape la conversion, puis OK');
+      mk('div','deadline'); mk('div','rush');
+      S.wEl=mk('div','weights',[128,64,32,16,8,4,2,1].map(w=>`<span>${w}<small>0</small></span>`).join('')); S.aide=mk('div','aide'); S.lastV=null;
+      banner('Convertis les nombres avant qu\'ils touchent la ligne rouge');
+    },
+    update(dt){
+      if(Buf.v!==S.lastV) aide();
+      if((S.spawn-=dt)<=0){
+        if(!S.boss && S.en.length < 2+S.wave) spawn();
+        S.spawn = Math.max(1.1, 3.6-S.wave*.25) * rand(.7,1.3);
+      }
+      if((S.bonus-=dt)<=0){ if(!S.boss && !S.en.some(e=>e.b)) spawn(true); S.bonus=rand(9,14); }
+      const fz = S.freeze>0; if(fz) S.freeze-=dt;
+      stage.classList.toggle('frozen', S.freeze>0);
+      if(S.bossIn>0 && (S.bossIn-=dt)<=0 && !S.boss) spawnBoss();
+      if(S.boss){
+        const sats=S.en.filter(e=>e.sat===S.boss);
+        S.boss.el.classList.toggle('shield', sats.length>0);
+        if(!fz && (S.launch-=dt)<=0){ S.launch=rand(2.8,4.5)-Math.min(1.2,S.wave*.1); if(sats.length) dive(sats.reduce((a,b)=>a.y>b.y?a:b)); }
+      }
+      for(const o of [...S.en]){
+        if(o.sat){
+          if(!S.en.includes(o.sat)) dive(o);
+          else { if(!fz) o.ang+=dt*(1.3+S.wave*.06); o.x=o.sat.x+Math.cos(o.ang)*o.r; o.y=o.sat.y+Math.sin(o.ang)*o.r*.7; place(o.el,o.x,o.y); continue; }
+        }
+        if(o.boss && o.y<80 && !fz) o.y+=45*dt;
+        if(!fz){
+          o.y += o.vy*dt*S.rush; o.ph += dt*o.f;
+          if((o.jump-=dt)<=0){
+            o.jump=rand(2.5,6); o.tx=clamp(o.x0+rand(-140,140),50,W-50);
+            o.el.classList.add('glitch'); setTimeout(()=>o.el.classList.remove('glitch'),220);
+          }
+          o.x0 += (o.tx-o.x0)*Math.min(1,dt*5);
+        }
+        o.x = o.boss ? clamp(o.x0+Math.sin(o.ph)*o.amp, o.sat?40:clamp(W*.2,60,88)+40, W-clamp(W*.2,60,88)-40) : clamp(o.x0+Math.sin(o.ph)*o.amp, 40, W-40);
+        place(o.el,o.x,o.y);
+        o.el.classList.toggle('danger', o.y>H*.7);
+        if(o.y > H-52){
+          kill(o,false); S.combo=0; setCombo(0); setRush(S.rush+.25);
+          if(o.boss){ S.boss=null; G.lives--; hud(); }
+          ErrLog.add(1,o.mode==='b2d'?bin(o.val,o.bits)+' en decimal':o.val+' en binaire','(pas de réponse)',o.mode==='b2d'?o.val:o.val.toString(2));
+          loseLife(o.mode==='b2d' ? `${bin(o.val,o.bits)} en binaire = ${o.val}` : `${o.val} en binaire = ${o.val.toString(2)}`);
+          if(!G.run) return;
+        }
+      }
+      for(const o of [...S.bo]){
+        o.x += o.vx*dt*(fz?.4:1); o.ph += dt*3;
+        place(o.el,o.x,o.y0+Math.sin(o.ph)*26);
+        if(o.x<-80 || o.x>W+80){ S.bo.splice(S.bo.indexOf(o),1); o.el.remove(); }
+      }
+    },
+    key(k){
+      if(k==='OK') fire(); else if(k==='BACK') Buf.back(); else if(k.length===1) Buf.push(k);
+    }
+  };
+}
+
+/* =========================================================
+   NIVEAU 2 — Les colonnes 16 8 4 2 1
+   ========================================================= */
+function L2(){
+  // mode 'u' : chaque bille vaut 1, chaque récipient contient exactement son poids en billes
+  const WTS=[16,8,4,2,1], U=G.mode==='u', cap=i=>U?WTS[i]:1;
+  const S={ cols:[], drops:[], lvl:0, target:0, tmax:24, tl:24, t:0, lock:0, cw:60, ch:120, top:200, bonus:null, freeze:0, mult:1 };
+  const BON2=[{k:'freeze',t:'GEL',d:'Les récipients s\'arrêtent 6 secondes'},{k:'x2',t:'×2',d:'Points doublés au prochain nombre'},{k:'life',t:'+1 ♥',d:'Une vie en plus'}];
+  let tgtEl, bar, sumEl;
+  function newTarget(){
+    // a bonus number is harder: always 4 or 5 balls to place, and 35 % less time
+    S.bonus = S.lvl>=1 && Math.random()<.3 ? pick(G.lives<5?BON2:BON2.slice(0,2)) : null;
+    const pop=v=>v.toString(2).split('1').length-1;
+    const top=U && S.lvl<2 ? 15 : 31;
+    let n; do{ n=randi(1,top); }while(n===S.target || (S.bonus && pop(n)<4));
+    S.target=n; S.tmax=(U?Math.max(25,45-S.lvl):Math.max(15,35-S.lvl))*(S.bonus?.65:1); S.tl=S.tmax;
+    tgtEl.innerHTML=`Remplis les colonnes pour obtenir${S.bonus?`<span class="tagb">BONUS ${S.bonus.t}</span>`:''}<b>${n}</b>`;
+    S.cols.forEach(c=>c.fill=0); paint();
+  }
+  function paint(){
+    let sum=0; const bits=[];
+    S.cols.forEach((c,i)=>{
+      const full=c.fill===cap(i);
+      c.el.classList.toggle('full',full);
+      if(c.liq.children.length!==c.fill) c.liq.innerHTML='<i></i>'.repeat(c.fill);
+      c.bit.textContent = full ? '1' : c.fill===0 ? '0' : '…';
+      bits.push(full?'1':c.fill===0?'0':'?');
+      if(full) sum+=WTS[i];
+    });
+    const parts=WTS.filter((w,i)=>S.cols[i].fill===cap(i));
+    sumEl.textContent = `${bits.join('')} = ${parts.length?parts.join(' + '):'0'} = ${sum}`;
+  }
+  function check(){
+    paint();
+    if(S.lock>0) return;
+    const ok=S.cols.every((c,i)=> (S.target & WTS[i]) ? c.fill===cap(i) : c.fill===0);
+    if(ok){
+      addScore((10+S.tl*1.5)*S.mult*(S.bonus?1.5:1), W/2, H*.35); flash('good'); S.mult=1;
+      banner(`Bravo : ${S.target} = ${bin(S.target,5)} en binaire${S.bonus?'. Bonus : '+S.bonus.d:''}`,'good');
+      if(S.bonus){ const k=S.bonus.k; if(k==='freeze') S.freeze=6; if(k==='x2') S.mult=2; if(k==='life'){ G.lives=Math.min(5,G.lives+1); hud(); } }
+      S.lvl++; S.lock=1.1;
+      if(S.lvl%3===0) setTimeout(()=>G.run&&banner('Les récipients bougent plus vite !'),1200);
+    }
+  }
+  function spawnDrop(x){
+    if(S.lock>0 || S.drops.length>=(U?60:8)) return;
+    S.drops.push({ el:mk('div','drop'), x:clamp(x,8,W-8), y:120, vy:40, vx:0 });
+  }
+  function empty(i){
+    if(S.lock>0) return; const c=S.cols[i];
+    // mode unités : les billes du récipient sont relancées en l'air
+    if(U) for(let k=0;k<c.fill;k++) S.drops.push({ el:mk('div','drop'), x:c.x+rand(-6,6), y:c.y-6, vy:-rand(330,520), vx:rand(-110,110) });
+    c.fill=0; check();
+  }
+  return {
+    start(){
+      Buf.allowed='12345'; Buf.max=0;
+      setKeys(WTS.map((w,i)=>({label:'↓'+w,k:String(i+1),cls:'small'})).concat([{label:'Vider',k:'BACK',cls:'alt small'}]), U ? 'Garde le doigt appuyé : les billes tombent une par une. Touche un récipient : ses billes sautent.' : 'Touche en haut : une boule. Touche un récipient : il se vide.');
+      $('#buffer').textContent='';
+      tgtEl=mk('div','l2-target');
+      const tb=mk('div','timebar'); tb.style.top='6px'; bar=mk('span','',null,tb); S.tb=tb;
+      mk('div','dropzone','Lâche les boules ici, au-dessus du bon récipient');
+      sumEl=mk('div','l2-sum');
+      WTS.forEach((w,i)=>{
+        const el=mk('div','vessel'+(U?' u':''),`<span class="w">${w}</span><div class="liq"></div><span class="bit">0</span>`);
+        el.addEventListener('pointerdown',ev=>{ ev.preventDefault(); ev.stopPropagation(); if(G.run&&!G.pause) empty(i); });
+        S.cols.push({ el, liq:el.querySelector('.liq'), bit:el.querySelector('.bit'), fill:0, x:0, w:40, h:40, ph:rand(0,6), sp:rand(.75,1.25) });
+      });
+      const sx=ev=>ev.clientX-stage.getBoundingClientRect().left;
+      stage.onpointerdown = ev=>{ if(!G.run||G.pause) return; spawnDrop(sx(ev)); if(U){ S.hold=sx(ev); S.ht=.16; } };
+      if(U){ stage.onpointermove=ev=>{ if(S.hold!=null) S.hold=sx(ev); }; stage.onpointerup=stage.onpointercancel=stage.onpointerleave=()=>{ S.hold=null; }; }
+      newTarget();
+    },
+    update(dt){
+      if(S.freeze>0) S.freeze-=dt; else S.t+=dt;
+      const slot=W/5, ball=U ? Math.floor(clamp(slot*.17,10,16)) : Math.floor(clamp(slot*.5,22,44)); S.cw=ball+10; S.ch=ball+8; S.top=H-S.ch-60;
+      stage.style.setProperty('--ball', ball+'px');
+      const amp=Math.min(slot*.2+S.lvl*4, slot*1.1)*(U?.6:1), sp=.5+S.lvl*.08;
+      if(U && S.hold!=null && (S.ht-=dt)<=0){ S.ht=.16; spawnDrop(S.hold); }
+      if(U){
+        // mode unités : récipients de la taille exacte de leur volume (2 billes de large), collés en un seul bloc
+        S.cols.forEach((c,i)=>{ const nc=WTS[i]>1?2:1; c.w=nc*(ball+2)+10; c.h=(WTS[i]/nc)*(ball+2)+8; });
+        const tot=S.cols.reduce((a,c)=>a+c.w,0), room=Math.max(0,(W-tot)/2-4);
+        const cx=W/2 + clamp(Math.sin(S.t*sp*.9)*(room*.6+S.lvl*6) + (S.lvl>5 ? Math.sin(S.t*2.3)*S.lvl*2 : 0), -room, room);
+        const bob = S.lvl>2 ? Math.sin(S.t*1.9)*Math.min(14,S.lvl*2) : 0;
+        let x=cx-tot/2;
+        S.cols.forEach(c=>{ c.x=x+c.w/2; x+=c.w; c.y=H-60-c.h+bob; c.el.style.cssText=`left:${c.x-c.w/2}px;top:${c.y}px;width:${c.w}px;height:${c.h}px`; });
+        if(!S.base) S.base=mk('div','l2-base');
+        S.base.style.cssText=`left:${cx-tot/2-4}px;top:${H-60+bob}px;width:${tot+8}px`;
+      } else S.cols.forEach((c,i)=>{
+        c.w=S.cw; c.h=S.ch;
+        c.x = slot*(i+.5) + Math.sin(S.t*sp*c.sp+c.ph)*amp + (S.lvl>5 ? Math.sin(S.t*2.7*c.sp+i)*S.lvl*2 : 0);
+        c.x = clamp(c.x, c.w/2+2, W-c.w/2-2);
+        const bob = S.lvl>2 ? Math.sin(S.t*1.9*c.sp+i)*Math.min(14,S.lvl*2) : 0;
+        c.y = H-60-c.h+bob;
+        c.el.style.cssText=`left:${c.x-c.w/2}px;top:${c.y}px;width:${c.w}px;height:${c.h}px`;
+      });
+      for(const d of [...S.drops]){
+        const py=d.y; d.vy+=650*dt; d.y+=d.vy*dt; d.x=clamp(d.x+d.vx*dt,6,W-6); place(d.el,d.x,d.y);
+        const i=S.cols.findIndex(c=> py<c.y && d.y>=c.y && Math.abs(c.x-d.x)<c.w/2);
+        if(i>=0){
+          const c=S.cols[i];
+          S.drops.splice(S.drops.indexOf(d),1); d.el.remove();
+          if(c.fill>=cap(i)) floatTxt(c.x,c.y-10,'déjà plein','bad'); else { c.fill++; check(); }
+          continue;
+        }
+        if(d.y>H-6){
+          S.drops.splice(S.drops.indexOf(d),1); d.el.remove();
+          const s=mk('div','splash'); place(s,d.x,H-12); setTimeout(()=>s.remove(),500);
+        }
+      }
+      if(S.lock>0){
+        S.lock-=dt; if(S.lock<=0){ S.lock=0; newTarget(); }
+      } else {
+        S.tl-=dt;
+        bar.style.transform=`scaleX(${Math.max(0,S.tl/S.tmax)})`;
+        S.tb.classList.toggle('low', S.tl<4);
+        if(S.tl<=0){
+          ErrLog.add(2,(U?'unites ':'colonnes ')+S.target,S.cols.map((c,i)=>c.fill===cap(i)?1:c.fill?'?':0).join(''),bin(S.target,5));
+          loseLife(`Temps écoulé : ${S.target} = ${bin(S.target,5)}`);
+          if(!G.run) return;
+          S.lock=1.4;
+        }
+      }
+    },
+    key(k){
+      if(k>='1' && k<='5') spawnDrop(S.cols[+k-1].x);
+      else if(k==='BACK' && S.lock<=0){ S.cols.forEach(c=>c.fill=0); check(); }
+    }
+  };
+}
+
+/* =========================================================
+   NIVEAU 3 — Le tableau hexadécimal
+   ========================================================= */
+const QCM_BANK = [
+  ['Combien de bits contient un octet ?', ['8','4','16','10']],
+  ['Combien de valeurs différentes peut-on coder avec 8 bits ?', ['256','255','128','512']],
+  ['Que vaut 1111 (binaire) en décimal ?', ['15','16','1111','7']],
+  ['En hexadécimal, F correspond à…', ['15','16','14','1111 1111']],
+  ['Un chiffre hexadécimal représente…', ['4 bits','8 bits','2 bits','16 bits']],
+  ['En codage RVB, chaque couleur (R, V ou B) est codée sur…', ['1 octet','1 bit','4 bits','2 octets']],
+  ['La couleur #FFFFFF est…', ['Blanc','Noir','Gris','Rouge']],
+  ['La couleur #000000 est…', ['Noir','Blanc','Bleu','Transparent']],
+  ['Lumière rouge + lumière verte donne…', ['Jaune','Marron','Cyan','Magenta']],
+  ['Lumière verte + lumière bleue donne…', ['Cyan','Jaune','Magenta','Violet']],
+  ['Lumière rouge + lumière bleue donne…', ['Magenta','Vert','Jaune','Orange']],
+  ['Un pixel est…', ['le plus petit point d\'une image numérique','un fichier image','une couleur primaire','un octet']],
+  ['Une image de 100 × 50 pixels contient…', ['5 000 pixels','150 pixels','500 pixels','10 000 pixels']],
+  ['Sur 8 bits, le bit de poids fort vaut…', ['128','256','64','8']],
+  ['Le binaire est la base…', ['2','10','16','8']],
+  ['1 ko (kilooctet) correspond à…', ['1 000 octets','1 000 bits','8 octets','100 octets']],
+  ['Pourquoi un ordinateur utilise-t-il le binaire ?', ['Deux états électriques sont faciles à distinguer','C\'est plus joli','Pour économiser l\'écran','Parce que 10 est trop petit']],
+  ['10 en hexadécimal vaut en décimal…', ['16','10','2','1010']],
+  ['Le plus grand nombre codable sur 4 bits est…', ['15','16','8','4']],
+  ['Combien de couleurs en RVB sur 24 bits ?', ['Environ 16,7 millions','256','65 536','1 million']],
+  ['La définition d\'une image, c\'est…', ['son nombre de pixels (largeur × hauteur)','son nombre de couleurs','le poids du fichier','sa luminosité']],
+  ['255 en hexadécimal s\'écrit…', ['FF','F5','255','EE']],
+  ['1010 (binaire) en hexadécimal s\'écrit…', ['A','10','B','5']],
+  ['Combien de chiffres hexadécimaux pour écrire un octet ?', ['2','1','4','8']]
+];
+let qcmDeck=[];
+function nextQcm(){ if(!qcmDeck.length) qcmDeck=shuffle(QCM_BANK.slice()); return qcmDeck.pop(); }
+
+function L3(){
+  const S={ lvl:0, q:null, tmax:16, tl:16, t:0, order:[...Array(16).keys()], tab:{x:20,y:70,vx:46,vy:34},
+            blur:false, stains:0, fx:rand(7,10), qwait:0, bq:rand(22,32), qcm:null, shuf:rand(14,20), lunge:0 };
+  let qEl, bar, tb, tabEl, gridEl, stainEl, qcmEl;
+  const BON3=[{k:'clean',t:'NETTOYAGE',d:'Tableau nettoyé et temps gelé 5 s'},{k:'x2',t:'×2',d:'Points doublés à la prochaine question'},{k:'life',t:'+1 ♥',d:'Une vie en plus'}];
+  S.mult=1; S.hold=0;
+  function renderGrid(){ gridEl.innerHTML=S.order.map(v=>`<div class="cell"><b>${hx(v,1)}</b><span>${bin(v,4)}</span></div>`).join(''); }
+  function newQ(){
+    // a bonus question is always 8 bits, hex → binary (the longer answer), with less time
+    const bonus = S.lvl>=2 && Math.random()<.25 ? pick(G.lives<5?BON3:BON3.slice(0,2)) : null;
+    const big=bonus || Math.random()<Math.min(.75,.15+S.lvl*.08);
+    const v=big?randi(16,255):randi(0,15);
+    const mode=bonus ? 'h2b' : Math.random()<.5?'h2b':'b2h';
+    S.q={v,big,mode,bonus};
+    const tag = bonus ? `<span class="tagb">BONUS ${bonus.t}</span>` : '';
+    qEl.innerHTML = mode==='h2b'
+      ? `<b>${hx(v,big?2:1)}<sub>16</sub></b>${tag}<small>→ écris-le en binaire (${big?8:4} bits)</small>`
+      : `<b>${nib(bin(v,big?8:4))}<sub>2</sub></b>${tag}<small>→ écris-le en hexadécimal</small>`;
+    Buf.allowed = mode==='h2b' ? '01' : '0123456789ABCDEF';
+    Buf.max = mode==='h2b' ? (big?8:4) : 2;
+    Buf.clear(); refreshKeys();
+    // temps doublé au début, puis il diminue petit à petit
+    S.tmax=Math.max(8,(big?40:26)-S.lvl*1.2)*(bonus?.75:1); S.tl=S.tmax;
+  }
+  function answerOf(q){ return q.mode==='h2b' ? nib(bin(q.v,q.big?8:4)) : hx(q.v,q.big?2:1); }
+  function fire(){
+    const v=Buf.v; if(!v) return; Buf.clear();
+    const q=S.q;
+    const ok = q.mode==='h2b' ? (parseInt(v,2)===q.v && v.length===(q.big?8:4)) : parseInt(v,16)===q.v;
+    if(ok){
+      addScore(((q.big?20:10)+S.tl/2)*S.mult*(q.bonus?1.5:1), W/2, 80); S.mult=1; S.lvl++;
+      if(q.bonus){ banner('Bonus : '+q.bonus.d,'good'); const k=q.bonus.k; if(k==='clean'){ clean(); S.hold=5; } if(k==='x2') S.mult=2; if(k==='life'){ G.lives=Math.min(5,G.lives+1); hud(); } }
+      newQ();
+    }
+    else { ErrLog.add(3,q.mode==='h2b'?hx(q.v,q.big?2:1)+' en binaire':bin(q.v,q.big?8:4)+' en hexa',v,answerOf(q)); flash('bad'); floatTxt(W/2,90,q.mode==='h2b'&&parseInt(v,2)===q.v?'Écris tous les bits':'Faux','bad'); S.tl-=2; }
+  }
+  function addStains(n){
+    for(let i=0;i<n;i++){
+      const s=mk('div','stain',null,stainEl), z=rand(40,80);
+      s.style.cssText=`left:${rand(0,80)}%;top:${rand(0,70)}%;width:${z}px;height:${z*rand(.7,1.2)}px;transform:rotate(${rand(0,360)}deg)`;
+    }
+    S.stains+=n;
+  }
+  function clean(){ S.blur=false; tabEl.classList.remove('blurry'); stainEl.innerHTML=''; S.stains=0; }
+  function openQcm(bonus){
+    const [q,ch]=nextQcm();
+    S.qcm={ q, ch, good:ch[0], tl:6, lock:0, bonus };
+    qcmEl=mk('div','qcm');
+    drawQcm(); refreshKeys(true);
+  }
+  function drawQcm(msg){
+    const Q=S.qcm; Q.order=shuffle(Q.ch.slice());
+    qcmEl.innerHTML=`<div class="tag">${Q.bonus?'QCM bonus':'QCM éclair : nettoie le tableau'}</div>
+      <div class="qq">${Q.q}</div><div class="qbar"><span></span></div>
+      <div class="choices">${Q.order.map((c,i)=>`<button data-i="${i}"><kbd>${i+1}</kbd>${c}</button>`).join('')}</div>
+      <div class="msg">${msg||''}</div>`;
+    qcmEl.querySelectorAll('.choices button').forEach(b=>b.addEventListener('pointerdown',ev=>{ ev.preventDefault(); ev.stopPropagation(); if(G.run&&!G.pause) answer(+b.dataset.i); }));
+    Q.barEl=qcmEl.querySelector('.qbar span');
+  }
+  function answer(i){
+    const Q=S.qcm; if(!Q || Q.lock>0) return;
+    if(Q.order[i]===Q.good){
+      qcmEl.remove(); S.qcm=null; refreshKeys();
+      clean(); addScore(Q.bonus?25:15, W/2, H/2);
+      banner(Q.bonus?'Bonne réponse !':'Tableau nettoyé !','good');
+    } else { ErrLog.add(3,'QCM '+Q.q,Q.order[i],Q.good); retry('Faux ! La question revient…'); }
+  }
+  function retry(msg){
+    const Q=S.qcm; Q.lock=.8; Q.tl=6;
+    qcmEl.classList.remove('wrong'); void qcmEl.offsetWidth; qcmEl.classList.add('wrong');
+    qcmEl.querySelector('.msg').textContent=msg;
+    qcmEl.querySelectorAll('.choices button').forEach(b=>b.disabled=true);
+    setTimeout(()=>{ if(S.qcm===Q) drawQcm(msg); },800);
+  }
+  return {
+    start(){
+      setKeys('0123456789ABCDEF'.split('').map(c=>({label:c,k:c})).concat([{label:'⌫',k:'BACK',cls:'alt'},{label:'OK',k:'OK',cls:'ok'}]), 'Tape la réponse, puis OK');
+      tabEl=mk('div','hextab','<div class="eyes">▼ ▼</div>'); gridEl=mk('div','grid',null,tabEl); stainEl=mk('div','',null,tabEl);
+      stainEl.style.cssText='position:absolute;inset:0;pointer-events:none';
+      renderGrid();
+      qEl=mk('div','l3-q');
+      tb=mk('div','timebar'); tb.style.bottom='6px'; bar=mk('span','',null,tb);
+      newQ();
+      banner('Réponds avant que le tableau ne t\'attaque');
+    },
+    update(dt){
+      S.t+=dt;
+      const tw=tabEl.offsetWidth, th=tabEl.offsetHeight, qb=qEl.offsetTop+qEl.offsetHeight+4;
+      if(S.qcm){
+        const Q=S.qcm;
+        if(Q.lock>0) Q.lock-=dt;
+        else { Q.tl-=dt; Q.barEl.style.transform=`scaleX(${Math.max(0,Q.tl/6)})`; if(Q.tl<=0) retry('Trop lent ! La question revient…'); }
+        return;
+      }
+      if(S.hold>0) S.hold-=dt; else S.tl-=dt;
+      const rage=clamp(1-S.tl/S.tmax,0,1);
+      bar.style.transform=`scaleX(${Math.max(0,S.tl/S.tmax)})`; tb.classList.toggle('low',rage>.7);
+      const sp=1+rage*2.2+S.lvl*.06;
+      const T=S.tab;
+      T.x+=T.vx*dt*sp; T.y+=T.vy*dt*sp;
+      const maxX=Math.max(0,W-tw), minY=Math.min(qb,Math.max(0,H-th-14)), maxY=Math.max(minY,H-th-14);
+      if(T.x<0){T.x=0;T.vx=Math.abs(T.vx);} if(T.x>maxX){T.x=maxX;T.vx=-Math.abs(T.vx);}
+      if(T.y<minY){T.y=minY;T.vy=Math.abs(T.vy);} if(T.y>maxY){T.y=maxY;T.vy=-Math.abs(T.vy);}
+      if(Math.random()<dt*.3){ T.vx+=rand(-20,20); T.vy+=rand(-20,20); }
+      if(S.lunge>0) S.lunge-=dt;
+      const rot=Math.sin(S.t*1.4)*(2+rage*9), sc=1+rage*.12+(S.lunge>0?.5*S.lunge/.5:0);
+      tabEl.style.transform=`translate(${T.x}px,${T.y}px) rotate(${rot}deg) scale(${sc})`;
+      tabEl.style.setProperty('--rage',rage.toFixed(2));
+      if(S.tl<=0){
+        S.lunge=.5; ErrLog.add(3,S.q.mode==='h2b'?hx(S.q.v,S.q.big?2:1)+' en binaire':bin(S.q.v,S.q.big?8:4)+' en hexa','(temps écoulé)',answerOf(S.q)); loseLife(`Le tableau t'attaque ! Réponse : ${answerOf(S.q)}`);
+        if(!G.run) return;
+        newQ();
+      }
+      if((S.fx-=dt)<=0){
+        S.fx=rand(9,15);
+        if(!S.blur && Math.random()<.5){ S.blur=true; tabEl.classList.add('blurry'); banner('Le tableau devient flou…'); }
+        else { addStains(randi(2,4)); banner('Des taches sur le tableau !'); }
+        S.qwait=rand(2.5,4.5);
+      }
+      if((S.blur||S.stains) && S.qwait>0 && (S.qwait-=dt)<=0) openQcm(false);
+      if(!S.blur && !S.stains && (S.bq-=dt)<=0){ S.bq=rand(22,34); openQcm(true); }
+      if(S.lvl>=3 && (S.shuf-=dt)<=0){ S.shuf=rand(12,20); shuffle(S.order); renderGrid(); banner('Le tableau se mélange'); }
+    },
+    key(k){
+      if(S.qcm){ if(k>='1'&&k<='4') answer(+k-1); return; }
+      if(k==='OK') fire(); else if(k==='BACK') Buf.back(); else if(k.length===1) Buf.push(k);
+    }
+  };
+}
+
+/* =========================================================
+   NIVEAU 4 — Images en hexadécimal et couleurs RVB
+   ========================================================= */
+const IMGS = [
+  {name:'un cœur', rows:['01100110','11111111','11111111','11111111','01111110','00111100','00011000']},
+  {name:'un smiley', rows:['00111100','01000010','10100101','10000001','10100101','10011001','01000010','00111100']},
+  {name:'un envahisseur', rows:['001000001000','000100010000','001111111000','011011101100','111111111110','101111111010','101000001010','000110110000']},
+  {name:'une maison', rows:['0000110000','0001111000','0011111100','0111111110','1111111111','0100000010','0110000110','0110110110','0100110010','0111111110']},
+  {name:'une flèche', rows:['00010000','00011000','11111100','11111110','11111110','11111100','00011000','00010000']},
+  {name:'le mot SNT', rows:['111010010111','100011010010','111010110010','001010010010','111010010010']},
+  {name:'un sapin', rows:['00011000','00111100','01111110','00111100','01111110','11111111','00011000','00011000']},
+  {name:'une note de musique', rows:['000011111100','000011111100','000010000100','000010000100','000010000100','011110011100','111110111100','011100011000']}
+];
+const INKS=['#ffb547','#5ce1e6','#ff6aa8','#6ee7a0','#c9a2ff'];
+const NAMED={'255,0,0':'rouge','0,255,0':'vert','0,0,255':'bleu','255,255,0':'jaune','0,255,255':'cyan','255,0,255':'magenta','255,255,255':'blanc',
+  '255,128,0':'orange','128,0,128':'violet','128,128,128':'gris','128,0,0':'bordeaux','0,0,128':'bleu marine','0,128,0':'vert foncé','255,0,128':'rose vif','128,128,0':'olive','0,128,128':'bleu canard'};
+const css = c => `rgb(${c[0]},${c[1]},${c[2]})`;
+const hexc = c => '#'+c.map(v=>hx(v,2)).join('');
+
+function L4(){
+  // One image = a chain of steps: find the width → convert a highlighted byte to hex → colour 3 bands in RGB.
+  // A wrong colour sends the student to the moving lights to practise that colour, then back to the image.
+  const S={ round:0, lvl:0, t:0, tl:30, tmax:30, lock:0, after:null, mode:'', used:[], ch:null, cur:null };
+  let root;
+  function steps(){ return S.lvl<2 ? [0,255] : S.lvl<4 ? [0,128,255] : S.lvl<7 ? [0,51,102,153,204,255] : [...Array(16).keys()].map(k=>k*17); }
+  function randColor(){ const st=steps(); let c; do{ c=[pick(st),pick(st),pick(st)]; }while(c.join()==='0,0,0'); return c; }
+  function then(sec,fn){ S.lock=sec; S.after=fn; }
+  function fresh(cls){ stage.querySelectorAll('.l4').forEach(e=>e.remove()); root=mk('div','l4 '+(cls||'')); S.bar=null; S.wrap=null; S.box=null; S.tab=null; }
+  function timebar(){ const tb=mk('div','timebar',null,root); S.bar=mk('span','',null,tb); S.tb=tb; }
+  function tuto(key){ if(!tutoSeen(key)) setTimeout(()=>{ if(G.run && !G.tuto) Tuto.run(key); },60); }
+  function next(){
+    S.round++;
+    if(S.round%3===0) startRgbq(); else startImg();
+  }
+
+  /* --- pixels --- */
+  function drawPix(cv, wrap, c, colorAt, hl, maxZ){
+    const bits=S.ch.bits, r=Math.ceil(bits.length/c);
+    const aw=Math.max(60,(wrap?wrap.clientWidth:root.clientWidth)-16), ah=Math.max(90,(wrap?wrap.clientHeight:200)-16);
+    const z=clamp(Math.floor(Math.min(aw/c, ah/r)),3,maxZ||30);
+    cv.width=c*z; cv.height=r*z;
+    const g=cv.getContext('2d');
+    g.fillStyle='#0d0b1f'; g.fillRect(0,0,cv.width,cv.height);
+    for(let i=0;i<r*c;i++){
+      const x=(i%c)*z, y=Math.floor(i/c)*z, inHl = hl && i>=hl[0] && i<hl[1];
+      g.fillStyle = i>=bits.length ? '#000' : bits[i]==='1' ? colorAt(i) : (inHl ? '#4a4380' : '#26214a');
+      g.fillRect(x+1,y+1,z-2,z-2);
+    }
+    if(hl){
+      g.strokeStyle='#ffb547'; g.lineWidth=Math.max(2,z/6);
+      for(let i=hl[0];i<hl[1];i++){ const x=(i%c)*z, y=Math.floor(i/c)*z; g.strokeRect(x+1,y+1,z-2,z-2); }
+    }
+  }
+
+  /* --- étape 1 : la largeur --- */
+  function startImg(){
+    const pool=IMGS.filter(i=>!S.used.includes(i)); const img=pick(pool.length?pool:IMGS);
+    S.used.push(img); if(S.used.length>4) S.used.shift();
+    const bits=img.rows.join(''), w=img.rows[0].length, h=img.rows.length;
+    const hexs=bits.match(/.{4}/g).map(b=>hx(parseInt(b,2),1)).join('');
+    let c; do{ c=randi(3,16); }while(c===w);
+    S.ch={ img, bits, w, h, c, hexs, ink:pick(INKS), miss:0 };
+    S.mode='img'; S.tmax=Math.max(25,55-S.lvl*2); S.tl=S.tmax;
+    setKeys([]);
+    fresh();
+    root.innerHTML=`<div class="l4-head"><strong>Étape 1 · Image mystère</strong><span>${hexs.length} chiffres hexa × 4 = ${bits.length} bits (1 bit = 1 pixel)</span></div>
+      <div class="hexline">${hexs.match(/.{1,2}/g).map(p=>`<span style="animation-delay:${-rand(0,1.1).toFixed(2)}s">${p}</span>`).join(' ')}</div>
+      <div class="canvaswrap"><canvas></canvas></div>
+      <div class="ctrls"><button class="btn" data-a="-" aria-label="Moins de colonnes">−</button>
+        <div class="dim"><b class="c"></b> colonnes<br><b class="r"></b> lignes</div>
+        <button class="btn" data-a="+" aria-label="Plus de colonnes">+</button>
+        <button class="btn ok" data-a="ok">Valider l'image</button></div>`;
+    timebar();
+    root.querySelectorAll('[data-a]').forEach(b=>b.addEventListener('pointerdown',ev=>{ ev.preventDefault(); if(G.run&&!G.pause&&!G.tuto&&S.lock<=0) imgAct(b.dataset.a); }));
+    S.cv=root.querySelector('canvas'); S.wrap=root.querySelector('.canvaswrap');
+    drawImg();
+  }
+  function drawImg(){
+    const {bits,c,ink}=S.ch;
+    root.querySelector('.c').textContent=c; root.querySelector('.r').textContent=Math.ceil(bits.length/c);
+    drawPix(S.cv,S.wrap,c,()=>ink);
+  }
+  function imgAct(a){
+    const ch=S.ch;
+    if(a==='-'){ ch.c=Math.max(2,ch.c-1); drawImg(); }
+    if(a==='+'){ ch.c=Math.min(32,ch.c+1); drawImg(); }
+    if(a==='ok'){
+      if(ch.c===ch.w){
+        const first=ch.miss===0, heart=first && G.lives<5;
+        addScore((20+S.tl)*(first?1.5:1),W/2,H*.4); flash('good');
+        if(heart){ G.lives++; hud(); }
+        banner(`Bravo : c'est ${ch.img.name} (${ch.w} × ${ch.h} pixels)${first?'. Bonus du premier coup : points ×1,5'+(heart?' et +1 ♥':''):''}`,'good'); then(1.8,startByte);
+      }
+      else { ch.miss++; ErrLog.add(4,'largeur image '+ch.img.name,ch.c+' colonnes',ch.w+' colonnes'); loseLife(`Image incohérente. Cherche un diviseur de ${ch.bits.length}.`); }
+    }
+  }
+
+  /* --- étape 2 : un octet en hexadécimal --- */
+  function startByte(){
+    const ch=S.ch, n=ch.bits.length/8|0;
+    const cand=[...Array(n).keys()].filter(k=>{ const b=ch.bits.substr(k*8,8); return b!=='00000000' && b!=='11111111'; });
+    const k=pick(cand.length?cand:[...Array(n).keys()]);
+    ch.byte={ k, val:parseInt(ch.bits.substr(k*8,8),2) };
+    S.mode='byte'; S.tmax=Math.max(12,20-S.lvl*.8); S.tl=S.tmax;
+    Buf.allowed='0123456789ABCDEF'; Buf.max=2; Buf.clear();
+    setKeys('0123456789ABCDEF'.split('').map(c=>({label:c,k:c})).concat([{label:'⌫',k:'BACK',cls:'alt'},{label:'OK',k:'OK',cls:'ok'}]), 'Les 8 cases en hexadécimal, puis OK');
+    fresh('l4-byte');
+    root.innerHTML=`<div class="l4-head"><strong>Étape 2 · Un octet en hexa</strong><span>Case allumée = 1, case éteinte = 0. Lis les 8 cases entourées de gauche à droite.</span></div>
+      <div class="canvaswrap"><canvas></canvas></div>
+      <div class="hextab static"><div class="grid">${[...Array(16).keys()].map(v=>`<div class="cell"><b>${hx(v,1)}</b><span>${bin(v,4)}</span></div>`).join('')}</div></div>`;
+    timebar();
+    S.cv=root.querySelector('canvas'); S.wrap=root.querySelector('.canvaswrap'); S.tab=root.querySelector('.hextab');
+    measure(); drawByte();
+    tuto('l4byte');
+  }
+  function drawByte(){ const ch=S.ch; drawPix(S.cv,S.wrap,ch.w,()=>ch.ink,[ch.byte.k*8,ch.byte.k*8+8],26); }
+  function byteOk(){
+    const v=Buf.v; if(!v) return; Buf.clear();
+    const ch=S.ch, good=hx(ch.byte.val,2), bits=bin(ch.byte.val,8);
+    if(parseInt(v,16)===ch.byte.val){
+      addScore(15+S.tl,W/2,H*.3); flash('good'); banner(`Exact : ${nib(bits)} = ${good}`,'good'); then(1.6,startColor);
+    } else { ErrLog.add(4,'octet '+bits+' en hexa',v,good); flash('bad'); floatTxt(W/2,80,'Faux : découpe en 2 groupes de 4 bits','bad'); S.tl-=3; }
+  }
+
+  /* --- étape 3 : l'image séparée en 3 couches R, V, B --- */
+  function startColor(keep){
+    const ch=S.ch;
+    if(!keep){ ch.tgt=randColor(); ch.v=[0,0,0]; }
+    S.mode='color'; S.tmax=Math.max(35,70-S.lvl*2); S.tl=S.tmax;
+    setKeys([]);
+    fresh('l4-color');
+    const st=steps();
+    root.innerHTML=`<div class="l4-head"><strong>Étape 3 · Les couleurs</strong><span>L'image est séparée en 3 couches : rouge, vert, bleu. Règle chaque couche pour retrouver la couleur du modèle${st.length>2?', le plus précisément possible':''}.</span></div>
+      <div class="pair"><figure><div class="canvaswrap"><canvas class="tg"></canvas></div><figcaption>Modèle</figcaption></figure>
+        <figure><div class="canvaswrap"><canvas class="me"></canvas></div><figcaption>Superposition des 3 couches · <code class="mycode"></code></figcaption></figure></div>
+      <div class="layers">${['Rouge','Vert','Bleu'].map((n,j)=>`<figure class="layer ${'rgb'[j]}"><div class="canvaswrap"><canvas></canvas></div>
+        <div class="lctl"><button class="btn" data-c="${j}" data-d="-1" aria-label="Moins de ${n.toLowerCase()}">−</button><div class="v"><small>${n}</small><span>00</span></div><button class="btn" data-c="${j}" data-d="1" aria-label="Plus de ${n.toLowerCase()}">+</button></div></figure>`).join('')}</div>
+      <div class="ctrls"><button class="btn ok" data-a="ok">Valider les couleurs</button></div>`;
+    timebar();
+    root.querySelectorAll('[data-c]').forEach(b=>b.addEventListener('pointerdown',ev=>{ ev.preventDefault(); if(G.run&&!G.pause&&!G.tuto&&S.lock<=0) layerStep(+b.dataset.c,+b.dataset.d); }));
+    root.querySelector('[data-a=ok]').addEventListener('pointerdown',ev=>{ ev.preventDefault(); if(G.run&&!G.pause&&!G.tuto&&S.lock<=0) colorOk(); });
+    measure(); paintColor();
+    tuto('l4color');
+  }
+  function paintColor(){
+    const ch=S.ch, v=ch.v, ws=root.querySelectorAll('.pair .canvaswrap');
+    drawPix(root.querySelector('.tg'),ws[0],ch.w,()=>css(ch.tgt),null,16);
+    drawPix(root.querySelector('.me'),ws[1],ch.w,()=>css(v),null,16);
+    root.querySelectorAll('.layer').forEach((f,j)=>{
+      const c=[0,0,0]; c[j]=v[j];
+      drawPix(f.querySelector('canvas'),f.querySelector('.canvaswrap'),ch.w,()=>css(c),null,9);
+      f.querySelector('.v span').textContent=hx(v[j],2);
+    });
+    root.querySelector('.mycode').textContent=hexc(v);
+  }
+  function layerStep(j,d){
+    const st=steps(), v=S.ch.v; let k=st.indexOf(v[j]);
+    if(k<0) k=st.reduce((b,x,i)=>Math.abs(x-v[j])<Math.abs(st[b]-v[j])?i:b,0);
+    v[j]=st[clamp(k+d,0,st.length-1)]; paintColor();
+  }
+  function colorOk(){
+    const ch=S.ch, st=steps();
+    const dist=Math.max(...ch.tgt.map((t,j)=>Math.abs(t-ch.v[j])));
+    const prec=Math.round(100*(1-ch.tgt.reduce((a,t,j)=>a+Math.abs(t-ch.v[j]),0)/765));
+    // 00/FF only at first: must be exact. With shades: close enough still earns points, scaled by precision.
+    const tol = st.length<=2 ? 0 : st.length===3 ? 0 : 0x33;
+    if(dist===0){ const hard=st.length>2; addScore((25+S.tl)*(hard?2:1),W/2,H*.4); flash('good'); banner(`Parfait : ${hexc(ch.tgt)}${hard?'. Bonus précision : points ×2':''}`,'good'); S.lvl++; then(1.8,next); return; }
+    if(dist>tol) ErrLog.add(4,'couleur '+hexc(ch.tgt),hexc(ch.v),hexc(ch.tgt));
+    if(dist<=tol){ addScore((25+S.tl)*prec/100,W/2,H*.4); flash('good'); banner(`Presque ! Précision ${prec} %. Le modèle était ${hexc(ch.tgt)}, tu as ${hexc(ch.v)}`,'good'); S.lvl++; then(2.6,next); return; }
+    flash('bad');
+    banner(`Précision ${prec} % : pas assez proche. Entraîne-toi avec les lumières`,'bad');
+    then(2,()=>startRgb(ch.tgt));
+  }
+  function nextPractice(){ banner('Retour à ton image','good'); startColor(true); }
+
+  /* --- entraînement : les cercles de lumière --- */
+  function startRgb(tgt){
+    const name=NAMED[tgt.join()];
+    S.cur={ tgt, v:[0,0,0] };
+    S.mode='rgb'; S.tmax=Math.max(20,35-S.lvl); S.tl=S.tmax;
+    setKeys([]);
+    fresh();
+    root.innerHTML=`<div class="l4-head"><strong>Entraînement · Les lumières</strong><span>Superpose les lumières pour obtenir ${name?'<b>'+name+'</b>':'cette couleur'}</span></div>
+      <div class="lights"><div class="light"></div><div class="light"></div><div class="light"></div></div>
+      <div class="swatches"><span class="tgtlbl">Cible</span><div class="sw target" style="background:${css(tgt)}"></div><span class="tarrow" aria-hidden="true">◀</span><span>Ton mélange</span><div class="sw mine"></div><b class="mycode"></b></div>
+      <div class="chans">${['r','g','b'].map((c,i)=>`<div class="chan ${c}"><button class="btn" data-c="${i}" data-d="-1">−</button><div class="v"><small>${['Rouge','Vert','Bleu'][i]}</small><span>00</span></div><button class="btn" data-c="${i}" data-d="1">+</button></div>`).join('')}</div>
+      <div class="ctrls"><button class="btn ok" data-a="ok">Valider la couleur</button></div>`;
+    timebar();
+    root.querySelectorAll('[data-c]').forEach(b=>b.addEventListener('pointerdown',ev=>{ ev.preventDefault(); if(G.run&&!G.pause&&!G.tuto&&S.lock<=0) chan(+b.dataset.c,+b.dataset.d); }));
+    root.querySelector('[data-a=ok]').addEventListener('pointerdown',ev=>{ ev.preventDefault(); if(G.run&&!G.pause&&!G.tuto&&S.lock<=0) rgbOk(); });
+    S.lights=[...root.querySelectorAll('.light')]; S.box=root.querySelector('.lights');
+    paintRgb();
+    tuto('l4rgb');
+  }
+  function chan(i,d){ const st=steps(), v=S.cur.v; let k=st.indexOf(v[i]); if(k<0) k=0; v[i]=st[(k+d+st.length)%st.length]; paintRgb(); }
+  function paintRgb(){
+    const v=S.cur.v;
+    S.lights[0].style.background=`rgb(${v[0]},0,0)`; S.lights[1].style.background=`rgb(0,${v[1]},0)`; S.lights[2].style.background=`rgb(0,0,${v[2]})`;
+    root.querySelector('.mine').style.background=css(v);
+    root.querySelector('.mycode').textContent=hexc(v);
+    root.querySelectorAll('.chan .v span').forEach((s,i)=>s.textContent=hx(v[i],2));
+  }
+  function rgbOk(){
+    const {tgt,v}=S.cur;
+    if(tgt.join()===v.join()){ addScore(10+S.tl,W/2,H*.4); flash('good'); banner(`Exact : ${hexc(tgt)}. Retiens ce réglage pour ton image !`,'good'); then(1.8,nextPractice); }
+    else { loseLife(`Pas encore : tu as ${hexc(v)}. Regarde quelles lumières manquent.`); }
+  }
+
+  /* --- QCM : code hexa → couleur --- */
+  function startRgbq(){
+    const tgt=randColor(); const opts=[tgt];
+    while(opts.length<4){ const c=randColor(); if(!opts.some(o=>o.join()===c.join())) opts.push(c); }
+    shuffle(opts);
+    S.cur={ tgt, opts };
+    S.mode='rgbq'; S.tmax=Math.max(7,13-S.lvl*.4); S.tl=S.tmax;
+    setKeys([]);
+    fresh();
+    root.innerHTML=`<div class="l4-head"><strong>Quelle couleur ?</strong><span>Touche la couleur qui correspond à ce code RVB</span></div>
+      <div class="bigcode">#${['<span style="color:#ff6b6b">','<span style="color:#6bff8f">','<span style="color:#6bb0ff">'].map((s,i)=>s+hx(tgt[i],2)+'</span>').join('')}</div>
+      <div class="qgrid">${opts.map((o,i)=>`<button data-i="${i}" style="background:${css(o)};animation-delay:${-rand(0,1.4).toFixed(2)}s" aria-label="Choix ${i+1}"><kbd>${i+1}</kbd></button>`).join('')}</div>`;
+    timebar();
+    root.querySelectorAll('.qgrid button').forEach(b=>b.addEventListener('pointerdown',ev=>{ ev.preventDefault(); if(G.run&&!G.pause&&!G.tuto&&S.lock<=0) qPick(+b.dataset.i); }));
+  }
+  function revealQ(){ root.querySelectorAll('.qgrid button').forEach((b,i)=>{ if(S.cur.opts[i]!==S.cur.tgt) b.style.opacity=.15; }); }
+  function qPick(i){
+    const {tgt,opts}=S.cur;
+    if(opts[i]===tgt){ addScore(10+S.tl*2,W/2,H*.4); flash('good'); banner(`Oui : ${hexc(tgt)}${NAMED[tgt.join()]?' = '+NAMED[tgt.join()]:''}`,'good'); then(1.6,next); }
+    else { ErrLog.add(4,'code couleur '+hexc(tgt),hexc(opts[i]),hexc(tgt)); loseLife(`Non, ${hexc(opts[i])} n'est pas ${hexc(tgt)}`); if(G.run){ revealQ(); then(2.2,next); } }
+  }
+
+  function timeout(){
+    const ch=S.ch;
+    ErrLog.add(4,'temps ecoule '+S.mode,'(temps écoulé)','');
+    if(S.mode==='img'){ loseLife(`Temps écoulé : c'était ${ch.img.name}, ${ch.w} colonnes`); if(!G.run) return; ch.c=ch.w; drawImg(); then(2.2,startByte); }
+    else if(S.mode==='byte'){ loseLife(`Temps écoulé : ${nib(bin(ch.byte.val,8))} = ${hx(ch.byte.val,2)}`); if(!G.run) return; then(2.4,startColor); }
+    else if(S.mode==='color'){ loseLife(`Temps écoulé : il fallait ${hexc(ch.tgt)}`); if(!G.run) return; ch.v=ch.tgt.slice(); paintColor(); then(2.4,next); }
+    else if(S.mode==='rgb'){ loseLife(`Temps écoulé : il fallait ${hexc(S.cur.tgt)}`); if(!G.run) return; S.cur.v=S.cur.tgt.slice(); paintRgb(); then(2.2,nextPractice); }
+    else { loseLife(`Temps écoulé : ${hexc(S.cur.tgt)}`); if(!G.run) return; revealQ(); then(2.2,next); }
+  }
+
+  return {
+    start(){ next(); },
+    update(dt){
+      S.t+=dt;
+      if(S.mode==='img' && S.wrap){
+        S.wrap.style.transform=`translate(${Math.sin(S.t*1.1)*10}px,${Math.cos(S.t*.8)*6}px) rotate(${Math.sin(S.t*.6)*(2+S.lvl*.4)}deg)`;
+      }
+      if(S.mode==='byte' && S.tab){
+        S.tab.style.transform=`translate(${Math.sin(S.t*.9)*(8+S.lvl*2)}px,${Math.cos(S.t*1.3)*4}px) rotate(${Math.sin(S.t*.7)*(1.5+S.lvl*.3)}deg)`;
+      }
+      if(S.mode==='rgb' && S.box){
+        const bw=S.box.clientWidth, bh=S.box.clientHeight, d=Math.min(bw,bh)*.62;
+        S.lights.forEach((l,i)=>{
+          const a=S.t*(.5+S.lvl*.05)+i*2.094, r=d*(.22+.12*Math.sin(S.t*1.3+i*1.7));
+          l.style.width=l.style.height=d+'px';
+          place(l, bw/2+Math.cos(a)*r, bh/2+Math.sin(a)*r);
+        });
+      }
+      if(S.lock>0){ S.lock-=dt; if(S.lock<=0){ const f=S.after||next; S.after=null; f(); } return; }
+      S.tl-=dt;
+      if(S.bar){ S.bar.style.transform=`scaleX(${Math.max(0,S.tl/S.tmax)})`; S.tb.classList.toggle('low',S.tl<5); }
+      if(S.tl<=0) timeout();
+    },
+    key(k){
+      if(S.lock>0) return;
+      if(S.mode==='img'){
+        if(k==='ArrowLeft'||k==='ArrowDown'||k==='-') imgAct('-');
+        else if(k==='ArrowRight'||k==='ArrowUp'||k==='+') imgAct('+');
+        else if(k==='OK') imgAct('ok');
+      } else if(S.mode==='byte'){
+        if(k==='OK') byteOk(); else if(k==='BACK') Buf.back(); else if(k.length===1) Buf.push(k);
+      } else if(S.mode==='color'){
+        const i='RVGB'.indexOf(k); if(i>=0) layerStep(i===0?0:i===3?2:1, 1);
+        if(k==='OK') colorOk();
+      } else if(S.mode==='rgb'){
+        const i='RVGB'.indexOf(k); if(i>=0) chan(i===0?0:i===3?2:1, 1);
+        if(k==='OK') rgbOk();
+      } else if(k>='1'&&k<='4') qPick(+k-1);
+    },
+    layout(){ if(S.mode==='img') drawImg(); else if(S.mode==='byte') drawByte(); else if(S.mode==='color') paintColor(); }
+  };
+}
+
+
+/* =========================================================
+   JEU SECRET — Turbo conversions (toutes les bases, contre la montre)
+   ========================================================= */
+function L5(){
+  const KINDS=[['b2d',2,10],['d2b',10,2],['h2b',16,2],['b2h',2,16],['h2d',16,10],['d2h',10,16]];
+  const NAME={2:'binaire',10:'décimal',16:'hexadécimal'};
+  const S={ tl:60, t:0, q:null, combo:0, n:0, x:60, y:60, vx:70, vy:55 };
+  let qEl, bar, tb, clock;
+  const fmt=(v,b)=> b===2 ? nib(bin(v,8).replace(/^0{4}(?=\d{4})/,'')) : b===16 ? hx(v,v>15?2:1) : String(v);
+  function newQ(){
+    const [k,from,to]=pick(KINDS), v=randi(S.n<5?1:16, S.n<5?15:255);
+    S.q={k,from,to,v};
+    qEl.innerHTML=`<b>${fmt(v,from)}<sub>${from}</sub></b><small>→ en ${NAME[to]}</small>`;
+    Buf.allowed = to===2?'01':to===10?'0123456789':'0123456789ABCDEF'; Buf.max = to===2?8:to===10?3:2; Buf.clear(); refreshKeys();
+  }
+  function fire(){
+    const v=Buf.v; if(!v) return; Buf.clear();
+    const q=S.q, ok=parseInt(v,q.to)===q.v;
+    if(ok){ S.combo++; S.n++; setCombo(S.combo); S.tl=Math.min(90,S.tl+2); addScore(10+S.combo*3,S.x+60,S.y); newQ(); }
+    else { ErrLog.add(5,fmt(q.v,q.from)+' base '+q.from+' vers base '+q.to,v,fmt(q.v,q.to)); S.combo=0; setCombo(0); S.tl-=3; flash('bad'); floatTxt(W/2,H/2,`Non : ${fmt(q.v,q.to)}`,'bad'); newQ(); }
+  }
+  return {
+    start(){
+      setKeys('0123456789ABCDEF'.split('').map(c=>({label:c,k:c})).concat([{label:'⌫',k:'BACK',cls:'alt'},{label:'OK',k:'OK',cls:'ok'}]),'Tape la conversion, puis OK');
+      tb=mk('div','timebar'); tb.style.top='6px'; bar=mk('span','',null,tb);
+      clock=mk('div','turbo-clock');
+      qEl=mk('div','l3-q turbo');
+      newQ();
+    },
+    update(dt){
+      S.t+=dt; S.tl-=dt;
+      bar.style.transform=`scaleX(${clamp(S.tl/60,0,1)})`; tb.classList.toggle('low',S.tl<10);
+      clock.textContent=Math.max(0,Math.ceil(S.tl))+' s';
+      const qw=qEl.offsetWidth, qh=qEl.offsetHeight, sp=1+S.combo*.08;
+      S.x+=S.vx*dt*sp; S.y+=S.vy*dt*sp;
+      if(S.x<0){S.x=0;S.vx=Math.abs(S.vx);} if(S.x>W-qw){S.x=Math.max(0,W-qw);S.vx=-Math.abs(S.vx);}
+      if(S.y<40){S.y=40;S.vy=Math.abs(S.vy);} if(S.y>H-qh-10){S.y=Math.max(40,H-qh-10);S.vy=-Math.abs(S.vy);}
+      qEl.style.transform=`translate(${S.x}px,${S.y}px) rotate(${Math.sin(S.t*2)*4}deg)`;
+      if(S.tl<=0){ G.run=false; setTimeout(gameOver,300); }
+    },
+    key(k){ if(k==='OK') fire(); else if(k==='BACK') Buf.back(); else if(k.length===1) Buf.push(k); }
+  };
+}
+
+/* ---------- tutoriel en bulles ---------- */
+function tutoSeen(id){ return !!Store.data.tuto[id]; }
+function demoEl(cls,html,x,y){ const e=mk('div',cls,html); place(e,x,y); e.dataset.demo='1'; return e; }
+const TUTOS = [
+  null, // niveau 1 (billes), défini plus bas
+  [ // niveau 2
+    { t:'Des nombres tombent vers la ligne rouge. Chacun est écrit en <b>binaire</b> (petit 2) ou en <b>décimal</b> (petit 10). Il faut le convertir dans l\'autre base.',
+      demo:()=>demoEl('enemy b2d','<b>1011<sub>2</sub></b><small>→ en décimal</small>',W/2,H*.3) },
+    { t:'Tape la conversion avec le pavé (ou le clavier), puis <b>OK</b>. Ici : 1011 = 8 + 2 + 1 = <b>11</b>.', el:'#inputrow' },
+    { t:'Pour un nombre en décimal, tape son écriture en binaire, avec des 0 et des 1.',
+      demo:()=>demoEl('enemy d2b','<b>13<sub>10</sub></b><small>→ en binaire</small>',W/2,H*.3) },
+    { t:'Si un nombre touche la <b>ligne rouge</b>, tu perds une vie. Chaque erreur fait <b>accélérer</b> la chute ; chaque bonne réponse la ralentit un peu.', el:'.deadline' },
+    { t:'<b>Les bonus</b> : certains nombres sont entourés de vert et portent une étiquette. Ils sont <b>plus difficiles</b> (plus de bits). Convertis-les pour gagner le bonus et des points en plus !',
+      demo:()=>demoEl('enemy d2b carrier','<em>INDICE</em><b>203<sub>10</sub></b><small>→ en binaire</small>',W/2,H*.4) },
+    { t:'<b>INDICE</b> affiche la réponse sous deux nombres. <b>GEL</b> arrête tout 4 secondes. <b>BOUM</b> détruit les deux nombres les plus proches de la ligne. <b>+1 ♥</b> rend une vie.' },
+    { t:'Enchaîne les bonnes réponses pour faire monter le <b>multiplicateur</b> de points (x2, x3…). Les poids des bits sont rappelés en bas : 128, 64, 32, 16, 8, 4, 2, 1.', el:'.weights' },
+    { t:'Toutes les '+20+' bonnes réponses, un <b>BOSS</b> arrive : un grand nombre protégé par des petits nombres qui tournent autour. De temps en temps, un satellite <b>fonce</b> vers la ligne ! Détruis les satellites pour briser le bouclier, puis convertis le boss : gros bonus.' },
+    { t:'<b>Aide</b> : pendant que tu tapes, ta réponse est décomposée en bas. Les poids <b>entourés</b> sont les bits à 1, et leur somme s\'affiche. Exemple : 1011 → 8 + 2 + 1 = 11.', el:'.weights' },
+    { t:'Atteins <b>'+UNLOCK[1]+' points</b> pour débloquer le niveau 3. Le bouton <b>?</b> relance ce tutoriel, <b>II</b> met en pause. C\'est parti !', el:'#helpbtn' }
+  ],
+  [ // niveau 3
+    { t:'Voici le nombre à écrire en <b>binaire sur 5 bits</b>.', el:'.l2-target' },
+    { t:'Chaque récipient a un <b>poids</b> : 16, 8, 4, 2, 1. Avec une boule dedans il vaut <b>1</b>, vide il vaut <b>0</b>.', el:'.vessel' },
+    { t:'<b>Touche le haut du jeu</b> pour lâcher une boule à cet endroit. Attention, les récipients bougent : vise là où ils seront !', el:'.dropzone' },
+    { t:'Ou utilise ces boutons (touches 1 à 5 au clavier) : la boule tombe au-dessus du récipient… là où il est au moment où tu appuies.', el:'#keys' },
+    { t:'Une boule au mauvais endroit ? <b>Touche le récipient</b> pour le vider, ou appuie sur <b>Vider</b>.', el:'.vessel' },
+    { t:'Ici s\'affiche le nombre écrit par tes récipients. Quand il est égal à la cible, tu gagnes des points. Plus tu réussis, plus les récipients bougent.', el:'.l2-sum' },
+    { t:'La barre indique le temps qui reste. À zéro, tu perds une vie.', el:'.timebar' },
+    { t:'Parfois le nombre porte une étiquette <b>BONUS</b> : il demande plus de boules et donne moins de temps. Réussis-le pour gagner le bonus (GEL des récipients, points ×2 ou +1 ♥). Atteins <b>'+UNLOCK[2]+' points</b> pour débloquer le niveau 4.' }
+  ],
+  [ // niveau 4
+    { t:'La conversion à faire : <b>hexadécimal → binaire</b> ou <b>binaire → hexadécimal</b>, sur 4 ou 8 bits.', el:'.l3-q' },
+    { t:'Le tableau de conversion t\'aide : chaque chiffre hexa correspond à <b>4 bits</b>. Pour 8 bits, convertis chaque moitié séparément. Mais le tableau bouge…', el:'.hextab' },
+    { t:'Quand le temps passe, le tableau rougit et accélère. À zéro, <b>il t\'attaque</b> et tu perds une vie.', el:'.timebar' },
+    { t:'Parfois le tableau devient <b>flou</b> ou se couvre de <b>taches</b>. Un <b>QCM éclair</b> apparaît alors : réponds juste en 6 secondes pour le nettoyer. La question revient tant que la réponse est fausse.' },
+    { t:'Tape ta réponse ici puis <b>OK</b>. Les touches qui ne servent pas sont grisées.', el:'#inputrow' },
+    { t:'Une question avec l\'étiquette <b>BONUS</b> est plus dure (8 bits, moins de temps). Réussis-la pour gagner un bonus : NETTOYAGE du tableau, points ×2 ou +1 ♥. Atteins <b>'+UNLOCK[3]+' points</b> pour débloquer le niveau 5.' }
+  ],
+  [ // niveau 5
+    { t:'Chaque image se joue en <b>3 étapes</b> : trouver sa largeur, convertir un octet en hexadécimal, puis la colorier en rouge, vert et bleu.' },
+    { t:'Cette suite <b>hexadécimale</b> code une image. Chaque chiffre hexa donne <b>4 pixels</b> : 1 = allumé, 0 = éteint.', el:'.hexline' },
+    { t:'Voici les pixels rangés en lignes. Avec le mauvais nombre de colonnes, l\'image n\'a aucun sens.', el:'.canvaswrap' },
+    { t:'Change le nombre de <b>colonnes</b> avec − et + (ou les flèches) jusqu\'à voir une image cohérente, puis <b>Valider</b>. Astuce : le nombre de colonnes divise le nombre total de bits.', el:'.ctrls' },
+    { t:'Bonus : trouve la largeur <b>du premier coup</b> (points ×1,5 et +1 ♥), ou une couleur nuancée <b>parfaite</b> (points ×2). De temps en temps, un <b>QCM de couleurs</b> te demandera la couleur d\'un code <b>#RRVVBB</b>.' }
+  ]
+];
+TUTOS[5] = [
+  { t:'Bravo, tu as trouvé le <b>jeu secret</b> ! 60 secondes, toutes les bases mélangées : binaire, décimal et hexadécimal.', el:'.l3-q' },
+  { t:'Chaque bonne réponse ajoute <b>2 secondes</b> et fait monter le multiplicateur. Une erreur retire <b>3 secondes</b>.', el:'.turbo-clock' },
+  { t:'Regarde bien la base demandée sous le nombre, puis tape ta réponse et <b>OK</b>.', el:'#inputrow' }
+];
+TUTOS[0] = [
+  { t:'Voici le nombre à écrire en <b>binaire sur 5 bits</b>. Le compteur indique combien de <b>billes</b> il reste à placer : il y en a juste assez.', el:'.l0-left' },
+  { t:'Les billes tombent toutes seules <b>au milieu</b>, une par une.', el:'.l0-chute' },
+  { t:'C\'est toi qui <b>déplaces les récipients</b> : fais glisser ton doigt sur le jeu, ou utilise ◀ ▶ (flèches du clavier). Mets le bon récipient sous la bille !', el:'.l0-rack' },
+  { t:'Chaque récipient a un <b>poids</b> : 16, 8, 4, 2, 1. Avec une bille il vaut <b>1</b>, vide il vaut <b>0</b>. Ici s\'affiche le nombre écrit.', el:'.l2-sum' },
+  { t:'Une bille au mauvais endroit ? <b>Touche le récipient</b> (ou touches 1 à 5) : la bille est <b>repoussée vers le haut</b> et retombe au milieu. Tu peux alors la mettre dans une autre colonne.', el:'.l0-rack' },
+  { t:'La barre de temps : finis vite pour gagner un <b>bonus de temps</b> (les secondes restantes rapportent des points, et plus de la moitié du temps restant donne <b>×1,5</b>). À zéro, tu perds une vie.', el:'.timebar' },
+  { t:'Atteins <b>'+UNLOCK[0]+' points</b> pour débloquer le niveau 2, et <b>'+STAR[0]+'</b> pour l\'étoile ★. C\'est parti !', el:'#helpbtn' }
+];
+TUTOS.l2u = [
+  { t:'<b>Mode unités</b> : ici chaque bille vaut <b>1</b>. Le récipient 16 contient exactement <b>16 billes</b>, le 8 en contient 8, etc. Leur taille montre leur volume.', el:'.vessel' },
+  { t:'Un récipient <b>plein</b> = bit à 1, un récipient <b>vide</b> = bit à 0. À moitié rempli, il ne compte pas : il faut le remplir ou le vider.', el:'.l2-sum' },
+  { t:'<b>Garde le doigt appuyé</b> en haut : les billes tombent une par une là où est ton doigt. Tu peux le déplacer. Au clavier, touches 1 à 5.', el:'.dropzone' },
+  { t:'Trop de billes ou mauvais récipient ? <b>Touche le récipient</b> : ses billes sont relancées en l\'air et retombent… peut-être ailleurs !', el:'.vessel' },
+  { t:'Écris le nombre en remplissant les bons récipients : par exemple 13 = 8 + 4 + 1. Les nombres <b>BONUS</b> donnent GEL, points ×2 ou +1 ♥.', el:'.l2-target' }
+];
+const addDemo=()=>{ const e=demoEl('addemo','<i style="left:20px;top:14px;background:#f00"></i><i style="left:74px;top:14px;background:#0f0"></i><i style="left:47px;top:62px;background:#00f"></i>',W/2,H*.3); return e; };
+TUTOS.l4byte = [
+  { t:'Ton image est trouvée. <b>8 cases</b> sont entourées en orange : c\'est un <b>octet</b>. Case allumée = 1, case éteinte = 0, de gauche à droite.', el:'.l4-byte canvas' },
+  { t:'Le tableau de conversion t\'aide : coupe l\'octet en <b>2 groupes de 4 bits</b> et cherche chaque groupe dans le tableau.', el:'.hextab.static' },
+  { t:'Tape les <b>2 chiffres hexadécimaux</b>, puis OK. Exemple : 0011 1100 → <b>3C</b>.', el:'#inputrow' }
+];
+TUTOS.l4color = [
+  { t:'Un écran n\'a que <b>3 lumières</b> par pixel : <b>Rouge, Vert, Bleu</b> (RVB). Les mélanger, c\'est la <b>synthèse additive</b> : plus on ajoute de lumière, plus c\'est clair.', demo:addDemo },
+  { t:'Rouge + Vert = <b>jaune</b>. Vert + Bleu = <b>cyan</b>. Rouge + Bleu = <b>magenta</b>. Les trois = <b>blanc</b>. Aucune = <b>noir</b>.', demo:addDemo },
+  { t:'Chaque lumière va de <b>00</b> (éteinte) à <b>FF</b> (à fond), <b>80</b> = à moitié. Une couleur s\'écrit <b>#RRVVBB</b> : #FF8000 = rouge à fond + vert à moitié = orange.' },
+  { t:'En haut, le <b>modèle</b> à reproduire, et à côté la <b>superposition</b> de tes 3 couches.', el:'.pair' },
+  { t:'Ton image est séparée en <b>3 couches</b> : rouge, vert, bleu. Règle chaque couche avec − et + (ou les touches R, V, B), puis valide. Au début : <b>00 ou FF</b>. Ensuite viennent les <b>nuances</b> : sois le plus précis possible, une réponse proche rapporte quand même des points.', el:'.layers' },
+  { t:'Trop loin du modèle ? Tu t\'entraîneras avec les <b>lumières qui bougent</b>, puis tu reviendras à ton image.' }
+];
+TUTOS.l4rgb = [
+  { t:'Entraînement : les trois lumières bougent et se superposent. Là où elles se croisent, les couleurs <b>s\'additionnent</b>.', el:'.lights' },
+  { t:'Règle chaque lumière avec − et +, compare ton mélange à la cible, puis valide. Ensuite tu retournes à ton image.', el:'.chans' }
+];
+const Tuto = {
+  i:0, steps:null, id:0, root:null, hl:null, demo:null,
+  run(id){
+    this.steps=TUTOS[id]; this.id=id; this.i=0; G.tuto=true; measure(); stage.querySelectorAll('.banner').forEach(b=>b.remove());
+    this.root=document.createElement('div'); this.root.id='tuto'; document.body.appendChild(this.root);
+    this.root.addEventListener('pointerdown',ev=>{ if(!ev.target.closest('.tbubble')){ ev.preventDefault(); this.next(); } });
+    this.show();
+  },
+  clear(){ if(this.hl) this.hl.classList.remove('tuto-hl'); this.hl=null; if(this.demo) this.demo.remove(); this.demo=null; },
+  show(){
+    this.clear();
+    const st=this.steps[this.i], n=this.steps.length;
+    let target = st.demo ? (this.demo=st.demo()) : st.el ? document.querySelector(st.el) : null;
+    if(target && target.offsetParent===null && getComputedStyle(target).position!=='fixed') target=null;
+    if(target){ this.hl=target; target.classList.add('tuto-hl'); }
+    this.root.innerHTML=`<div class="tbubble" role="dialog" aria-live="polite"><div class="tstep">Tutoriel ${this.i+1} / ${n}</div><div>${st.t}</div>
+      <div class="tnav"><button class="tskip">Passer</button><button class="tnext">${this.i<n-1?'Suivant':'Jouer !'}</button></div></div>`;
+    const b=this.root.querySelector('.tbubble');
+    b.querySelector('.tnext').onclick=()=>this.next();
+    b.querySelector('.tskip').onclick=()=>this.end();
+    const bw=b.offsetWidth, bh=b.offsetHeight, vw=innerWidth, vh=innerHeight;
+    if(!target){ b.className+=' center'; b.style.left=(vw-bw)/2+'px'; b.style.top=Math.max(16,(vh-bh)/2)+'px'; return; }
+    const r=target.getBoundingClientRect(), cx=r.left+r.width/2;
+    const left=clamp(cx-bw/2,16,vw-bw-16);
+    let top;
+    if(r.bottom+14+bh < vh-8){ top=r.bottom+14; b.classList.add('below'); }
+    else if(r.top-14-bh > 8){ top=r.top-14-bh; b.classList.add('above'); }
+    else { top=clamp(r.top+r.height/2-bh/2,8,vh-bh-8); b.classList.add('center'); }
+    b.style.left=left+'px'; b.style.top=top+'px';
+    b.style.setProperty('--ax', clamp(cx-left,18,bw-18)+'px');
+  },
+  next(){ if(!G.tuto) return; if(++this.i>=this.steps.length) this.end(); else this.show(); },
+  end(){
+    this.clear(); if(this.root) this.root.remove(); this.root=null; G.tuto=false; last=performance.now();
+    Store.data.tuto[this.id]=1; Store.save();
+  }
+};
+
+/* ---------- menu ---------- */
+const LEVELS = [
+  { name:'Les billes 16-8-4-2-1', desc:'Les billes tombent au milieu : déplace les récipients pour écrire le nombre en binaire. Finis vite pour le bonus de temps.', make:L0 },
+  { name:'Attaque binaire', desc:'Les nombres descendent : convertis-les du binaire au décimal et inversement. Les nombres verts, plus durs, donnent des bonus.', make:L1 },
+  { name:'Les colonnes 16-8-4-2-1', desc:'Remplis les bons récipients pour écrire le nombre en binaire sur 5 bits. Deux modes : une boule par bit, ou une bille par unité.', make:L2 },
+  { name:'Le tableau hexa', desc:'Binaire ↔ hexadécimal sur 4 ou 8 bits. Le tableau de conversion s\'enfuit, se salit et attaque.', make:L3 },
+  { name:'Pixels et lumières', desc:'Révèle une image codée en hexa, convertis un de ses octets, puis colorie-la en mélangeant les lumières RVB.', make:L4 },
+  { name:'Turbo conversions', desc:'60 secondes, toutes les bases mélangées : binaire, décimal, hexadécimal. Chaque bonne réponse rajoute du temps.', make:L5 }
+];
+function renderMenu(){
+  const ns=nStars();
+  $('#stars').innerHTML=`<span class="gold">${'★'.repeat(ns)}</span><span class="dim">${'☆'.repeat(NL-ns)}</span> ${ns} / ${NL} étoiles · ${ns===NL?'le jeu secret est ouvert !':'réunis-les toutes pour ouvrir le jeu secret'}`;
+  $('#levels').innerHTML=LEVELS.map((l,i)=>{
+    const open=unlocked(i), sec=i===SECRET;
+    if(sec){
+      return `<button class="lvcard secret${open?'':' locked'}" data-i="${i}" ${open?'':'aria-disabled="true"'}><span class="n">${open?'★':'?'}</span><span class="t">${open?l.name:'Jeu secret'}</span><span class="d">${open?l.desc:'Gagne une étoile ★ dans chacun des '+NL+' niveaux pour le découvrir.'}</span><span class="b">${open?'Record : '+best(i):'Étoiles : '+ns+' / '+NL}</span></button>`;
+    }
+    const p1=best(i)>=UNLOCK[i], p2=hasStar(i);
+    const info = open ? `Record : ${best(i)} · palier 1 : ${UNLOCK[i]} ${p1?'✓':''} · palier 2 : ${STAR[i]} ${p2?'★':''}` : `Verrouillé : fais ${UNLOCK[i-1]} points au niveau ${i} (record ${best(i-1)})`;
+    return `<button class="lvcard${open?'':' locked'}" data-i="${i}" ${open?'':'aria-disabled="true"'}><span class="n">${open?i+1:'🔒'}</span><span class="t">${l.name}${open?`<span class="medal ${p2?'on':''}" aria-label="${p2?'Étoile gagnée':'Étoile à gagner'}">${p2?'★':'☆'}</span>`:''}</span><span class="d">${l.desc}</span><span class="b">${info}</span></button>`;
+  }).join('');
+  $('#levels').querySelectorAll('.lvcard').forEach(b=>b.addEventListener('click',()=>{ const i=+b.dataset.i; if(unlocked(i)) startLevel(i); else { b.classList.remove('nope'); void b.offsetWidth; b.classList.add('nope'); } }));
+  $('#where').textContent = (Store.tampered ? 'Les records enregistrés avaient été modifiés à la main : ils ont été remis à zéro. ' : '') + (SCORM ? 'Ta progression est enregistrée sur ÉLÉA.' : 'Les records restent sur cet appareil.');
+  $('#profbtn').textContent = Store.data.prof ? 'Accès enseignant activé (tout est débloqué) · désactiver' : 'Accès enseignant';
+}
+function teacherDialog(){
+  if(Store.data.prof){ Store.data.prof=false; Store.save(); renderMenu(); return; }
+  showOverlay(`<h2>Accès enseignant</h2><p>Le code débloque tous les niveaux sur ce compte.</p>
+    <input id="o-code" class="codein" autocomplete="off" aria-label="Code enseignant"><p id="o-err" class="err"></p>
+    <div class="row"><button class="btn ok" id="o-ok">Valider</button><button class="btn" id="o-cancel">Annuler</button></div>`);
+  const ok=()=>{ if($('#o-code').value.trim().toUpperCase()===TEACHER_CODE){ Store.data.prof=true; Store.save(); hideOverlay(); renderMenu(); } else $('#o-err').textContent='Code incorrect.'; };
+  $('#o-ok').onclick=ok; $('#o-cancel').onclick=hideOverlay; $('#o-code').onkeydown=e=>{ if(e.key==='Enter') ok(); }; $('#o-code').focus();
+}
+addEventListener('resize',()=>{ if(G.lv && G.lv.layout) G.lv.layout(); });
+$('#profbtn').addEventListener('click',teacherDialog);
+renderMenu();
+</script>
+
+</body></html>
