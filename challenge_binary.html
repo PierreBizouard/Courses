@@ -5,8 +5,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=JetBrains+Mono:wght@500;700&family=Atkinson+Hyperlegible:wght@400;700&family=Press+Start+2P&display=swap">
 <style>
-body.paused #stage>*,body.paused #inputrow{visibility:hidden}
-body.paused #stage::after{content:'⏸ Pause';position:absolute;inset:0;display:grid;place-items:center;font:700 22px var(--f-display);color:var(--muted)}
+body.paused #stage>*,body.paused #inputrow{filter:blur(14px);pointer-events:none}
+.iconbtn.wide{width:auto;padding:0 12px;font:700 15px var(--f-body)}
 /* Layout: one-screen arcade cabinet — HUD strip, play field, on-screen keypad deck. Single dark look by choice. */
 :root{
   color-scheme: dark;
@@ -44,6 +44,7 @@ button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 .medal{margin-left:8px;font:700 18px var(--f-body);color:var(--line)} .medal.on{color:var(--amber)}
 .stars{margin:0;font:700 15px var(--f-body);color:var(--muted)} .stars .gold,.gold{color:var(--amber)} .stars .dim{color:var(--line)}
 .lvcard.locked .n{font-size:22px}
+.lvcard.locked:not(.secret) .t,.lvcard.locked:not(.secret) .d{filter:blur(6px);user-select:none}
 .lvcard.nope{animation:shake .3s}
 .linkbtn{background:none;border:0;padding:0;color:var(--muted);text-decoration:underline;font-size:13px}
 .codein{width:100%;min-height:44px;padding:0 12px;border-radius:8px;border:1px solid var(--line);background:var(--deep);color:var(--fg);font:700 18px var(--f-mono);text-align:center;letter-spacing:.1em;user-select:text;-webkit-user-select:text}
@@ -103,6 +104,7 @@ button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 .enemy.d2b{border-color:var(--amber);box-shadow:0 0 14px rgba(255,181,71,.25)}
 .enemy b{display:block;font:700 19px var(--f-mono);letter-spacing:.06em}
 .enemy sub{font-size:11px;color:var(--muted)}
+.pre{color:var(--muted);font-weight:500;margin-right:1px}
 .enemy small{display:block;font:400 11px var(--f-body);color:var(--muted)}
 .enemy i{display:none;font:700 14px var(--f-mono);font-style:normal;color:var(--good)}
 .enemy.rev i{display:block}
@@ -301,7 +303,7 @@ button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 <div id="app" hidden>
   <div id="hud">
     <button class="iconbtn" id="menubtn" aria-label="Menu (enregistre le score)">☰</button>
-    <button class="iconbtn" id="pausebtn" aria-label="Pause">II</button>
+    <button class="iconbtn wide" id="pausebtn" aria-label="Pause">Pause</button>
     <button class="iconbtn" id="helpbtn" aria-label="Revoir le tutoriel">?</button>
     <div class="name" id="lvname"></div>
     <span id="combo"></span>
@@ -719,7 +721,9 @@ function L1(){
   const S={ en:[], bo:[], spawn:0.4, bonus:rand(6,9), wave:1, kills:0, freeze:0, combo:0, rush:1, since:0, boss:null, launch:4 };
   const BOSS_EVERY=20;
   function setRush(v){ S.rush=clamp(v,1,3); const e=stage.querySelector('.rush'); if(e){ e.textContent = S.rush>1.05 ? 'Vitesse ×'+S.rush.toFixed(1) : ''; e.classList.toggle('hot',S.rush>=2); } }
-  const bitsFor = w => Math.min(8, 3+Math.floor(w/2));
+  // au début, pas plus de 5 bits (≤ 31) ; 6 bits (≤ 63) en approchant du palier ; ensuite jusqu'à 8 bits
+  const capBits = () => G.score<200 ? 5 : G.score<UNLOCK[1] ? 6 : 8;
+  const bitsFor = w => Math.min(capBits(), 3+Math.floor(w/2));
   const BON=[
     {k:'reveal', t:'INDICE', d:'Indice : deux réponses sont affichées'},
     {k:'freeze', t:'GEL',    d:'Gel : tout s\'arrête 4 secondes'},
@@ -728,12 +732,12 @@ function L1(){
   ];
   function spawn(carrier){
     // a bonus is carried by a harder number: 2 more bits, mostly decimal → binary, always full width
-    const bits = carrier ? Math.max(5, Math.min(8, bitsFor(S.wave)+2)) : bitsFor(S.wave);
+    const bits = carrier ? Math.min(capBits(), Math.max(5, bitsFor(S.wave)+2)) : bitsFor(S.wave);
     const mode = carrier ? (Math.random()<.7?'d2b':'b2d') : (Math.random()<.5?'b2d':'d2b');
     let val, n=0;
     do{ val = carrier ? randi(1<<(bits-1),(1<<bits)-1) : randi(1,(1<<bits)-1); }while(S.en.some(e=>e.val===val) && ++n<20);
     const b = carrier ? pick(G.lives<5 && Math.random()<.3 ? BON : BON.slice(0,3)) : null;
-    const q = mode==='b2d' ? `${bin(val,bits)}<sub>2</sub>` : `${val}<sub>10</sub>`;
+    const q = mode==='b2d' ? `<span class="pre">0b</span>${bin(val,bits)}` : `${val}`;
     const ans = mode==='b2d' ? String(val) : val.toString(2);
     const el = mk('div','enemy '+mode+(b?' carrier':''), `${b?`<em>${b.t}</em>`:''}<b>${q}</b><small>${mode==='b2d'?'→ en décimal':'→ en binaire'}</small><i>${ans}</i>`);
     const x0=rand(60,Math.max(61,W-60));
@@ -742,14 +746,14 @@ function L1(){
   // BOSS : un grand nombre protégé par des petits nombres qui tournent autour.
   // De temps en temps un satellite fonce vers la ligne. Bouclier tant qu'il reste des satellites.
   function spawnBoss(){
-    const val=randi(129,255), r=clamp(W*.2,60,88), x0=clamp(W/2,r+40,W-r-40);
-    const el=mk('div','enemy d2b boss shield',`<em>BOSS</em><b>${val}<sub>10</sub></b><small>→ en binaire</small><i>${val.toString(2)}</i>`);
-    const boss={ el, mode:'d2b', val, bits:8, b:null, boss:true, x0, tx:x0, x:x0, y:-40, vy:5+S.wave*.6, amp:Math.max(10,W/2-r-60), f:.5, ph:0, jump:99 };
+    const bb=capBits(), val=randi(1<<(bb-1),(1<<bb)-1), r=clamp(W*.2,60,88), x0=clamp(W/2,r+40,W-r-40);
+    const el=mk('div','enemy d2b boss shield',`<em>BOSS</em><b>${val}</b><small>→ en binaire</small><i>${val.toString(2)}</i>`);
+    const boss={ el, mode:'d2b', val, bits:bb, b:null, boss:true, x0, tx:x0, x:x0, y:-40, vy:5+S.wave*.6, amp:Math.max(10,W/2-r-60), f:.5, ph:0, jump:99 };
     S.en.push(boss); S.boss=boss; S.launch=4;
     const ns=Math.min(6,3+Math.floor(S.wave/3));
     for(let k=0;k<ns;k++){
       const bits=randi(3,4), m=Math.random()<.5?'b2d':'d2b', v=randi(1,(1<<bits)-1);
-      const q = m==='b2d' ? `${bin(v,bits)}<sub>2</sub>` : `${v}<sub>10</sub>`;
+      const q = m==='b2d' ? `<span class="pre">0b</span>${bin(v,bits)}` : `${v}`;
       const e=mk('div','enemy sat '+m,`<b>${q}</b><small>${m==='b2d'?'→ déc.':'→ bin.'}</small><i>${m==='b2d'?v:v.toString(2)}</i>`);
       S.en.push({ el:e, mode:m, val:v, bits, b:null, sat:boss, ang:k*2*Math.PI/ns, r, x:x0, y:-40, x0, tx:x0, vy:0, amp:0, f:0, ph:0, jump:99 });
     }
@@ -1042,8 +1046,8 @@ function L3(){
     S.q={v,big,mode,bonus};
     const tag = bonus ? `<span class="tagb">BONUS ${bonus.t}</span>` : '';
     qEl.innerHTML = mode==='h2b'
-      ? `<b>${hx(v,big?2:1)}<sub>16</sub></b>${tag}<small>→ écris-le en binaire (${big?8:4} bits)</small>`
-      : `<b>${nib(bin(v,big?8:4))}<sub>2</sub></b>${tag}<small>→ écris-le en hexadécimal</small>`;
+      ? `<b><span class="pre">0x</span>${hx(v,big?2:1)}</b>${tag}<small>→ écris-le en binaire (${big?8:4} bits)</small>`
+      : `<b><span class="pre">0b</span>${nib(bin(v,big?8:4))}</b>${tag}<small>→ écris-le en hexadécimal</small>`;
     Buf.allowed = mode==='h2b' ? '01' : '0123456789ABCDEF';
     Buf.max = mode==='h2b' ? (big?8:4) : 2;
     Buf.clear(); refreshKeys();
@@ -1452,7 +1456,7 @@ function L5(){
   function newQ(){
     const [k,from,to]=pick(KINDS), v=randi(S.n<5?1:16, S.n<5?15:255);
     S.q={k,from,to,v};
-    qEl.innerHTML=`<b>${fmt(v,from)}<sub>${from}</sub></b><small>→ en ${NAME[to]}</small>`;
+    qEl.innerHTML=`<b>${from===2?'<span class="pre">0b</span>':from===16?'<span class="pre">0x</span>':''}${fmt(v,from)}</b><small>→ en ${NAME[to]}</small>`;
     Buf.allowed = to===2?'01':to===10?'0123456789':'0123456789ABCDEF'; Buf.max = to===2?8:to===10?3:2; Buf.clear(); refreshKeys();
   }
   function fire(){
@@ -1490,19 +1494,19 @@ function demoEl(cls,html,x,y){ const e=mk('div',cls,html); place(e,x,y); e.datas
 const TUTOS = [
   null, // niveau 1 (billes), défini plus bas
   [ // niveau 2
-    { t:'Des nombres tombent vers la ligne rouge. Chacun est écrit en <b>binaire</b> (petit 2) ou en <b>décimal</b> (petit 10). Il faut le convertir dans l\'autre base.',
-      demo:()=>demoEl('enemy b2d','<b>1011<sub>2</sub></b><small>→ en décimal</small>',W/2,H*.3) },
+    { t:'Des nombres tombent vers la ligne rouge. Chacun est écrit en <b>binaire</b> (il commence par <b>0b</b>, comme en Python) ou en <b>décimal</b> (sans préfixe). Il faut le convertir dans l\'autre base.',
+      demo:()=>demoEl('enemy b2d','<b><span class="pre">0b</span>1011</b><small>→ en décimal</small>',W/2,H*.3) },
     { t:'Tape la conversion avec le pavé (ou le clavier), puis <b>OK</b>. Ici : 1011 = 8 + 2 + 1 = <b>11</b>.', el:'#inputrow' },
     { t:'Pour un nombre en décimal, tape son écriture en binaire, avec des 0 et des 1.',
-      demo:()=>demoEl('enemy d2b','<b>13<sub>10</sub></b><small>→ en binaire</small>',W/2,H*.3) },
+      demo:()=>demoEl('enemy d2b','<b>13</b><small>→ en binaire</small>',W/2,H*.3) },
     { t:'Si un nombre touche la <b>ligne rouge</b>, tu perds une vie. Chaque erreur fait <b>accélérer</b> la chute ; chaque bonne réponse la ralentit un peu.', el:'.deadline' },
     { t:'<b>Les bonus</b> : certains nombres sont entourés de vert et portent une étiquette. Ils sont <b>plus difficiles</b> (plus de bits). Convertis-les pour gagner le bonus et des points en plus !',
-      demo:()=>demoEl('enemy d2b carrier','<em>INDICE</em><b>203<sub>10</sub></b><small>→ en binaire</small>',W/2,H*.4) },
+      demo:()=>demoEl('enemy d2b carrier','<em>INDICE</em><b>203</b><small>→ en binaire</small>',W/2,H*.4) },
     { t:'<b>INDICE</b> affiche la réponse sous deux nombres. <b>GEL</b> arrête tout 4 secondes. <b>BOUM</b> détruit les deux nombres les plus proches de la ligne. <b>+1 ♥</b> rend une vie.' },
     { t:'Enchaîne les bonnes réponses pour faire monter le <b>multiplicateur</b> de points (x2, x3…). Les poids des bits sont rappelés en bas : 128, 64, 32, 16, 8, 4, 2, 1.', el:'.weights' },
     { t:'Toutes les '+20+' bonnes réponses, un <b>BOSS</b> arrive : un grand nombre protégé par des petits nombres qui tournent autour. De temps en temps, un satellite <b>fonce</b> vers la ligne ! Détruis les satellites pour briser le bouclier, puis convertis le boss : gros bonus.' },
     { t:'<b>Aide</b> : pendant que tu tapes, ta réponse est décomposée en bas. Les poids <b>entourés</b> sont les bits à 1, et leur somme s\'affiche. Exemple : 1011 → 8 + 2 + 1 = 11.', el:'.weights' },
-    { t:'Atteins <b>'+UNLOCK[1]+' points</b> pour débloquer le niveau 3. Le bouton <b>?</b> relance ce tutoriel, <b>II</b> met en pause. C\'est parti !', el:'#helpbtn' }
+    { t:'Atteins <b>'+UNLOCK[1]+' points</b> pour débloquer le niveau 3. Le bouton <b>?</b> relance ce tutoriel, <b>Pause</b> met le jeu en pause. C\'est parti !', el:'#helpbtn' }
   ],
   [ // niveau 3
     { t:'Voici le nombre à écrire en <b>binaire sur 5 bits</b>.', el:'.l2-target' },
