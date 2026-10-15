@@ -1,5 +1,4 @@
-<!doctype html>
-<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Binaire Attack</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -119,7 +118,7 @@ button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 .deadline{position:absolute;left:0;right:0;bottom:50px;height:2px;background:repeating-linear-gradient(90deg,var(--bad) 0 10px,transparent 10px 18px);opacity:.7}
 .weights{position:absolute;left:0;right:0;bottom:4px;display:flex;justify-content:center;gap:4px;font:500 12px var(--f-mono);color:var(--muted);pointer-events:none}
 .weights span{display:flex;flex-direction:column;align-items:center;min-width:32px;padding:1px 0;border:2px solid transparent;border-radius:12px}
-.weights span small{font:700 13px var(--f-mono);color:var(--line)}
+.weights span small{display:none} /* plus d'aide en direct : seuls les poids restent affichés */
 .weights span.on{border-color:var(--amber);color:var(--amber)}
 .weights span.on small{color:var(--amber)}
 .aide{position:absolute;left:0;right:0;bottom:54px;text-align:center;font:700 14px var(--f-mono);color:var(--amber);pointer-events:none;z-index:1}
@@ -134,7 +133,12 @@ button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 .deadline.ground{background:#5a4a3a;height:4px;opacity:1}
 .slot{position:absolute;border:1px dashed rgba(255,255,255,.14);border-radius:3px;z-index:1;pointer-events:none}
 .brick{position:absolute;background:#c8643a;border:2px solid #7a3b1f;border-radius:3px;box-shadow:inset 0 -3px 0 rgba(0,0,0,.18);z-index:2;pointer-events:none;transition:left .5s ease-out,top .5s ease-out}
-.ledge{position:absolute;background:#5a4a3a;border-radius:4px 0 0 4px;z-index:2;pointer-events:none}
+.belt{position:absolute;height:12px;border-radius:6px 0 0 6px;z-index:2;pointer-events:none;background:repeating-linear-gradient(90deg,#4a4560 0 10px,#2c2840 10px 20px);border:2px solid #6b6590;animation:belt .6s linear infinite}
+@keyframes belt{to{background-position:20px 0}}
+.cheese{position:absolute;font-size:28px;line-height:1;transform:translate(-50%,-100%);z-index:3;pointer-events:none}
+.critter.r{transform:translate(-50%,-100%) scaleX(-1)}
+.bubble{position:absolute;transform:translate(-50%,-100%);z-index:4;pointer-events:none;background:#fff;color:#1a1300;font:700 14px var(--f-body);padding:4px 10px;border-radius:12px;white-space:nowrap}
+.bubble.good{background:var(--good);color:#06210f}
 .critter{position:absolute;font-size:34px;line-height:1;transform:translate(-50%,-100%);z-index:3;pointer-events:none;transition:left .3s,top .3s}
 .critter.wave{animation:help .6s ease-in-out infinite alternate}
 @keyframes help{to{transform:translate(-50%,-112%) rotate(-8deg)}}
@@ -242,6 +246,43 @@ button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 
 
 .l3-q.turbo{left:0;top:0;transform:none}
+/* ---------- bonus : détonateurs (façon Puyo Puyo) ---------- */
+.pu-well{position:absolute;border:2px solid var(--line);border-top:2px dashed var(--bad);border-radius:0 0 10px 10px;background:rgba(8,6,20,.45)}
+.pu{position:absolute;left:0;top:0;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;border:2px solid #0006;font:700 var(--pf,14px)/1 var(--f-mono);color:#120e24;transition:left .07s linear,top .07s linear;box-shadow:inset 0 -4px 0 #0003,inset 0 3px 0 #fff5;z-index:5}
+.pu small{font-size:.62em;font-weight:500;opacity:.7}
+.pu:not(.bomb):not(.ghost){background-image:linear-gradient(90deg,rgba(0,0,0,.16) 1px,transparent 1px),linear-gradient(rgba(0,0,0,.16) 1px,transparent 1px);background-size:var(--cs,40px) var(--cs,40px);background-position:-3px -3px}
+.pu.v1{background-color:#6ee7a0}.pu.v2{background-color:#5ce1e6}.pu.v4{background-color:#b69cff}.pu.v8{background-color:#ffb547}.pu.v16{background-color:#ff6aa8}
+.pu.bomb{background:#2a2550;color:var(--fg);border:2px solid var(--amber);border-radius:50%;box-shadow:0 0 12px rgba(255,181,71,.45);z-index:6}
+.pu.bomb .t{font-size:1.05em}
+.pu.bomb .s{font-size:.6em;color:var(--muted);margin-top:2px}
+.pu.bomb.over{border-color:var(--bad);box-shadow:0 0 14px rgba(255,90,90,.7)}
+.pu.bomb.over .s{color:var(--bad)}
+.pu.bomb.hot{animation:pulse .35s infinite alternate}
+.pu .fuse{position:absolute;right:-4px;top:-6px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:var(--bad);color:#fff;font:700 10px/18px var(--f-mono);text-align:center}
+.pu.piece{z-index:8;transition:none}
+.pu.starred{border-color:var(--amber);box-shadow:0 0 12px rgba(255,181,71,.55),inset 0 -4px 0 #0003}
+.pu.starred .t{position:absolute;right:4px;bottom:3px;font-size:calc(var(--pf) * .8)}
+.pu .star{position:absolute;left:1px;top:1px;width:calc(var(--cs) - 6px);height:calc(var(--cs) - 6px);display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(circle,#fff6d0,#ffb547 70%);clip-path:polygon(50% 0,61% 34%,98% 35%,68% 57%,79% 92%,50% 71%,21% 92%,32% 57%,2% 35%,39% 34%);color:#1a1300;z-index:2}
+.pu .sn{position:absolute;left:calc(var(--cs) / 2 - 3px);top:calc(var(--cs) / 2);transform:translate(-50%,-40%);padding:1px 4px;border-radius:6px;background:#1a1300e6;color:#ffd27a;font:700 var(--sf,14px)/1.1 var(--f-mono);white-space:nowrap;z-index:3}
+.pu .sn small{font-size:.6em;opacity:.7}
+.pu .sig{position:absolute;left:-3px;bottom:-7px;padding:1px 5px;border-radius:7px;background:#1a1300;color:var(--amber);border:1px solid var(--amber);font:700 11px/1.2 var(--f-mono);white-space:nowrap;z-index:3}
+.pu.starred.v1 .t{display:none}
+.pu .star.hot{animation:pulse .35s infinite alternate}
+.pu .fuse{position:absolute;right:-2px;top:-4px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:var(--bad);color:#fff;font:700 10px/18px var(--f-mono);text-align:center;z-index:3}
+.pu.ghost{opacity:.18;z-index:4;transition:none}
+.pu.pop{animation:pupop .32s forwards;z-index:9}
+@keyframes pupop{40%{transform:scale(1.35)}100%{transform:scale(0);opacity:0}}
+.pu.merge{animation:pumerge .3s}
+@keyframes pumerge{50%{transform:scale(1.25)}}
+.pu-next{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 6px;background:rgba(8,6,20,.8);border:1px solid var(--line);border-radius:8px;font:400 10px var(--f-display);color:var(--muted);z-index:9}
+.pu-next .pu{position:relative;transition:none}
+.pu-shock{position:absolute;border-radius:14%;border:3px solid var(--amber);background:rgba(255,181,71,.15);transform:translate(-50%,-50%);animation:shock .45s forwards;pointer-events:none;z-index:10}
+@keyframes shock{from{width:10px;height:10px;opacity:1}to{width:var(--sz,180px);height:var(--sz,180px);opacity:0}}
+.pu .hpb{position:absolute;left:6px;right:6px;bottom:5px;height:6px;border-radius:3px;background:#1a1828;overflow:hidden}
+.pu .hpb i{display:block;height:100%;background:linear-gradient(90deg,#ff5a5a,#6ee7a0);transition:width .3s}
+.pu.stone.hit{animation:shake .3s}
+.pu.stone{background-color:#6b6880!important;color:#2a2838!important;border:2px solid #4a4760!important;box-shadow:inset 0 -4px 0 #0004,inset 0 3px 0 #fff2!important;border-radius:8px;animation:none}
 .turbo-clock{position:absolute;right:12px;top:16px;font:700 22px var(--f-mono);color:var(--amber);z-index:5}
 .hextab.static{position:relative;left:auto;top:auto;width:100%;max-width:380px;margin:0 auto;flex:none;z-index:1}
 .l4-byte .canvaswrap{min-height:110px}
@@ -295,6 +336,75 @@ button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
   .hexline span,.sw.target,.qgrid button,#buffer:not(.empty)::after{animation:none}
   #stage.shake{animation:none}
 }
+/* ---------- tutoriel « Comprendre le binaire » ---------- */
+.lvcard.learn{border-color:var(--cyan);background:linear-gradient(120deg,var(--panel),#1d2a4a)}
+.lvcard.bonus{border-color:var(--pink);background:linear-gradient(120deg,var(--panel),#3a1a34)}
+.lvcard.learn .n{color:var(--cyan)}
+.lvcard.learn.fresh{box-shadow:0 0 0 2px var(--cyan);animation:lwpulse 1.6s ease-in-out infinite alternate}
+@keyframes lwpulse{to{box-shadow:0 0 0 5px rgba(92,225,230,.25)}}
+#learn{height:100%;max-width:900px;margin:0 auto;padding:12px 16px 16px;overflow:auto;display:flex;flex-direction:column;gap:10px;-webkit-user-select:text;user-select:text}
+.lw-head{display:flex;align-items:center;gap:10px}
+.lw-head h2{margin:0;flex:1;font:700 clamp(16px,4.2vw,22px) var(--f-display);color:var(--cyan);letter-spacing:.02em}
+.lw-head .iconbtn{flex:none}
+#lw-text{margin:0;font-size:16px;line-height:1.5;max-width:70ch}
+#lw-text b{color:var(--amber)}
+#lw-text .py{font:700 1em var(--f-mono);color:var(--cyan)}
+#lw-table{position:relative;flex:none;height:clamp(240px,44vh,430px);background:var(--deep);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+#lw-table.off{display:none}
+.lw-ball{position:absolute;left:0;top:0;border-radius:50%;background-color:var(--muted);background-image:radial-gradient(circle at 35% 30%,rgba(255,255,255,.75) 0 16%,transparent 48%);box-shadow:inset -1px -2px 2px rgba(0,0,0,.35);transition:transform .8s cubic-bezier(.5,0,.2,1),background-color .5s,width .4s,height .4s;z-index:2}
+.lw-deco{position:absolute;animation:lwin .5s .55s both}
+@keyframes lwin{from{opacity:0}}
+.lw-band{top:0;border-radius:8px;background:rgba(255,255,255,.03);border:1px dashed rgba(157,150,204,.25)}
+.lw-pk{border:2px solid;border-radius:7px;z-index:1}
+.lw-pk.sub{border-width:1px;border-style:dashed;border-radius:4px;opacity:.6}
+.lw-pk.ghost{border-style:dashed;opacity:.45;display:grid;place-items:center;font:500 11px var(--f-mono);color:var(--muted)}
+.lw-lab{bottom:4px;height:62px;text-align:center;line-height:1.1;display:flex;flex-direction:column;justify-content:flex-end;gap:2px}
+.lw-lab b{font:700 30px var(--f-mono)}
+.lw-lab span{font:500 11px var(--f-mono);color:var(--muted);white-space:nowrap}
+.lw-q{position:absolute;inset:0;display:grid;place-items:center;font:700 64px var(--f-display);color:rgba(236,232,255,.15);pointer-events:none}
+#lw-eq{margin:0;min-height:1.6em;font:500 clamp(15px,3.6vw,19px) var(--f-mono);text-align:center}
+#lw-eq b{color:var(--amber)} #lw-eq .py{color:var(--cyan);font-weight:700}
+#lw-ctl{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center}
+#lw-ctl:empty{display:none}
+#lw-ctl label{display:flex;align-items:center;gap:8px;font-size:15px}
+#lw-ctl input[type=range]{width:min(60vw,260px);accent-color:var(--amber)}
+.lw-num{font:700 22px var(--f-mono);min-width:4ch;text-align:center}
+.lw-leds{display:flex;gap:clamp(6px,2vw,14px);justify-content:center;flex-wrap:wrap}
+.lw-led{display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:0;padding:4px}
+.lw-led i{width:clamp(38px,11vw,54px);height:clamp(38px,11vw,54px);border-radius:50%;background:#2a2550;border:3px solid var(--line);transition:background .2s,box-shadow .2s}
+.lw-led.on i{background:#ffe27a;border-color:var(--amber);box-shadow:0 0 18px 4px rgba(255,181,71,.6)}
+.lw-led span{font:700 14px var(--f-mono);color:var(--muted)}
+.lw-led em{font:700 18px var(--f-mono);font-style:normal}
+.lw-led:disabled{cursor:default}
+.lw-sig{width:100%;max-width:520px;height:auto;display:block;margin:0 auto}
+.lw-quiz{display:flex;flex-direction:column;gap:14px;align-items:center;text-align:center;padding:10px 0}
+.lw-quiz .qq{font:700 clamp(17px,4vw,22px) var(--f-body)}
+.lw-quiz .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.lw-quiz .fb{min-height:1.4em;font-weight:700}
+.lw-quiz .fb.good{color:var(--good)} .lw-quiz .fb.bad{color:var(--bad)}
+.lw-nav{display:flex;align-items:center;gap:10px;justify-content:space-between;margin-top:auto;padding-top:6px}
+.lw-dots{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.lw-dots i{width:10px;height:10px;border-radius:50%;background:var(--line)}
+.lw-dots i.on{background:var(--cyan)}
+.lw-nav .btn{font:700 15px var(--f-body)}
+.lw-nav .btn:disabled{opacity:.35}
+.lw-cards{display:flex;gap:clamp(6px,2vw,14px);justify-content:center;padding:6px 0;perspective:700px}
+.lw-card{position:relative;width:clamp(56px,16vw,104px);aspect-ratio:3/4;background:none;border:0;padding:0;transform-style:preserve-3d;transition:transform .5s}
+.lw-card.down{transform:rotateY(180deg)}
+.lw-card .f,.lw-card .bk{position:absolute;inset:0;border-radius:10px;backface-visibility:hidden;-webkit-backface-visibility:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+.lw-card .f{background:#fff8e6;border:3px solid var(--amber);color:var(--ink)}
+.lw-card .bk{background:repeating-linear-gradient(45deg,#2a2550 0 8px,#221e45 8px 16px);border:3px solid var(--line);transform:rotateY(180deg)}
+.lw-card .dots{display:grid;gap:3px;justify-content:center}
+.lw-card .dots i{width:clamp(6px,1.9vw,11px);aspect-ratio:1;border-radius:50%;background:#1a1300}
+.lw-card .f b{font:700 clamp(14px,3.6vw,20px) var(--f-mono)}
+.lw-card.hl .f,.lw-card.hl .bk{box-shadow:0 0 0 3px var(--cyan),0 0 18px rgba(92,225,230,.6)}
+.lw-bits{display:flex;gap:clamp(6px,2vw,14px);justify-content:center}
+.lw-bits span{width:clamp(56px,16vw,104px);text-align:center;font:700 14px var(--f-mono)}
+.lw-bits span.one{color:var(--amber)} .lw-bits span.zero{color:var(--line)}
+.lw-log{margin:0;padding:0;list-style:none;font:500 14px/1.5 var(--f-mono);max-width:62ch;min-height:4.5em}
+.lw-log li.on{color:var(--amber)} .lw-log li.off{color:var(--muted)}
+.lw-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;align-items:center}
+@media (max-width:480px){ .lw-nav .lw-w{display:none} .lw-dots{gap:4px;flex-wrap:nowrap} .lw-dots i{width:7px;height:7px} .lw-nav .btn{padding:0 12px;white-space:nowrap} }
 </style>
 
 <div id="menu">
@@ -324,6 +434,15 @@ button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
     <div id="bufrow"><div id="buffer" class="empty" data-ph="Tape ta réponse"></div></div>
     <div id="keys"></div>
   </div>
+</div>
+
+<div id="learn" hidden>
+  <div class="lw-head"><button class="iconbtn" id="lw-menu" aria-label="Retour au menu">☰</button><h2 id="lw-title"></h2></div>
+  <p id="lw-text"></p>
+  <div id="lw-table"></div>
+  <p id="lw-eq" aria-live="polite"></p>
+  <div id="lw-ctl"></div>
+  <div class="lw-nav"><button class="btn" id="lw-prev" aria-label="Précédent">◀<span class="lw-w"> Précédent</span></button><div class="lw-dots" id="lw-dots"></div><button class="btn ok" id="lw-next">Suivant ▶</button></div>
 </div>
 
 <div class="overlay" id="over" hidden><div class="ocard" id="overcard"></div></div>
@@ -476,6 +595,7 @@ function refreshKeys(all){
 function press(k){ if(G.run && !G.pause && !G.tuto) G.lv.key(k); }
 
 addEventListener('keydown', e=>{
+  if(!$('#learn').hidden){ Learn.key(e); return; }
   if(G.tuto){ if(e.key==='Enter'||e.key===' '||e.key==='ArrowRight'){ e.preventDefault(); Tuto.next(); } else if(e.key==='Escape') Tuto.end(); return; }
   if(e.key==='Escape'){ if(G.run) togglePause(); return; }
   if(!G.run || G.pause) return;
@@ -501,10 +621,12 @@ function showOverlay(html){ $('#overcard').innerHTML=html; $('#over').hidden=fal
 function hideOverlay(){ $('#over').hidden=true; }
 // niveaux qui proposent deux façons de jouer (le record est commun)
 const MODES={
-  1:{ list:[['a','Attaque : 3 vies, ça accélère'],['s','Sauvetage : construis un escalier, sans perdre de vie']],
-      note:'En mode sauvetage, chaque bonne réponse donne une brique. Construis l\'escalier pour sauver les animaux coincés en haut !', tag:{s:'[sauvetage] '}, tuto:{s:'l1s'} },
+  1:{ list:[['a','Attaque : 3 vies, ça accélère'],['s','Sauvetage : un escalier jusqu\'au fromage, sans perdre de vie']],
+      note:'En mode sauvetage, chaque bonne réponse donne une brique. Construis l\'escalier jusqu\'au fromage avant que le tapis roulant ne l\'emporte !', tag:{s:'[sauvetage] '}, tuto:{s:'l1s'} },
   2:{ list:[['b','Boules : une boule = un bit'],['u','Unités : chaque bille vaut 1']],
-      note:'En mode unités, le récipient 16 contient exactement 16 billes, le 8 en contient 8…', tag:{u:'[unités] '}, tuto:{u:'l2u'} }
+      note:'En mode unités, le récipient 16 contient exactement 16 billes, le 8 en contient 8…', tag:{u:'[unités] '}, tuto:{u:'l2u'} },
+  5:{ list:[['d','Étoile en décimal, blocs en binaire'],['b','Étoile en binaire, blocs en décimal']],
+      note:'Exemple : une étoile 13 sur un bloc 4 explose quand on lui colle un 8 et un 1.', tag:{b:'[binaire] '}, tuto:{} }
 };
 function chooseMode(id){
   const M=MODES[id];
@@ -527,7 +649,7 @@ function startLevel(id,mode){
   Seal.reset(); Object.assign(G,{ id, score:0, lives:3, run:true, pause:false, time:0, tp:[null,null] });
   $('#menu').hidden=true; $('#app').hidden=false;
   $('#lvname').textContent = ((MODES[id] && MODES[id].tag[G.mode]) || '') + (id===SECRET ? 'Jeu secret · '+LEVELS[id].name : (id+1)+' · '+LEVELS[id].name+' · palier '+UNLOCK[id]+' · ★ '+STAR[id]);
-  hud(); setCombo(0); Buf.clear();
+  hud(); setCombo(0); Buf.clear(); $('#bufrow').hidden=false;
   G.lv = LEVELS[id].make();
   G.lv.start(); measure(); G.lv.layout && G.lv.layout(); G.lv.update(0);
   if(!tutoSeen(tkey(id))) Tuto.run(tkey(id));
@@ -796,23 +918,33 @@ function L1(){
   }
   const shielded = o => o.boss && S.en.some(e=>e.sat===o);
   function dive(o){ o.sat=null; o.x0=o.tx=o.x; o.amp=0; o.vy=70+S.wave*6; o.el.classList.add('dive'); }
+  // l'escalier part du sol (l'animal est en bas à gauche) et monte jusqu'au tapis roulant où le fromage s'enfuit
   function stairs(){
-    const A=ANIMALS[S.ri], N=A[2], floor=H-52;
-    const bw=Math.min(46,(W-90)/(N+1)), bh=Math.min(28,(H-240)/(N+1));
-    stage.querySelectorAll('.brick,.slot,.ledge,.critter,.stairinfo').forEach(e=>e.remove());
-    S.slots=[]; S.bricks=[]; S.done=false;
+    const A=ANIMALS[S.ri], N=A[2], floor=H-52, sx=52;
+    const bw=Math.min(46,(W-sx-110)/(N+1)), bh=Math.min(28,(H-240)/(N+1));
+    stage.querySelectorAll('.brick,.slot,.belt,.cheese,.critter,.stairinfo,.bubble').forEach(e=>e.remove());
+    S.slots=[]; S.bricks=[]; S.done=false; S.missed=0; S.anim=null; S.bubT=0;
     for(let k=0;k<N;k++) for(let r=0;r<=k;r++){
-      const x=16+k*bw, y=floor-(r+1)*bh; S.slots.push({x,y});
+      const x=sx+k*bw, y=floor-(r+1)*bh; S.slots.push({x,y});
       const g=mk('div','slot'); g.style.cssText=`left:${x}px;top:${y}px;width:${bw}px;height:${bh}px`;
     }
-    const lx=16+N*bw, ly=floor-N*bh;
-    const L=mk('div','ledge'); L.style.cssText=`left:${lx}px;top:${ly}px;width:${W-lx}px;height:10px`;
-    S.critter=mk('div','critter wave',A[0]); S.cpos={x:lx+(W-lx)/2,y:ly}; place(S.critter,S.cpos.x,S.cpos.y);
+    const lx=sx+N*bw, ly=floor-N*bh;
+    const B=mk('div','belt'); B.style.cssText=`left:${lx}px;top:${ly}px;width:${W-lx}px`;
+    S.critter=mk('div','critter r',A[0]); S.cpos={x:sx/2+4,y:floor}; place(S.critter,S.cpos.x,S.cpos.y);
+    S.bubble=mk('div','bubble'); S.bubble.hidden=true;
     S.info=mk('div','stairinfo'); S.info.style.cssText=`left:${lx}px;top:${ly-78}px;width:${W-lx}px`;
-    S.geo={bw,bh,floor,N};
+    S.geo={bw,bh,floor,N,sx,lx,ly};
+    // le fromage traverse le tapis en un temps lié au nombre de briques (il accélère avec le jeu)
+    S.cheeseV=(W-lx)/Math.max(22,S.slots.length*4.5);
+    newCheese();
     stairInfo();
   }
-  function stairInfo(){ const A=ANIMALS[S.ri]; S.info.innerHTML=`Sauve ${A[1]} !<br><b>${S.bricks.length} / ${S.slots.length}</b> briques`; }
+  function newCheese(){
+    if(S.cheese) S.cheese.el.remove();
+    const el=mk('div','cheese','🧀'); S.cheese={ el, x:S.geo.lx+18 }; place(el,S.cheese.x,S.geo.ly);
+  }
+  function say(t,good){ S.bubble.textContent=t; S.bubble.className='bubble'+(good?' good':''); S.bubble.hidden=false; S.bubT=1.8; }
+  function stairInfo(){ const A=ANIMALS[S.ri]; S.info.innerHTML=`Nourris ${A[1]} !<br><b>${S.bricks.length} / ${S.slots.length}</b> briques${S.missed?` · fromages partis : ${S.missed}`:''}`; }
   function addBrick(x,y){
     if(!R || S.done) return;
     const sl=S.slots[S.bricks.length]; if(!sl) return;
@@ -823,18 +955,34 @@ function L1(){
   }
   // animation pilotée par update() : elle s'arrête proprement pendant la pause
   function rescue(){
-    S.done=true; const {bw,bh,floor,N}=S.geo;
-    const path=[]; for(let k=N-1;k>=0;k--) path.push({x:16+k*bw+bw/2, y:floor-(k+1)*bh}); path.push({x:16, y:floor});
-    S.critter.classList.remove('wave');
+    S.done=true; const {bw,bh,floor,N,sx,lx,ly}=S.geo;
+    const path=[]; for(let k=0;k<N;k++) path.push({x:sx+k*bw+bw/2, y:floor-(k+1)*bh}); path.push({x:lx+8, y:ly});
     S.anim={ path, i:0, t:0 };
+  }
+  function cheeseStep(dt, fz){
+    const c=S.cheese; if(!c) return;
+    if(!fz) c.x+=S.cheeseV*dt*S.rush;
+    place(c.el,c.x,S.geo.ly);
+    if(c.x>W+20){
+      S.missed++; floatTxt((S.geo.lx+W)/2,S.geo.ly-30,'parti !','bad');
+      say('J\'ai faim !'); newCheese(); stairInfo();
+    }
   }
   function animStep(dt){
     const a=S.anim; a.t+=dt;
-    if(a.i<a.path.length){ if(a.t>=.35){ a.t=0; const p=a.path[a.i++]; place(S.critter,Math.max(14,p.x),p.y); } return; }
-    if(a.phase==null && a.t>=.35){ a.phase=1; a.t=0; addScore(60*(S.ri+1),W/2,H*.35); flash('good'); banner(`Bravo, tu as sauvé ${ANIMALS[S.ri][1]} !`,'good'); return; }
+    if(a.i<a.path.length){ if(a.t>=.3){ a.t=0; const p=a.path[a.i++]; S.cpos={x:p.x,y:p.y}; place(S.critter,p.x,p.y); } return; }
+    if(a.phase==null){ // course sur le tapis jusqu'au fromage
+      const c=S.cheese; S.cpos.x+=Math.min(280*dt, c.x-S.cpos.x); place(S.critter,S.cpos.x,S.geo.ly);
+      if(c.x-S.cpos.x<14){
+        a.phase=1; a.t=0; c.el.remove(); S.cheese=null; say('Miam !',true);
+        const pts=Math.round(60*(S.ri+1)/(1+S.missed));
+        addScore(pts,W/2,H*.35); flash('good'); banner(`Bravo, ${ANIMALS[S.ri][1]} a mangé le fromage !`,'good');
+      }
+      return;
+    }
     if(a.phase===1 && a.t>=1.6){
       S.anim=null;
-      if(++S.ri>=ANIMALS.length){ banner('Tous les animaux sont sauvés !','good'); S.endIn=1.2; }
+      if(++S.ri>=ANIMALS.length){ banner('Tous les animaux sont rassasiés !','good'); S.endIn=1.2; }
       else stairs();
     }
   }
@@ -892,10 +1040,11 @@ function L1(){
       mk('div',R?'deadline ground':'deadline'); mk('div','rush');
       if(R){ $('#lives').style.visibility='hidden'; S.ri=0; measure(); stairs(); }
       S.wEl=mk('div','weights',[128,64,32,16,8,4,2,1].map(w=>`<span>${w}<small>0</small></span>`).join('')); S.aide=mk('div','aide'); S.lastV=null;
-      banner(R ? 'Chaque bonne réponse donne une brique : construis l\'escalier !' : 'Convertis les nombres avant qu\'ils touchent la ligne rouge');
+      banner(R ? 'Chaque bonne réponse donne une brique : construis l\'escalier jusqu\'au fromage !' : 'Convertis les nombres avant qu\'ils touchent la ligne rouge');
     },
     update(dt){
-      if(Buf.v!==S.lastV) aide();
+      if(R && S.cheese) cheeseStep(dt, S.freeze>0);
+      if(R && S.bubT>0){ place(S.bubble,clamp(S.cpos.x,52,W-52),S.cpos.y-40); if((S.bubT-=dt)<=0) S.bubble.hidden=true; }
       if(S.anim) animStep(dt);
       if(S.endIn>0 && (S.endIn-=dt)<=0){ gameOver(); return; }
       if((S.spawn-=dt)<=0){
@@ -1531,46 +1680,233 @@ function L4(){
 
 
 /* =========================================================
-   JEU SECRET — Turbo conversions (toutes les bases, contre la montre)
+   JEU SECRET — Détonateurs (façon Puyo Puyo)
+   Les blocs ont une TAILLE égale à leur valeur : 1 = 1 case, 2 = 2 cases,
+   4 = carré de 4 cases, 8 = 8 cases, 16 = 4x4 ou 2x8. Tout est soumis à la gravité.
+   Le détonateur est une étoile ⭐ fixée sur un bloc qui tombe : elle explose quand
+   son bloc et les blocs qui le touchent (en chaîne) font exactement son nombre de cases.
+   Deux blocs identiques alignés fusionnent (1 + 1 = 10, la retenue) ; un bloc à moitié
+   dans le vide se casse en deux (10 = 1 + 1). Trop de cases : le groupe se pétrifie en
+   pierres grises, que seul le souffle d'une explosion voisine peut briser.
    ========================================================= */
-function L5(){
-  const KINDS=[['b2d',2,10],['d2b',10,2],['h2b',16,2],['b2h',2,16],['h2d',16,10],['d2h',10,16]];
-  const NAME={2:'binaire',10:'décimal',16:'hexadécimal'};
-  const S={ tl:60, t:0, q:null, combo:0, n:0, x:60, y:60, vx:70, vy:55 };
-  let qEl, bar, tb, clock;
-  const fmt=(v,b)=> b===2 ? nib(bin(v,8).replace(/^0{4}(?=\d{4})/,'')) : b===16 ? hx(v,v>15?2:1) : String(v);
-  function newQ(){
-    const [k,from,to]=pick(KINDS), v=randi(S.n<5?1:16, S.n<5?15:255);
-    S.q={k,from,to,v};
-    qEl.innerHTML=`<b>${from===2?'<span class="pre">0b</span>':from===16?'<span class="pre">0x</span>':''}${fmt(v,from)}</b><small>→ en ${NAME[to]}</small>`;
-    Buf.allowed = to===2?'01':to===10?'0123456789':'0123456789ABCDEF'; Buf.max = to===2?8:to===10?3:2; Buf.clear(); refreshKeys();
+function L6(){
+  const COLS=8, ROWS=14, BIN=G.mode==='b';   // 'd' : étoile en décimal, blocs en binaire · 'b' : l'inverse
+  const S={ B:[], p:null, next:null, ft:0, phase:'spawn', rt:0, chain:0, np:0, nb:0, cs:40, ox:0, oy:0, well:null, nextEl:null, ghost:null, over:false, maxT:15 };
+  // formes possibles de chaque valeur (la touche ⟳ passe de l'une à l'autre)
+  const SHAPES={1:[[1,1]],2:[[2,1],[1,2]],4:[[2,2]],8:[[4,2],[2,4]],16:[[4,4],[8,2],[2,8]]};
+  const fuse=()=>Math.max(30,60-S.nb*1.2);
+  const fall=()=>Math.max(.18,.8-G.score/1800);
+  const binL=v=>`<small>0b</small>${v.toString(2)}`;
+  const nameOf=v=>BIN?'0b'+v.toString(2):String(v);
+  const label=b=>`<span class="t">${BIN?b.v:binL(b.v)}</span>`+(b.stone?`<span class="hpb"><i style="width:${Math.round(b.hp/b.hpMax*100)}%"></i></span>`:'')+(b.star?`<span class="star"></span><b class="sn">${BIN?binL(b.star.n):b.star.n}</b><span class="sig"></span><span class="fuse"></span>`:'');
+  function el(b){ if(!b.el) b.el=mk('div',cls(b),label(b)); size(b); return b.el; }
+  const cls=b=>'pu v'+b.v+(b.star?' starred':'')+(b.stone?' stone':'');
+  function redraw(b){ const e=el(b); e.className=cls(b); e.innerHTML=label(b); size(b); }
+  function size(b){
+    const e=b.el, cs=S.cs; e.style.width=(b.w*cs-4)+'px'; e.style.height=(b.h*cs-4)+'px'; e.style.setProperty('--cs',cs+'px');
+    e.style.setProperty('--pf',Math.round(cs*(BIN?.38:.28)*(Math.min(b.w,b.h)>1?1.3:1))+'px');
+    e.style.setProperty('--sf',Math.round(cs*(BIN?.26:.32))+'px');
   }
-  function fire(){
-    const v=Buf.v; if(!v) return; Buf.clear();
-    const q=S.q, ok=parseInt(v,q.to)===q.v;
-    if(ok){ S.combo++; S.n++; setCombo(S.combo); S.tl=Math.min(90,S.tl+2); addScore(10+S.combo*3,S.x+60,S.y); newQ(); }
-    else { ErrLog.add(5,fmt(q.v,q.from)+' base '+q.from+' vers base '+q.to,v,fmt(q.v,q.to)); S.combo=0; setCombo(0); S.tl-=3; flash('bad'); floatTxt(W/2,H/2,`Non : ${fmt(q.v,q.to)}`,'bad'); newQ(); }
+  const XY=(x,y)=>[S.ox+x*S.cs+2,S.oy+y*S.cs+2];
+  // ---- grille d'occupation ----
+  function occ(skip){ const g=[...Array(ROWS)].map(()=>Array(COLS).fill(null)); for(const b of S.B){ if(b===skip) continue; for(let y=b.y;y<b.y+b.h;y++) for(let x=b.x;x<b.x+b.w;x++) if(y>=0) g[y][x]=b; } return g; }
+  function fitsAt(b,x,y,w=b.w,h=b.h,g=occ(b)){ if(x<0||x+w>COLS||y+h>ROWS) return false; for(let yy=y;yy<y+h;yy++) for(let xx=x;xx<x+w;xx++) if(yy>=0&&g[yy][xx]) return false; return true; }
+  function neigh(b,g){ const s=new Set(); for(let y=b.y;y<b.y+b.h;y++) for(let x=b.x;x<b.x+b.w;x++) for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){ const X=x+dx, Y=y+dy; if(X<0||X>=COLS||Y<0||Y>=ROWS) continue; const o=g[Y][X]; if(o&&o!==b) s.add(o); } return s; }
+  // vie d'une pierre : 1 pour un bloc 1, 2 pour un 2, 3 pour un 4, 4 pour un 8, 5 pour un 16
+  const hpOf=v=>1+Math.log2(v);
+  const stars=()=>S.B.filter(b=>b.star&&!b.stone);
+  const starB=()=>stars()[0];
+  // groupes : chaque étoile avec les blocs qui la touchent ; deux étoiles dans le même groupe additionnent leurs nombres
+  function groups(){
+    const g=occ(), out=[], done=new Set();
+    for(const sb of stars()){ if(done.has(sb)) continue; const cl=cluster(sb,g); const st=cl.L.filter(o=>o.star); st.forEach(o=>done.add(o)); out.push({ L:cl.L, sum:cl.sum, st, n:st.reduce((a,o)=>a+o.star.n,0) }); }
+    return out;
+  }
+  // le groupe de l'étoile : son bloc + tous les blocs qui le touchent, de proche en proche
+  function cluster(sb,g=occ()){
+    const seen=new Set(), st=[sb]; let sum=0;
+    while(st.length){ const o=st.pop(); if(seen.has(o)||o.stone) continue; seen.add(o); sum+=o.v; neigh(o,g).forEach(n=>st.push(n)); }
+    return { sum, L:[...seen] };
+  }
+  // ---- pièces ----
+  function mkBlock(v){ const [w,h]=SHAPES[v][0]; return { v, w, h, x:0, y:0 }; }
+  function weight(){
+    const vals=[1,2,4,8].concat(S.maxT>15?[16]:[]), gr=groups()[0];
+    if(gr){ const m=gr.n-gr.sum; const opts=vals.filter(v=>m>0&&(m&v)); if(opts.length&&Math.random()<.7) return mkBlock(pick(opts)); }
+    return mkBlock(pick([1,1,2,2,4,4,8].concat(S.maxT>15?[16]:[])));
+  }
+  function newPiece(){
+    S.np++;
+    // au plus 2 étoiles en jeu ; une nouvelle arrive quand il n'y en a plus, ou de temps en temps s'il n'y en a qu'une
+    const live=stars().length+(S.p&&S.p.star?1:0)+(S.next&&S.next.star?1:0);
+    if(live===0 || (live===1 && S.np%6===0)){
+      const pop=x=>x.toString(2).split('1').length-1, mp=S.nb<3?2:S.nb<8?3:4;
+      const b=mkBlock(pick([1,1,2,4])); let n;
+      do{ n=randi(b.v+1,S.maxT); }while(pop(n)>mp||pop(n)<2);
+      b.star={ n, t:fuse() }; return b;
+    }
+    return weight();
+  }
+  function spawn(){
+    S.p=S.next||newPiece(); S.next=newPiece();
+    const p=S.p; p.x=Math.floor((COLS-p.w)/2); p.y=-p.h+1;
+    if(!fitsAt(p,p.x,p.y)){ S.p=null; full(); return; }
+    el(p).classList.add('piece'); drawNext(); S.phase='fall'; S.ft=0;
+  }
+  function full(){ S.over=true; G.lives=0; hud(); banner('Le puits est plein !','bad'); G.run=false; setTimeout(gameOver,900); }
+  function drawNext(){
+    S.nextEl.innerHTML='SUIVANT'; const n=S.next, k=Math.min(S.cs*.42,60/Math.max(n.w,n.h));
+    const e=document.createElement('div'); e.className=cls(n); e.innerHTML=label(n).replace('<span class="fuse"></span>','');
+    e.style.width=(n.w*k)+'px'; e.style.height=(n.h*k)+'px'; e.style.setProperty('--cs',k+'px'); e.style.setProperty('--pf',Math.round(k*.42)+'px'); e.style.setProperty('--sf',Math.round(k*.5)+'px');
+    S.nextEl.appendChild(e);
+  }
+  function move(dx){ const p=S.p; if(p&&S.phase==='fall'&&fitsAt(p,p.x+dx,p.y)) p.x+=dx; }
+  function rotate(){
+    const p=S.p; if(!p||S.phase!=='fall') return; const L=SHAPES[p.v]; if(L.length<2) return;
+    const i=L.findIndex(([w,h])=>w===p.w&&h===p.h), [w,h]=L[(i+1)%L.length];
+    for(const dx of [0,-1,1,-2,2,-3,3]) if(fitsAt(p,p.x+dx,p.y+(p.h-h),w,h)){ p.x+=dx; p.y+=p.h-h; p.w=w; p.h=h; size(p); return; }
+  }
+  function land(){
+    const p=S.p; S.p=null; p.el.classList.remove('piece'); S.B.push(p);
+    if(p.y<0) return full();   // posé en dépassant du haut : le puits déborde
+    S.chain=0; S.phase='resolve'; S.rt=.05;
+  }
+  function drop(){ const p=S.p; if(!p||S.phase!=='fall') return; let n=0; while(fitsAt(p,p.x,p.y+1)){ p.y++; n++; } if(n) addScore(Math.ceil(n/2)); land(); }
+  // ---- règles, une étape à la fois ----
+  function gravity(){
+    let moved=false, again=true;
+    while(again){ again=false; for(const b of [...S.B].sort((a,c)=>(c.y+c.h)-(a.y+a.h))){ if(fitsAt(b,b.x,b.y+1)){ b.y++; again=moved=true; } } }
+    return moved;
+  }
+  function splits(){
+    // un bloc à moitié dans le vide se casse en deux moitiés (gauche / droite) qui tombent chacune de leur côté
+    const g=occ(); let any=false;
+    for(const b of [...S.B]){
+      if(b.w<2||b.y+b.h>=ROWS) continue;
+      let sup=0; for(let x=b.x;x<b.x+b.w;x++) if(g[b.y+b.h][x]) sup++;
+      if(sup===0||sup===b.w) continue;
+      const hw=b.w/2, half=b.v/2, mkH=(x,star)=>{ const n={ v:half, w:hw, h:b.h, x, y:b.y, stone:b.stone, star }; if(b.stone){ n.hpMax=hpOf(half); n.hp=Math.min(n.hpMax,b.hp); } el(n); return n; };
+      const a=mkH(b.x,b.star), c=mkH(b.x+hw,null);   // l'étoile reste sur la moitié gauche
+      const [px,py]=XY(b.x+b.w/2,b.y); floatTxt(px,py,b.stone?'crac !':`${nameOf(b.v)} = ${nameOf(half)} + ${nameOf(half)}`,'bad');
+      el(b).remove(); S.B.splice(S.B.indexOf(b),1,a,c); any=true;
+    }
+    if(any) S.B.forEach(b=>place(el(b),...XY(b.x,b.y)));
+    return any;
+  }
+  function merges(){
+    // deux blocs identiques alignés fusionnent : 1 + 1 = 2, 2 + 2 = 4… (en binaire : 0b1 + 0b1 = 0b10)
+    for(const a of S.B) for(const b of S.B){
+      if(a===b||a.stone||b.stone||a.v!==b.v||a.w!==b.w||a.h!==b.h||a.v>=16) continue;
+      let w=a.w, h=a.h;
+      if(a.y===b.y && a.x+a.w===b.x) w*=2; else if(a.x===b.x && a.y+a.h===b.y) h*=2; else continue;
+      const v=a.v*2; if(!SHAPES[v].some(([W,H])=>W===w&&H===h)) continue;
+      const eb=el(b); a.v=v; a.w=w; a.h=h; a.star=a.star&&b.star?{ n:a.star.n+b.star.n, t:Math.max(a.star.t,b.star.t) }:a.star||b.star; redraw(a); a.el.classList.add('merge'); place(a.el,...XY(a.x,a.y));
+      eb.classList.add('pop'); setTimeout(()=>eb.remove(),320); S.B.splice(S.B.indexOf(b),1);
+      const [x,y]=XY(a.x+a.w/2,a.y); floatTxt(x,y,BIN?`${v/2} + ${v/2} = ${v}`:`0b${(v/2).toString(2)} + 0b${(v/2).toString(2)} = 0b${v.toString(2)}`,'good'); addScore(2);
+      return true;
+    }
+    return false;
+  }
+  function kill(b){ const e=el(b); e.classList.add('pop'); setTimeout(()=>e.remove(),330); const i=S.B.indexOf(b); if(i>=0) S.B.splice(i,1); }
+  // souffle : au moins 1 case autour de tout le groupe qui explose, 2 cases à partir de 16, 3 à partir de 32.
+  // Il détruit les blocs et les pierres touchés (pas les autres étoiles).
+  const near=(o,L,rad)=>L.some(q=>o.x<=q.x+q.w-1+rad && o.x+o.w-1>=q.x-rad && o.y<=q.y+q.h-1+rad && o.y+o.h-1>=q.y-rad);
+  function blasts(){
+    const hits=groups().filter(gr=>gr.sum===gr.n); if(!hits.length) return false;
+    S.chain++; setCombo(S.chain);
+    const gone=new Set();
+    for(const gr of hits){
+      const n=gr.n, rad=n<16?1:n<32?2:3;
+      gr.L.forEach(o=>gone.add(o));
+      const around=S.B.filter(o=>!gone.has(o)&&!(o.star&&!o.stone)&&near(o,gr.L,rad));
+      // les pierres perdent des points de vie (plus le nombre est grand, plus le coup est fort) ; les blocs normaux sautent
+      const dmg=rad;
+      around.forEach(o=>{ if(!o.stone) return gone.add(o); o.hp-=dmg; if(o.hp<=0) gone.add(o); else { const e=el(o); e.querySelector('.hpb i').style.width=Math.round(o.hp/o.hpMax*100)+'%'; e.classList.remove('hit'); void e.offsetWidth; e.classList.add('hit'); } });
+      const xs=gr.L.map(o=>o.x), ys=gr.L.map(o=>o.y), x0=Math.min(...xs), y0=Math.min(...ys), x1=Math.max(...gr.L.map(o=>o.x+o.w)), y1=Math.max(...gr.L.map(o=>o.y+o.h));
+      const [cx,cy]=XY((x0+x1)/2,(y0+y1)/2);
+      const sh=mk('div','pu-shock'); sh.style.setProperty('--sz',((Math.max(x1-x0,y1-y0)+2*rad)*S.cs)+'px'); place(sh,cx,cy); setTimeout(()=>sh.remove(),460);
+      const nst=around.filter(o=>o.stone&&gone.has(o)).length;
+      addScore((15+gr.L.length*10+Math.round(Math.min(...gr.st.map(o=>o.star.t)))+around.length*4)*S.chain*gr.st.length,cx,cy);
+      banner(`${gr.st.length>1?gr.st.map(o=>nameOf(o.star.n)).join(' ⭐ ')+' → ':''}${nameOf(n)} = ${gr.L.map(o=>o.v).sort((a,b)=>b-a).map(nameOf).join(' + ')}${nst?` · ${nst} pierre${nst>1?'s':''} brisée${nst>1?'s':''}`:''}`,'good');
+      S.nb++; if(S.nb===6){ S.maxT=31; setTimeout(()=>banner('Nouveau : le bloc 16 et des étoiles jusqu\'à 31 !','good'),1700); }
+    }
+    gone.forEach(kill);
+    flash('good'); return true;
+  }
+  // trop de cases : les étoiles et tout leur groupe se pétrifient en pierres grises
+  function stoneGroup(gr,why){
+    ErrLog.add(5,nameOf(gr.n)+' (etoile)',gr.sum+' cases',gr.n);
+    gr.L.forEach(o=>{ o.stone=true; o.star=null; o.hpMax=o.hp=hpOf(o.v); redraw(o); });
+    banner(why,'bad'); shake(); flash('bad');
+  }
+  function petrify(){ const gr=groups().find(g=>g.sum>g.n); if(!gr) return false; stoneGroup(gr,`Trop ! ${nameOf(gr.sum)} > ${nameOf(gr.n)} : pétrifié`); return true; }
+  function step(){ return gravity() || splits() || merges() || blasts() || petrify(); }
+  function misfire(sb){
+    const gr=groups().find(g=>g.st.includes(sb));
+    stoneGroup(gr,`Mèche éteinte : ${nameOf(gr.n)} pétrifié`);
+    G.lives--; hud(); if(G.lives<=0){ G.run=false; setTimeout(gameOver,600); return; }
+    S.phase='resolve'; S.rt=.3; S.chain=0;
+  }
+  // ---- affichage ----
+  function starInfo(b,s){ const st=b.el.querySelector('.star'); if(!st) return; st.classList.toggle('hot',b.star.t<8); b.el.querySelector('.sn').classList.toggle('hot',b.star.t<8); const sg=b.el.querySelector('.sig'); sg.innerHTML=s==null?'':'Σ '+(BIN?binL(s[0]):s[0])+(s[2]>1?' / '+(BIN?binL(s[1]):s[1]):''); sg.hidden=s==null; b.el.querySelector('.fuse').textContent=Math.ceil(b.star.t); }
+  function render(){
+    for(const b of S.B) place(el(b),...XY(b.x,b.y));
+    for(const gr of groups()) gr.st.forEach(o=>starInfo(o,[gr.sum,gr.n,gr.st.length]));
+    if(S.ghost){ S.ghost.remove(); S.ghost=null; }
+    const p=S.p;
+    if(p){
+      place(el(p),...XY(p.x,p.y)); if(p.star) starInfo(p,null);
+      let gy=p.y; while(fitsAt(p,p.x,gy+1)) gy++;
+      if(gy>p.y){ const e=mk('div','pu ghost',''); e.style.width=(p.w*S.cs-4)+'px'; e.style.height=(p.h*S.cs-4)+'px'; place(e,...XY(p.x,gy)); S.ghost=e; }
+    }
   }
   return {
     start(){
-      setKeys('0123456789ABCDEF'.split('').map(c=>({label:c,k:c})).concat([{label:'⌫',k:'BACK',cls:'alt'},{label:'OK',k:'OK',cls:'ok'}]),'Tape la conversion, puis OK');
-      tb=mk('div','timebar'); tb.style.top='6px'; bar=mk('span','',null,tb);
-      clock=mk('div','turbo-clock');
-      qEl=mk('div','l3-q turbo');
-      newQ();
+      setKeys([{label:'◀',k:'ArrowLeft'},{label:'⟳',k:'ArrowUp'},{label:'▶',k:'ArrowRight'},{label:'▼',k:'ArrowDown'},{label:'Lâcher',k:'OK',cls:'ok small',span:2}]);
+      $('#bufrow').hidden=true;
+      S.well=mk('div','pu-well'); S.nextEl=mk('div','pu-next');
+      // au doigt : toucher à gauche / à droite du bloc le déplace, toucher le bloc le tourne, glisser vers le bas le lâche
+      let sy=null, sx=0;
+      stage.onpointerdown=e=>{ if(G.pause||G.tuto) return; const r=stage.getBoundingClientRect(); sy=e.clientY; sx=e.clientX-r.left; };
+      stage.onpointerup=e=>{
+        if(sy==null||G.pause||G.tuto||!S.p) return; const dy=e.clientY-sy; sy=null;
+        if(dy>60) return drop();
+        const l=S.ox+S.p.x*S.cs, r=l+S.p.w*S.cs;
+        if(sx>=l-S.cs*.2 && sx<=r+S.cs*.2) rotate(); else move(sx<l?-1:1);
+        render();
+      };
+      S.next=newPiece(); spawn();
+    },
+    layout(){
+      S.cs=Math.floor(Math.min((W-16)/COLS,(H-14)/ROWS));
+      S.ox=Math.round((W-S.cs*COLS)/2); S.oy=Math.round(H-S.cs*ROWS-6);
+      if(W-S.ox-S.cs*COLS>S.cs*2.2){ S.nextEl.style.right='auto'; S.nextEl.style.left=(S.ox+S.cs*COLS+10)+'px'; }
+      Object.assign(S.well.style,{ left:(S.ox-2)+'px', top:(S.oy-2)+'px', width:(S.cs*COLS+4)+'px', height:(S.cs*ROWS+4)+'px' });
+      S.B.forEach(size); if(S.p) size(S.p); if(S.next) drawNext(); render();
     },
     update(dt){
-      S.t+=dt; S.tl-=dt;
-      bar.style.transform=`scaleX(${clamp(S.tl/60,0,1)})`; tb.classList.toggle('low',S.tl<10);
-      clock.textContent=Math.max(0,Math.ceil(S.tl))+' s';
-      const qw=qEl.offsetWidth, qh=qEl.offsetHeight, sp=1+S.combo*.08;
-      S.x+=S.vx*dt*sp; S.y+=S.vy*dt*sp;
-      if(S.x<0){S.x=0;S.vx=Math.abs(S.vx);} if(S.x>W-qw){S.x=Math.max(0,W-qw);S.vx=-Math.abs(S.vx);}
-      if(S.y<40){S.y=40;S.vy=Math.abs(S.vy);} if(S.y>H-qh-10){S.y=Math.max(40,H-qh-10);S.vy=-Math.abs(S.vy);}
-      qEl.style.transform=`translate(${S.x}px,${S.y}px) rotate(${Math.sin(S.t*2)*4}deg)`;
-      if(S.tl<=0){ G.run=false; setTimeout(gameOver,300); }
+      if(S.over) return;
+      for(const sb of stars()){ sb.star.t-=dt; if(sb.star.t<=0 && S.phase!=='resolve'){ misfire(sb); render(); return; } }
+      if(S.p && S.p.star) S.p.star.t=Math.max(5,S.p.star.t-dt*.5);
+      if(S.phase==='resolve'){
+        S.rt-=dt; if(S.rt>0) return;
+        if(step()){ S.rt=.3; render(); return; }
+        setCombo(0); S.phase='spawn';
+      }
+      if(S.phase==='spawn') spawn();
+      if(S.phase==='fall'){
+        const p=S.p; S.ft+=dt;
+        if(S.ft>=fall()){ S.ft=0; if(fitsAt(p,p.x,p.y+1)) p.y++; else land(); }
+      }
+      render();
     },
-    key(k){ if(k==='OK') fire(); else if(k==='BACK') Buf.back(); else if(k.length===1) Buf.push(k); }
+    key(k){
+      if(k==='ArrowLeft') move(-1); else if(k==='ArrowRight') move(1);
+      else if(k==='ArrowUp') rotate();
+      else if(k==='ArrowDown'){ const p=S.p; if(p&&S.phase==='fall'&&fitsAt(p,p.x,p.y+1)){ p.y++; S.ft=0; addScore(1); } }
+      else if(k==='OK') drop();
+      render();
+    }
   };
 }
 
@@ -1591,7 +1927,6 @@ const TUTOS = [
     { t:'<b>INDICE</b> affiche la réponse sous deux nombres. <b>GEL</b> arrête tout 4 secondes. <b>BOUM</b> détruit les deux nombres les plus proches de la ligne. <b>+1 ♥</b> rend une vie.' },
     { t:'Enchaîne les bonnes réponses pour faire monter le <b>multiplicateur</b> de points (x2, x3…). Les poids des bits sont rappelés en bas : 128, 64, 32, 16, 8, 4, 2, 1.', el:'.weights' },
     { t:'Toutes les '+20+' bonnes réponses, un <b>BOSS</b> arrive : un grand nombre protégé par des petits nombres qui tournent autour. De temps en temps, un satellite <b>fonce</b> vers la ligne ! Détruis les satellites pour briser le bouclier, puis convertis le boss : gros bonus.' },
-    { t:'<b>Aide</b> : pendant que tu tapes, ta réponse est décomposée en bas. Les poids <b>entourés</b> sont les bits à 1, et leur somme s\'affiche. Exemple : 1011 → 8 + 2 + 1 = 11.', el:'.weights' },
     { t:'Atteins <b>'+UNLOCK[1]+' points</b> pour débloquer le niveau 3. Le bouton <b>?</b> relance ce tutoriel, <b>Pause</b> met le jeu en pause. C\'est parti !', el:'#helpbtn' }
   ],
   [ // niveau 3
@@ -1621,9 +1956,16 @@ const TUTOS = [
   ]
 ];
 TUTOS[5] = [
-  { t:'Bravo, tu as trouvé le <b>jeu secret</b> ! 60 secondes, toutes les bases mélangées : binaire, décimal et hexadécimal.', el:'.l3-q' },
-  { t:'Chaque bonne réponse ajoute <b>2 secondes</b> et fait monter le multiplicateur. Une erreur retire <b>3 secondes</b>.', el:'.turbo-clock' },
-  { t:'Regarde bien la base demandée sous le nombre, puis tape ta réponse et <b>OK</b>.', el:'#inputrow' }
+  { t:'Bravo, tu as trouvé le <b>jeu secret</b> ! Le <b>détonateur</b> est une étoile ⭐ fixée sur un bloc qui tombe. Elle porte un nombre.', el:'.pu.starred' },
+  { t:'Chaque bloc a la <b>taille de sa valeur</b> : le 1 occupe 1 case, le 2 occupe 2 cases, le 4 forme un carré de 4 cases, le 8 un rectangle de 8 cases, le 16 un carré 4x4 ou une barre 2x8. Compte les cases !' },
+  { t:'L\'étoile explose quand <b>son bloc</b> et les blocs qui le touchent (de proche en proche) font <b>exactement</b> son nombre de cases. Exemple : étoile 13 sur un bloc 4 : il manque 9 = 8 + 1.' },
+  { t:'Selon le mode, l\'étoile est écrite en décimal et les blocs en binaire (<b>0b</b>100 = 4), ou l\'inverse.' },
+  { t:'Deux blocs <b>identiques</b> côte à côte (ou l\'un sur l\'autre) fusionnent : 1 + 1 = 2, 2 + 2 = 4… C\'est la <b>retenue</b> du binaire : 0b1 + 0b1 = 0b10.' },
+  { t:'Tout tombe : un bloc posé <b>à moitié dans le vide</b> se casse en deux moitiés qui tombent : 4 = 2 + 2, 2 = 1 + 1.' },
+  { t:'Dans l\'étoile, <b>Σ</b> compte les cases déjà réunies. Trop de cases ? Le groupe se <b>pétrifie</b> en <b>pierres grises</b> qui ne comptent plus. La pastille rouge est la <b>mèche</b> : à zéro, le groupe se pétrifie aussi et tu perds une vie.' },
+  { t:'L\'explosion détruit aussi les blocs <b>autour du groupe</b> : au moins 1 case, 2 cases à partir de 16, 3 cases à partir de 32. Chaque pierre a une <b>barre de vie</b> : chaque explosion proche l\'abîme (plus fort si le nombre est grand), et elle se brise quand sa barre est vide. Les grosses pierres résistent plus longtemps.' },
+  { t:'Deux étoiles dans le même groupe <b>additionnent leurs nombres</b> : une étoile 5 et une étoile 9 réunies demandent 14 cases. Plus difficile, mais beaucoup plus de points !' },
+  { t:'◀ ▶ déplacent le bloc, ⟳ change sa forme, ▼ le descend, <b>Lâcher</b> le fait tomber. Au doigt : touche à côté du bloc pour le déplacer, touche le bloc pour le tourner, glisse vers le bas pour le lâcher. Si le puits déborde, la partie s\'arrête.', el:'#keys' }
 ];
 TUTOS[0] = [
   { t:'Voici le nombre à écrire en <b>binaire sur 5 bits</b>. Le compteur indique combien de <b>billes</b> il reste à placer : il y en a juste assez.', el:'.l0-left' },
@@ -1635,11 +1977,12 @@ TUTOS[0] = [
   { t:'Atteins <b>'+UNLOCK[0]+' points</b> pour débloquer le niveau 2, et <b>'+STAR[0]+'</b> pour l\'étoile ★. C\'est parti !', el:'#helpbtn' }
 ];
 TUTOS.l1s = [
-  { t:'<b>Mode sauvetage</b> : un petit animal est coincé en haut ! Aide-le à descendre en construisant un <b>escalier</b>.', el:'.critter' },
+  { t:'<b>Mode sauvetage</b> : ce petit animal a faim ! Construis-lui un <b>escalier</b> pour qu\'il monte jusqu\'au fromage.', el:'.critter' },
+  { t:'Mais le fromage est sur un <b>tapis roulant</b> qui l\'emporte ! S\'il sort de l\'écran avant que l\'animal arrive, un autre fromage revient, mais tu gagnes moins de points.', el:'.cheese' },
   { t:'Des nombres tombent. Ceux qui commencent par <b>0b</b> sont en binaire : écris-les en décimal. Les autres sont en décimal : écris-les en binaire.' },
   { t:'Chaque bonne réponse donne une <b>brique</b>. Ici, tu vois combien il en manque.', el:'.stairinfo' },
-  { t:'Pas de vies à perdre : une erreur ne coûte rien, et un nombre qui tombe fait juste perdre une brique. En bas, l\'<b>aide</b> décompose ce que tu tapes.', el:'.weights' },
-  { t:'Sauve la souris, la chouette et le hérisson ! Les nombres verts donnent des bonus.' }
+  { t:'Pas de vies à perdre : une erreur ne coûte rien, et un nombre qui tombe fait juste perdre une brique. En bas, les poids des bits sont rappelés : 128, 64, 32, 16, 8, 4, 2, 1.', el:'.weights' },
+  { t:'Nourris la souris, la chouette et le hérisson ! Les nombres verts donnent des bonus (le gel arrête aussi le tapis).' }
 ];
 TUTOS.l2u = [
   { t:'<b>Mode unités</b> : ici chaque bille vaut <b>1</b>. Le récipient 16 contient exactement <b>16 billes</b>, le 8 en contient 8, etc. Leur taille montre leur volume.', el:'.vessel' },
@@ -1711,12 +2054,13 @@ const LEVELS = [
   { name:'Les colonnes 16-8-4-2-1', desc:'Remplis les bons récipients pour écrire le nombre en binaire sur 5 bits. Deux modes : une boule par bit, ou une bille par unité.', make:L2 },
   { name:'Le tableau hexa', desc:'Binaire ↔ hexadécimal sur 4 ou 8 bits. Le tableau de conversion s\'enfuit, se salit et attaque.', make:L3 },
   { name:'Pixels et lumières', desc:'Révèle une image codée en hexa, convertis un de ses octets, puis colorie-la en mélangeant les lumières RVB.', make:L4 },
-  { name:'Turbo conversions', desc:'60 secondes, toutes les bases mélangées : binaire, décimal, hexadécimal. Chaque bonne réponse rajoute du temps.', make:L5 }
+  { name:'Détonateurs', desc:'Façon Puyo Puyo : des blocs de 1, 2, 4, 8 cases tombent, une étoile-détonateur est fixée sur l\'un d\'eux. Réunis exactement son nombre de cases ! Les blocs égaux fusionnent (1 + 1 = 10), ceux dans le vide se cassent.', make:L6 }
 ];
 function renderMenu(){
   const ns=nStars();
   $('#stars').innerHTML=`<span class="gold">${'★'.repeat(ns)}</span><span class="dim">${'☆'.repeat(NL-ns)}</span> ${ns} / ${NL} étoiles · ${ns===NL?'le jeu secret est ouvert !':'réunis-les toutes pour ouvrir le jeu secret'}`;
-  $('#levels').innerHTML=LEVELS.map((l,i)=>{
+  const seen=tutoSeen('learn');
+  $('#levels').innerHTML=`<button class="lvcard learn${seen?'':' fresh'}" id="lw-open"><span class="n">0</span><span class="t">Comprendre le binaire</span><span class="d">Tutoriel de démarrage : des billes rangées en paquets de 10, puis de 5, puis de 2. Pourquoi les tas valent 1, 2, 4, 8, 16, et pourquoi l'électronique compte en binaire.</span><span class="b">${seen?'Tutoriel terminé ✓ · à revoir quand tu veux':'Commence par ici !'}</span></button>`+LEVELS.map((l,i)=>{
     const open=unlocked(i), sec=i===SECRET;
     if(sec){
       return `<button class="lvcard secret${open?'':' locked'}" data-i="${i}" ${open?'':'aria-disabled="true"'}><span class="n">${open?'★':'?'}</span><span class="t">${open?l.name:'Jeu secret'}</span><span class="d">${open?l.desc:'Gagne une étoile ★ dans chacun des '+NL+' niveaux pour le découvrir.'}</span><span class="b">${open?'Record : '+best(i):'Étoiles : '+ns+' / '+NL}</span></button>`;
@@ -1725,7 +2069,8 @@ function renderMenu(){
     const info = open ? `Record : ${best(i)} · palier 1 : ${UNLOCK[i]} ${p1?'✓':''} · palier 2 : ${STAR[i]} ${p2?'★':''}` : `Verrouillé : fais ${UNLOCK[i-1]} points au niveau ${i} (record ${best(i-1)})`;
     return `<button class="lvcard${open?'':' locked'}" data-i="${i}" ${open?'':'aria-disabled="true"'}><span class="n">${open?i+1:'🔒'}</span><span class="t">${l.name}${open?`<span class="medal ${p2?'on':''}" aria-label="${p2?'Étoile gagnée':'Étoile à gagner'}">${p2?'★':'☆'}</span>`:''}</span><span class="d">${l.desc}</span><span class="b">${info}</span></button>`;
   }).join('');
-  $('#levels').querySelectorAll('.lvcard').forEach(b=>b.addEventListener('click',()=>{ const i=+b.dataset.i; if(unlocked(i)) startLevel(i); else { b.classList.remove('nope'); void b.offsetWidth; b.classList.add('nope'); } }));
+  $('#levels').querySelectorAll('.lvcard[data-i]').forEach(b=>b.addEventListener('click',()=>{ const i=+b.dataset.i; if(unlocked(i)) startLevel(i); else { b.classList.remove('nope'); void b.offsetWidth; b.classList.add('nope'); } }));
+  $('#lw-open').onclick=()=>Learn.open();
   $('#where').textContent = (Store.tampered ? 'Les records enregistrés avaient été modifiés à la main : ils ont été remis à zéro. ' : '') + (SCORM ? 'Ta progression est enregistrée sur ÉLÉA.' : 'Les records restent sur cet appareil.');
   $('#profbtn').textContent = Store.data.prof ? 'Accès enseignant activé (tout est débloqué) · désactiver' : 'Accès enseignant';
 }
@@ -1737,6 +2082,247 @@ function teacherDialog(){
   const ok=()=>{ if($('#o-code').value.trim().toUpperCase()===TEACHER_CODE){ Store.data.prof=true; Store.save(); hideOverlay(); renderMenu(); } else $('#o-err').textContent='Code incorrect.'; };
   $('#o-ok').onclick=ok; $('#o-cancel').onclick=hideOverlay; $('#o-code').onkeydown=e=>{ if(e.key==='Enter') ok(); }; $('#o-code').focus();
 }
+/* ---------- tutoriel « Comprendre le binaire » (écran à part, hors niveaux) ---------- */
+const Learn=(()=>{
+  const box=$('#learn'), tab=$('#lw-table'), ctl=$('#lw-ctl'), eq=$('#lw-eq');
+  const COLN=['unités','dizaines','centaines','milliers'];
+  const COLOR=['#ffb547','#5ce1e6','#ff6aa8','#6ee7a0','#b69cff','#ff8a5c','#9fd3ff','#ffe066'];
+  const LEDW=[16,8,4,2,1];
+  let st={}, step=0, balls=[], token=0, Q=null;
+  const py=s=>`<span class="py">${s}</span>`;
+  const digitsOf=(n,b,min=1)=>{ const d=[]; do{ d.push(n%b); n=Math.floor(n/b); }while(n>0); while(d.length<min) d.push(0); return d; };
+  const writeIn=(n,b)=>digitsOf(n,b).reverse().join('');
+
+  const STEPS=[
+    { t:'Un tas de billes', N:23, B:10, packed:false, hide:true, ctl:'first',
+      x:'Voici un tas de billes. Combien y en a-t-il ? Les compter une par une, c\'est long et on se trompe vite. L\'astuce utilisée depuis toujours : <b>faire des paquets</b>.' },
+    { t:'Des paquets de 10', N:23, B:10, packed:true, ctl:'pack',
+      x:'On fait des paquets de 10 billes : ici 2 paquets, et il reste 3 billes seules. On range chaque sorte dans sa case : <b>2</b> paquets dans la case des <b>dizaines</b>, <b>3</b> billes dans la case des <b>unités</b>. On écrit les deux chiffres côte à côte : <b>23</b>. Une case ne contient jamais plus de 9 objets : dès qu\'on en a 10, on ferme un paquet qui part dans la case de gauche.' },
+    { t:'Des paquets de paquets', N:134, B:10, packed:true, ctl:'pack',
+      x:'Avec 134 billes, on obtient 13 paquets de 10 : c\'est trop pour une case ! Alors on regroupe <b>10 paquets de 10</b> en un gros paquet de 100, rangé dans la case des <b>centaines</b>. 134 = 1 centaine + 3 dizaines + 4 unités. Chaque case vaut 10 fois celle de droite : 1, 10, 100, 1000…' },
+    { t:'Des tas qui doublent : 1, 2, 4, 8, 16', N:31, B:2, min:5, packed:true, ctl:'double', nobin:true,
+      x:'Et si on faisait des paquets beaucoup plus petits ? Le plus petit paquet possible : 2 billes. Deux billes font un tas de <b>2</b>. Deux tas de 2 font un tas de <b>4</b>. Deux tas de 4 font un tas de <b>8</b>, puis <b>16</b>, 32, 64, 128… Chaque tas vaut <b>le double</b> du précédent. Avec 31 billes, on remplit exactement un tas de chaque taille : 16 + 8 + 4 + 2 + 1. Appuie sur « Voir les tas doubler ».' },
+    { t:'Les cartes 16, 8, 4, 2, 1', ctl:'cards', N:0,
+      x:'Une activité « CS Unplugged » : cinq cartes portent <b>16, 8, 4, 2 et 1 points</b> (chacune le double de la suivante). On montre certaines cartes et on en retourne d\'autres. <b>Pour lire</b> un nombre, on compte les points visibles. <b>Pour écrire</b> un nombre, on part de la plus grande carte : si elle ne dépasse pas ce qu\'il reste, on la montre et on enlève sa valeur ; sinon on la laisse retournée. Touche les cartes, ou regarde un exemple.' },
+    { t:'Le binaire', N:23, B:2, min:5, packed:true, ctl:'pack',
+      x:`Avec des tas qui doublent, chaque case contient <b>0 ou 1</b> tas : deux chiffres suffisent. C'est le <b>binaire</b> (la base 2). 23 = 16 + 4 + 2 + 1 : on écrit 1 dans les cases 16, 4, 2 et 1, et 0 dans la case 8, soit 10111. Mais attention : « 10111 » pourrait aussi se lire « dix mille cent onze » en décimal, ou être un nombre en hexadécimal ! Pour savoir dans quelle base il est écrit, on met devant un petit préfixe, comme en Python : ${py('0b')} pour le <b>binaire</b> (${py('0b10111')}), ${py('0x')} pour l'<b>hexadécimal</b> (base 16, ${py('0x17')}), et rien pour le <b>décimal</b> (23). Ces trois écritures désignent le même nombre de billes.` },
+    { t:'À toi : choisis billes et paquets', N:45, B:2, min:1, packed:true, ctl:'free',
+      x:'Change le nombre de billes, et range-les en paquets de 10 ou en tas de 2. C\'est toujours la même quantité de billes, écrite de deux façons : en décimal et en binaire.' },
+    { t:'Pourquoi l\'électronique compte en binaire', N:23, B:2, min:5, packed:true, ctl:'leds',
+      x:'Dans un circuit électronique, un fil est soit <b>sous tension</b> (par exemple 3,3 V), soit à <b>0 V</b> : allumé ou éteint, <b>1 ou 0</b>. Deux états, c\'est facile à reconnaître même quand la tension tremble un peu (parasites, chaleur, longs fils) ; avec dix niveaux différents, on confondrait vite un 6 et un 7. L\'interrupteur électronique s\'appelle un <b>transistor</b> : un processeur en contient des milliards. Un 0 ou un 1 s\'appelle un <b>bit</b> ; 8 bits forment un <b>octet</b> (de 0 à 255). Touche les lampes : chacune commande un tas de billes.' },
+    { t:'Petit défi', ctl:'quiz', x:'' }
+  ];
+
+  function signalSVG(){
+    // signal logique bruité : on lit 1 au-dessus du seuil, 0 en dessous
+    const bits=[1,0,1,1,0,1,0,0,1], w=520, h=120, hi=28, lo=92, seg=w/bits.length; let pts=[];
+    bits.forEach((b,i)=>{ for(let k=0;k<=12;k++){ const x=i*seg+k*seg/12; pts.push(`${x.toFixed(1)},${((b?hi:lo)+rand(-7,7)).toFixed(1)}`); } });
+    const labels=bits.map((b,i)=>`<text x="${(i+.5)*seg}" y="${b?16:114}" text-anchor="middle" fill="${b?'#ffb547':'#9d96cc'}" font-family="JetBrains Mono,monospace" font-weight="700" font-size="14">${b}</text>`).join('');
+    return `<svg class="lw-sig" viewBox="0 0 ${w} ${h}" role="img" aria-label="Signal électrique bruité lu comme 101101001"><line x1="0" x2="${w}" y1="60" y2="60" stroke="#3a3468" stroke-dasharray="6 5"/><polyline points="${pts.join(' ')}" fill="none" stroke="#5ce1e6" stroke-width="2.5"/>${labels}</svg>`;
+  }
+
+  function ensure(n){
+    while(balls.length<n){ const e=mk('div','lw-ball',null,tab); e.hx=Math.random(); e.hy=Math.random(); balls.push(e); }
+    while(balls.length>n) balls.pop().remove();
+  }
+  function layout(){
+    if(box.hidden || tab.classList.contains('off')) return;
+    const W=tab.clientWidth, H=tab.clientHeight, N=st.N, B=st.B;
+    tab.querySelectorAll('.lw-deco,.lw-q').forEach(e=>e.remove());
+    ensure(N);
+    if(!st.packed){
+      const s=clamp(Math.sqrt(W*H/(N*5)),8,22), R=Math.min(W*.42, s*Math.sqrt(N)*.8+s), Ry=Math.min(H*.4,R);
+      balls.forEach((e,i)=>{ const a=e.hx*Math.PI*2, r=Math.sqrt(e.hy);
+        e.style.width=e.style.height=(s-2)+'px'; e.style.backgroundColor='#9d96cc'; e.style.transitionDelay=(Math.random()*150)+'ms';
+        e.style.transform=`translate(${W/2+Math.cos(a)*r*R-s/2}px,${H/2+Math.sin(a)*r*Ry-s/2}px)`; });
+      if(st.hide) mk('div','lw-q','?',tab);
+      return;
+    }
+    const d=digitsOf(N,B,st.min||1), K=d.length, LB=70, CG=10;
+    const geo=d.map((_,k)=>({ pc:k?B**Math.ceil(k/2):1, pr:k?B**Math.floor(k/2):1 }));
+    let s=24, gap, widths;
+    for(; s>3; s-=.5){
+      gap=Math.max(4,s*.5); widths=geo.map(g=>Math.max(g.pc*s+8,K>=6?36:54));
+      const tw=widths.reduce((a,b)=>a+b,0)+CG*(K-1)+12;
+      const th=Math.max(...geo.map((g,k)=>Math.max(d[k],1)*(g.pr*s)+(Math.max(d[k],1)-1)*gap))+12;
+      if(tw<=W && th<=H-LB) break;
+    }
+    const tw=widths.reduce((a,b)=>a+b,0)+CG*(K-1);
+    let x=(W-tw)/2, bi=0;
+    const floor=H-LB-6;
+    for(let k=K-1;k>=0;k--){
+      const g=geo[k], cw=widths[k], w=B**k, col=COLOR[k%COLOR.length];
+      const band=mk('div','lw-deco lw-band',null,tab); Object.assign(band.style,{left:x+'px',width:cw+'px',height:(H-4)+'px'});
+      const name = B===10 ? (COLN[k]||'×'+w) : K>=6 ? 'de '+w : 'tas de '+w;
+      const lab=mk('div','lw-deco lw-lab',`<b style="color:${col}${B===2?';font-size:18px':''}">${d[k]}</b><span>${name}</span>`,tab); Object.assign(lab.style,{left:x+'px',width:cw+'px'});
+      const pw=g.pc*s, ph=g.pr*s, px=x+(cw-pw)/2;
+      if(!d[k]){ const gh=mk('div','lw-deco lw-pk ghost',pw>=34?'vide':'',tab); Object.assign(gh.style,{left:(px-3)+'px',top:(floor-ph-3)+'px',width:(pw+6)+'px',height:(ph+6)+'px',borderColor:col}); }
+      for(let j=0;j<d[k];j++){
+        const py0=floor-(j+1)*ph-j*gap;
+        if(k>0){ const pk=mk('div','lw-deco lw-pk',null,tab); Object.assign(pk.style,{left:(px-3)+'px',top:(py0-3)+'px',width:(pw+6)+'px',height:(ph+6)+'px',borderColor:col}); }
+        if(k>=2){ // les sous-paquets : un paquet = B paquets de la case de droite
+          for(let m=0;m<B;m++){ const sp=mk('div','lw-deco lw-pk sub',null,tab);
+            const r = k%2 ? {l:px+m*pw/B, t:py0, w:pw/B, h:ph} : {l:px, t:py0+m*ph/B, w:pw, h:ph/B};
+            Object.assign(sp.style,{left:(r.l+1)+'px',top:(r.t+1)+'px',width:(r.w-2)+'px',height:(r.h-2)+'px',borderColor:col}); }
+        }
+        for(let q=0;q<w;q++){
+          const e=balls[bi++]; if(!e) break;
+          let cx, cy;
+          if(k%2 && k>=1){ const sub=g.pr, m=Math.floor(q/(sub*sub)), r=q%(sub*sub); cx=m*sub+r%sub; cy=Math.floor(r/sub); } // remplit sous-paquet par sous-paquet
+          else { cx=q%g.pc; cy=Math.floor(q/g.pc); }
+          e.style.width=e.style.height=(s-2)+'px'; e.style.backgroundColor=col; e.style.transitionDelay=Math.min(bi*5,500)+'ms';
+          e.style.transform=`translate(${px+cx*s+1}px,${py0+cy*s+1}px)`;
+        }
+      }
+      x+=cw+CG;
+    }
+  }
+  function equation(){
+    const {N,B}=st;
+    if(!st.packed){ eq.innerHTML = st.hide ? '? billes' : `${N} billes en vrac`; return; }
+    const d=digitsOf(N,B).reverse(), K=d.length, str=d.join('');
+    const terms=d.map((v,i)=>[v,B**(K-1-i)]).filter(t=>t[0]);
+    if(B===10) eq.innerHTML=`<b>${N}</b> = ${terms.map(t=>t[0]+'×'+t[1]).join(' + ')||'0'}`;
+    else if(B===2) eq.innerHTML=`${N} = ${terms.map(t=>t[1]).join(' + ')||'0'}`+(st.nobin?'':` → ${py('0b'+str)}`);
+    else eq.innerHTML=`${N} = ${terms.map(t=>t[0]+'×'+t[1]).join(' + ')} → s'écrit <b>${str}</b> en base ${B}`;
+  }
+  function draw(){ layout(); equation(); }
+  function ledsHTML(n, live){ return `<div class="lw-leds">${LEDW.map(w=>{ const on=!!(n&w); return `<button class="lw-led${on?' on':''}" data-w="${w}" ${live?'':'disabled'} aria-pressed="${on}" aria-label="Lampe ${w}"><i></i><em>${on?1:0}</em><span>${w}</span></button>`; }).join('')}</div>`; }
+  function bindLeds(root, get, set){
+    root.querySelectorAll('.lw-led').forEach(b=>b.onclick=()=>{ set(get()^+b.dataset.w); });
+  }
+
+  function controls(){
+    const c=st.ctl, my=++token; ctl.innerHTML='';
+    if(c==='first'){
+      ctl.innerHTML=`<button class="btn ok" id="lw-go">Faire des paquets de 10</button>`;
+      $('#lw-go').onclick=()=>go(1);
+    } else if(c==='pack' || c==='double'){
+      ctl.innerHTML=`<button class="btn" id="lw-mix">Mélanger</button>${c==='double'?'<button class="btn ok" id="lw-dbl">▶ Voir les tas doubler</button>':''}`;
+      $('#lw-mix').onclick=()=>{ st.packed=!st.packed; $('#lw-mix').textContent=st.packed?'Mélanger':'Ranger en paquets'; draw(); };
+      if(c==='double') $('#lw-dbl').onclick=()=>{
+        const seq=[1,2,4,8,16,31]; let i=0; st.packed=true; $('#lw-mix').textContent='Mélanger';
+        const tick=()=>{ if(my!==token) return; st.N=seq[i]; st.min=5; draw();
+          if(i<seq.length-1) eq.innerHTML=`un tas de <b>${seq[i]}</b>${i?` = 2 tas de ${seq[i-1]}`:''}`;
+          if(++i<seq.length) setTimeout(tick,1500); };
+        tick();
+      };
+    } else if(c==='base' || c==='free'){
+      ctl.innerHTML=(c==='free'?`<button class="btn" data-d="-10">−10</button><button class="btn" data-d="-1">−1</button><span class="lw-num" id="lw-n">${st.N}</span><button class="btn" data-d="1">+1</button><button class="btn" data-d="10">+10</button>`:'')+
+        `<button class="btn${st.B===10?' ok':''}" data-b="10">Paquets de 10</button><button class="btn${st.B===2?' ok':''}" data-b="2">Tas de 2</button><button class="btn" id="lw-mix">Mélanger</button>`;
+      ctl.querySelectorAll('[data-b]').forEach(b=>b.onclick=()=>{ st.B=+b.dataset.b; st.packed=true; ctl.querySelectorAll('[data-b]').forEach(x=>x.classList.toggle('ok',x===b)); $('#lw-mix').textContent='Mélanger'; draw(); });
+      $('#lw-mix').onclick=()=>{ st.packed=!st.packed; $('#lw-mix').textContent=st.packed?'Mélanger':'Ranger en paquets'; draw(); };
+      ctl.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{ st.N=clamp(st.N+ +b.dataset.d,1,99); $('#lw-n').textContent=st.N; draw(); });
+    } else if(c==='leds'){
+      const paint=()=>{ ctl.innerHTML=ledsHTML(st.N,true)+signalSVG(); bindLeds(ctl,()=>st.N,n=>{ st.N=n; st.packed=true; paint(); draw(); }); };
+      paint();
+    } else if(c==='cards'){ cards(my); }
+    else if(c==='quiz'){ Q={i:0,ok:0}; quiz(); }
+  }
+
+  // cartes binaires façon CS Unplugged : retourner, lire, et conversion pas à pas (la plus grande carte d'abord)
+  function cards(my){
+    let n=0;
+    const dotsOf=w=>{ const c=w>=16?4:w>=4?2:w===2?2:1; return `<span class="dots" style="grid-template-columns:repeat(${c},auto)">${'<i></i>'.repeat(w)}</span>`; };
+    ctl.innerHTML=`<div class="lw-quiz" style="padding:0;width:100%">
+      <div class="lw-cards">${LEDW.map(w=>`<button class="lw-card down" data-w="${w}" aria-label="Carte ${w}"><span class="f">${dotsOf(w)}<b>${w}</b></span><span class="bk"></span></button>`).join('')}</div>
+      <div class="lw-bits" hidden>${LEDW.map(w=>`<span data-w="${w}">0</span>`).join('')}</div>
+      <ul class="lw-log"></ul>
+      <div class="lw-row"><span>Exemples :</span>${[13,22,9,27].map(v=>`<button class="btn" data-ex="${v}">${v}</button>`).join('')}<button class="btn" data-ex="r">Au hasard</button><button class="btn" id="lw-hide">Tout retourner</button></div>
+      <div class="lw-row" id="lw-revrow" hidden><button class="btn ok" id="lw-reveal">Et si on notait les cartes avec des 0 et des 1 ?</button></div></div>`;
+    const log=ctl.querySelector('.lw-log'); let bin=false, flips=0;
+    const ready=()=>{ const r=$('#lw-revrow'); if(r && !bin) r.hidden=false; };
+    const B=v=>bin?` → ${py('0b'+v.toString(2).padStart(5,'0'))}`:'';
+    const paint=()=>{
+      ctl.querySelectorAll('.lw-card').forEach(c=>{ const on=!!(n&+c.dataset.w); c.classList.toggle('down',!on); c.setAttribute('aria-pressed',on); });
+      ctl.querySelectorAll('.lw-bits span').forEach(e=>{ const on=!!(n&+e.dataset.w); e.textContent=on?1:0; e.className=on?'one':'zero'; });
+      const parts=LEDW.filter(w=>n&w);
+      eq.innerHTML = n ? `points visibles : ${parts.join(' + ')} = <b>${n}</b>${B(n)}` : 'toutes les cartes sont retournées : 0 point'+B(0);
+    };
+    let run=0;
+    ctl.querySelectorAll('.lw-card').forEach(c=>c.onclick=()=>{ run++; n^=+c.dataset.w; log.innerHTML=''; paint(); if(++flips>=6) ready(); });
+    $('#lw-reveal').onclick=()=>{ bin=true; ctl.querySelector('.lw-bits').hidden=false; $('#lw-reveal').parentNode.innerHTML='<span>Carte montrée = <b class="gold">1</b>, carte retournée = <b>0</b> : on vient d\'écrire le nombre en <b class="gold">binaire</b> ! Le <span class="py">0b</span> devant indique que c\'est du binaire, pour ne pas le confondre avec un nombre décimal ou hexadécimal.</span>'; paint(); };
+    $('#lw-hide').onclick=()=>{ run++; n=0; log.innerHTML=''; paint(); };
+    ctl.querySelectorAll('[data-ex]').forEach(b=>b.onclick=()=>{
+      const target = b.dataset.ex==='r' ? randi(1,31) : +b.dataset.ex, me=++run;
+      n=0; paint(); let rest=target, i=0;
+      log.innerHTML=`<li>On veut écrire <b>${target}</b> avec les cartes.</li>`;
+      const tick=()=>{
+        if(my!==token || me!==run) return;
+        ctl.querySelectorAll('.lw-card').forEach(c=>c.classList.remove('hl'));
+        if(i>=LEDW.length){ log.insertAdjacentHTML('beforeend',`<li class="on">Il reste 0 : c'est fini ! Cartes montrées : ${LEDW.filter(w=>target&w).join(' + ')} = ${target}${B(target)}</li>`); ready(); return; }
+        const w=LEDW[i++], card=ctl.querySelector(`.lw-card[data-w="${w}"]`); card.classList.add('hl');
+        if(w<=rest){ n|=w; log.insertAdjacentHTML('beforeend',`<li class="on">Carte ${w} : ${w} ≤ ${rest}, on la montre${bin?' (1)':''}. Il reste ${rest} − ${w} = ${rest-w}.</li>`); rest-=w; }
+        else log.insertAdjacentHTML('beforeend',`<li class="off">Carte ${w} : ${w} > ${rest}, trop grande, elle reste retournée${bin?' (0)':''}.</li>`);
+        paint(); setTimeout(tick,1400);
+      };
+      setTimeout(tick,700);
+    });
+    paint();
+  }
+  function quiz(){
+    const QN=4;
+    if(Q.i>=QN){
+      Store.data.tuto.learn=1; Store.save();
+      ctl.innerHTML=`<div class="lw-quiz"><div class="qq">${Q.ok} / ${QN} bonnes réponses${Q.ok===QN?' : parfait !':''}</div>
+        <p>Tu sais maintenant pourquoi les tas valent 1, 2, 4, 8, 16 et comment lire un nombre binaire. À toi de jouer !</p>
+        <div class="row"><button class="btn ok" id="lw-play">Jouer : ${LEVELS[0].name}</button><button class="btn" id="lw-again">Refaire le défi</button><button class="btn" id="lw-back">Menu</button></div></div>`;
+      $('#lw-play').onclick=()=>{ close(); startLevel(0); };
+      $('#lw-again').onclick=()=>{ Q={i:0,ok:0}; quiz(); };
+      $('#lw-back').onclick=close;
+      return;
+    }
+    const n=randi(1,31), read=Q.i%2===0;
+    let cur=0, done=false;
+    const fin=(ok,msg)=>{ if(done) return; done=true; if(ok) Q.ok++;
+      const fb=ctl.querySelector('.fb'); fb.className='fb '+(ok?'good':'bad'); fb.innerHTML=msg;
+      ctl.querySelectorAll('.qa button, #lw-val').forEach(b=>b.disabled=true);
+      const nx=mk('button','btn ok',Q.i+1<QN?'Question suivante':'Voir le résultat',ctl.querySelector('.lw-quiz')); nx.onclick=()=>{ Q.i++; quiz(); }; nx.focus(); };
+    const parts=LEDW.filter(w=>n&w), expl=`${n} = ${parts.length>1?parts.join(' + ')+' = ':''}${py('0b'+n.toString(2))}`;
+    if(read){
+      const opts=new Set([n]); for(const w of shuffle([1,2,4,8,16])){ if(opts.size>=4) break; const m=n^w; if(m>0) opts.add(m); }
+      ctl.innerHTML=`<div class="lw-quiz"><div class="qq">Question ${Q.i+1} : combien de billes représentent ces lampes ?</div>${ledsHTML(n,false)}<div class="row qa">${shuffle([...opts]).map(v=>`<button class="btn" data-v="${v}">${v}</button>`).join('')}</div><div class="fb"></div></div>`;
+      ctl.querySelectorAll('.qa button').forEach(b=>b.onclick=()=>fin(+b.dataset.v===n, (+b.dataset.v===n?'Bravo ! ':'Pas tout à fait. ')+expl));
+    } else {
+      const paint=()=>{ const l=ctl.querySelector('.lw-leds'); l.outerHTML=ledsHTML(cur,!done); bindLeds(ctl,()=>cur,v=>{ if(done) return; cur=v; paint(); }); };
+      ctl.innerHTML=`<div class="lw-quiz"><div class="qq">Question ${Q.i+1} : allume les lampes pour écrire <b>${n}</b></div><div class="lw-leds"></div><div class="row"><button class="btn ok" id="lw-val">Valider</button></div><div class="fb"></div></div>`;
+      paint();
+      $('#lw-val').onclick=()=>{ fin(cur===n, (cur===n?'Bravo ! ':`Tu as allumé ${cur}. `)+expl); paint(); };
+    }
+  }
+
+  function go(i){
+    step=clamp(i,0,STEPS.length-1); const S=STEPS[step];
+    st={ N:S.N, B:S.B, packed:S.packed, hide:S.hide, min:S.min, ctl:S.ctl, nobin:S.nobin };
+    $('#lw-title').textContent=(step+1)+'. '+S.t;
+    $('#lw-text').innerHTML=S.x; $('#lw-text').hidden=!S.x;
+    tab.classList.toggle('off', S.ctl==='quiz' || S.ctl==='cards'); eq.hidden = S.ctl==='quiz';
+    $('#lw-prev').disabled=step===0;
+    $('#lw-next').textContent = step===STEPS.length-1 ? 'Terminer' : 'Suivant ▶';
+    $('#lw-dots').innerHTML=STEPS.map((_,k)=>`<i class="${k<=step?'on':''}"></i>`).join('');
+    controls();
+    if(S.ctl!=='quiz' && S.ctl!=='cards') draw();
+    box.scrollTop=0;
+  }
+  function open(){
+    document.body.classList.remove('paused');
+    $('#menu').hidden=true; $('#app').hidden=true; hideOverlay(); box.hidden=false;
+    go(0);
+  }
+  function close(){ token++; box.hidden=true; toMenu(); }
+  function key(e){
+    if(e.target && e.target.tagName==='INPUT') return;
+    if(e.key==='Escape'){ e.preventDefault(); close(); }
+    else if(e.key==='ArrowRight'){ e.preventDefault(); next(); }
+    else if(e.key==='ArrowLeft'){ e.preventDefault(); if(step>0) go(step-1); }
+  }
+  function next(){ if(step===STEPS.length-1) close(); else go(step+1); }
+  $('#lw-prev').onclick=()=>go(step-1);
+  $('#lw-next').onclick=next;
+  $('#lw-menu').onclick=close;
+  addEventListener('resize',()=>{ if(!box.hidden) layout(); });
+  return { open, close, key, go, get step(){ return step; }, get st(){ return st; } };
+})();
 addEventListener('resize',()=>{ if(G.lv && G.lv.layout) G.lv.layout(); });
 $('#profbtn').addEventListener('click',teacherDialog);
 renderMenu();
