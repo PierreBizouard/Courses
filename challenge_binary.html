@@ -118,10 +118,10 @@ button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 .deadline{position:absolute;left:0;right:0;bottom:50px;height:2px;background:repeating-linear-gradient(90deg,var(--bad) 0 10px,transparent 10px 18px);opacity:.7}
 .weights{position:absolute;left:0;right:0;bottom:4px;display:flex;justify-content:center;gap:4px;font:500 12px var(--f-mono);color:var(--muted);pointer-events:none}
 .weights span{display:flex;flex-direction:column;align-items:center;min-width:32px;padding:1px 0;border:2px solid transparent;border-radius:12px}
-.weights span small{display:none} /* plus d'aide en direct : seuls les poids restent affichés */
 .weights span.on{border-color:var(--amber);color:var(--amber)}
 .weights span.on small{color:var(--amber)}
-.aide{position:absolute;left:0;right:0;bottom:54px;text-align:center;font:700 14px var(--f-mono);color:var(--amber);pointer-events:none;z-index:1}
+.aide{position:absolute;left:0;right:0;bottom:54px;text-align:center;font:700 14px var(--f-mono);color:var(--amber);pointer-events:none;z-index:4;text-shadow:0 1px 3px #000}
+.weights{z-index:4}
 .enemy.boss{padding:8px 16px;border-color:var(--bad);border-width:3px;z-index:11}
 .enemy.boss b{font-size:30px}
 .enemy.boss em{background:var(--bad);color:#fff}
@@ -137,6 +137,8 @@ button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 @keyframes belt{to{background-position:20px 0}}
 .cheese{position:absolute;font-size:28px;line-height:1;transform:translate(-50%,-100%);z-index:3;pointer-events:none}
 .critter.r{transform:translate(-50%,-100%) scaleX(-1)}
+.world{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}
+.belt.l{border-radius:0 6px 6px 0;animation-direction:reverse}
 .bubble{position:absolute;transform:translate(-50%,-100%);z-index:4;pointer-events:none;background:#fff;color:#1a1300;font:700 14px var(--f-body);padding:4px 10px;border-radius:12px;white-space:nowrap}
 .bubble.good{background:var(--good);color:#06210f}
 .critter{position:absolute;font-size:34px;line-height:1;transform:translate(-50%,-100%);z-index:3;pointer-events:none;transition:left .3s,top .3s}
@@ -144,6 +146,9 @@ button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 @keyframes help{to{transform:translate(-50%,-112%) rotate(-8deg)}}
 .stairinfo{position:absolute;text-align:center;font:500 13px var(--f-body);color:var(--muted);z-index:3;pointer-events:none}
 .stairinfo b{color:var(--amber);font:700 16px var(--f-mono)}
+.water{position:absolute;left:0;right:0;bottom:0;height:0;z-index:3;pointer-events:none;background:linear-gradient(rgba(90,170,255,.5),rgba(30,80,200,.72));border-top:3px solid #a8d8ff;box-shadow:0 -4px 12px rgba(120,190,255,.35)}
+.water::before{content:"";position:absolute;left:0;right:0;top:-9px;height:9px;background:radial-gradient(circle at 10px 9px,transparent 7px,#a8d8ff 7px 9px,transparent 9px) 0 0/20px 9px repeat-x;animation:wave 1.2s linear infinite}
+@keyframes wave{to{background-position:20px 0}}
 .enemy.carrier{border-color:var(--good);box-shadow:0 0 18px rgba(110,231,160,.45)}
 .enemy em{display:block;margin:0 auto 2px;padding:1px 6px;width:max-content;border-radius:3px;background:var(--good);color:#06210f;font:700 11px var(--f-display);font-style:normal}
 .bonus{position:absolute;left:0;top:0;transform:translate(-50%,-50%);z-index:20;padding:9px 11px;border:0;border-radius:6px;background:var(--good);color:#06210f;font:700 12px var(--f-display);box-shadow:0 0 18px rgba(110,231,160,.5)}
@@ -266,11 +271,15 @@ button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
   background:radial-gradient(circle,#fff6d0,#ffb547 70%);clip-path:polygon(50% 0,61% 34%,98% 35%,68% 57%,79% 92%,50% 71%,21% 92%,32% 57%,2% 35%,39% 34%);color:#1a1300;z-index:2}
 .pu .sn{position:absolute;left:calc(var(--cs) / 2 - 3px);top:calc(var(--cs) / 2);transform:translate(-50%,-40%);padding:1px 4px;border-radius:6px;background:#1a1300e6;color:#ffd27a;font:700 var(--sf,14px)/1.1 var(--f-mono);white-space:nowrap;z-index:3}
 .pu .sn small{font-size:.6em;opacity:.7}
+.pu .sn.big{font-size:calc(var(--sf,14px) * 1.9);padding:2px 7px;border:2px solid var(--amber);box-shadow:0 0 12px rgba(255,181,71,.7);z-index:4}
 .pu .sig{position:absolute;left:-3px;bottom:-7px;padding:1px 5px;border-radius:7px;background:#1a1300;color:var(--amber);border:1px solid var(--amber);font:700 11px/1.2 var(--f-mono);white-space:nowrap;z-index:3}
 .pu.starred.v1 .t{display:none}
 .pu .star.hot{animation:pulse .35s infinite alternate}
 .pu .fuse{position:absolute;right:-2px;top:-4px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:var(--bad);color:#fff;font:700 10px/18px var(--f-mono);text-align:center;z-index:3}
 .pu.ghost{opacity:.18;z-index:4;transition:none}
+.pu.const{border-color:var(--amber);box-shadow:0 0 10px rgba(255,181,71,.5),inset 0 -4px 0 #0003}
+.pu.const::after{content:"";position:absolute;inset:0;border-radius:6px;pointer-events:none;background-image:radial-gradient(circle,#fff 0 1.2px,transparent 1.8px),radial-gradient(circle,#ffd76a 0 1.6px,transparent 2.3px),radial-gradient(circle,#fff 0 .9px,transparent 1.5px);background-size:17px 19px,23px 21px,13px 15px;background-position:3px 4px,9px 11px,6px 2px;animation:twk 1.6s infinite alternate}
+@keyframes twk{from{opacity:.45}to{opacity:1}}
 .pu.pop{animation:pupop .32s forwards;z-index:9}
 @keyframes pupop{40%{transform:scale(1.35)}100%{transform:scale(0);opacity:0}}
 .pu.merge{animation:pumerge .3s}
@@ -621,18 +630,18 @@ function showOverlay(html){ $('#overcard').innerHTML=html; $('#over').hidden=fal
 function hideOverlay(){ $('#over').hidden=true; }
 // niveaux qui proposent deux façons de jouer (le record est commun)
 const MODES={
-  1:{ list:[['a','Attaque : 3 vies, ça accélère'],['s','Sauvetage : un escalier jusqu\'au fromage, sans perdre de vie']],
-      note:'En mode sauvetage, chaque bonne réponse donne une brique. Construis l\'escalier jusqu\'au fromage avant que le tapis roulant ne l\'emporte !', tag:{s:'[sauvetage] '}, tuto:{s:'l1s'} },
+  1:{ list:[['a','Pression : 3 vies, ça accélère'],['s','Récompense : un escalier jusqu\'au fromage, de passerelle en passerelle, sans perdre de vie'],['m','Pression + Récompense : les passerelles, et l\'eau monte']],
+      note:'En mode récompense, chaque bonne réponse donne une brique. Construis l\'escalier jusqu\'au fromage avant que le tapis roulant ne l\'emporte, puis le suivant, plus haut !', tag:{s:'[récompense] ',m:'[pression + récompense] '}, tuto:{s:'l1s',m:'l1m'} },
   2:{ list:[['b','Boules : une boule = un bit'],['u','Unités : chaque bille vaut 1']],
       note:'En mode unités, le récipient 16 contient exactement 16 billes, le 8 en contient 8…', tag:{u:'[unités] '}, tuto:{u:'l2u'} },
-  5:{ list:[['d','Étoile en décimal, blocs en binaire'],['b','Étoile en binaire, blocs en décimal']],
-      note:'Exemple : une étoile 13 sur un bloc 4 explose quand on lui colle un 8 et un 1.', tag:{b:'[binaire] '}, tuto:{} }
+  5:{ list:[['d','Étoile en décimal, blocs en binaire'],['b','Étoile en binaire, blocs en décimal'],['g','Grand puits : bloc 16 et étoiles jusqu\'à 31 dès le début, petites cases']],
+      note:'Exemple : une étoile 13 sur un bloc 4 explose quand on lui colle un 8 et un 1.', tag:{b:'[binaire] ',g:'[grand puits] '}, tuto:{} }
 };
 function chooseMode(id){
   const M=MODES[id];
   showOverlay(`<h2>${LEVELS[id].name}</h2><p>Choisis ton mode de jeu.</p>
     <div class="row">${M.list.map(([k,t])=>`<button class="btn ok" data-m="${k}">${t}</button>`).join('')}</div>
-    <p class="dim">${M.note} Le record est commun aux deux modes.</p>
+    <p class="dim">${M.note} Le record est commun à tous les modes.</p>
     <div class="row"><button class="btn" id="o-menu">Menu</button></div>`);
   $('#overcard').querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>startLevel(id,b.dataset.m));
   $('#o-menu').onclick=()=>{ hideOverlay(); toMenu(); };
@@ -874,7 +883,8 @@ function L0(){
 function L1(){
   const S={ en:[], bo:[], spawn:0.4, bonus:rand(6,9), wave:1, kills:0, freeze:0, combo:0, rush:1, since:0, boss:null, launch:4 };
   // mode sauvetage : pas de vies, pas de boss ; chaque bonne réponse pose une brique de l'escalier
-  const R = G.mode==='s';
+  const R = G.mode==='s'||G.mode==='m', WATER = G.mode==='m';
+  const TB = 6, SEGN=[2,2,3,3,3,4,4,4];   // secondes par brique avant que l'eau rattrape la souris ; marches de chaque passerelle
   const ANIMALS=[['🐭','la souris',3],['🦉','la chouette',4],['🦔','le hérisson',5]];
   const BOSS_EVERY=20;
   function setRush(v){ S.rush=clamp(v,1,3); const e=stage.querySelector('.rush'); if(e){ e.textContent = S.rush>1.05 ? 'Vitesse ×'+S.rush.toFixed(1) : ''; e.classList.toggle('hot',S.rush>=2); } }
@@ -918,53 +928,95 @@ function L1(){
   }
   const shielded = o => o.boss && S.en.some(e=>e.sat===o);
   function dive(o){ o.sat=null; o.x0=o.tx=o.x; o.amp=0; o.vy=70+S.wave*6; o.el.classList.add('dive'); }
-  // l'escalier part du sol (l'animal est en bas à gauche) et monte jusqu'au tapis roulant où le fromage s'enfuit
-  function stairs(){
-    const A=ANIMALS[S.ri], N=A[2], floor=H-52, sx=52;
-    const bw=Math.min(46,(W-sx-110)/(N+1)), bh=Math.min(28,(H-240)/(N+1));
-    stage.querySelectorAll('.brick,.slot,.belt,.cheese,.critter,.stairinfo,.bubble').forEach(e=>e.remove());
+  // l'escalier part du sol (l'animal est en bas à gauche) et monte jusqu'au tapis roulant où le fromage s'enfuit.
+  // Mode « l'eau monte » : après chaque fromage, la souris repart de la passerelle où elle a mangé et construit
+  // l'escalier suivant, une fois vers la gauche, une fois vers la droite ; la vue remonte avec elle.
+  // Tout est dessiné dans S.world (coordonnées du monde) ; S.cam décale la vue vers le bas quand on monte.
+  const colX=k=>S.dir>0 ? S.geo.sx+k*S.geo.bw : W-S.geo.sx-(k+1)*S.geo.bw;
+  const startX=()=>S.dir>0 ? S.geo.sx/2+4 : W-S.geo.sx/2-4;
+  function stairs(cont){
+    const A=ANIMALS[0], N=SEGN[S.seg], sx=52, nmax=Math.max(...SEGN);
+    const bw=Math.min(46,(W-sx-110)/(nmax+1)), bh=Math.min(28,(H-240)/(nmax+1));
+    if(!S.world) S.world=mk('div','world');
+    if(!cont){ S.world.innerHTML=''; S.base=H-52; S.dir=1; S.cam=0; S.critter=null; }
+    else { S.world.querySelectorAll('.slot,.stairinfo,.bubble').forEach(e=>e.remove()); S.base=S.geo.ly; S.dir=-S.dir; }
     S.slots=[]; S.bricks=[]; S.done=false; S.missed=0; S.anim=null; S.bubT=0;
+    const base=S.base, lx=sx+N*bw, ly=base-N*bh;
+    S.geo={bw,bh,N,sx,lx,ly,base};
     for(let k=0;k<N;k++) for(let r=0;r<=k;r++){
-      const x=sx+k*bw, y=floor-(r+1)*bh; S.slots.push({x,y});
-      const g=mk('div','slot'); g.style.cssText=`left:${x}px;top:${y}px;width:${bw}px;height:${bh}px`;
+      const x=colX(k), y=base-(r+1)*bh; S.slots.push({x,y});
+      const g=mk('div','slot',null,S.world); g.style.cssText=`left:${x}px;top:${y}px;width:${bw}px;height:${bh}px`;
     }
-    const lx=sx+N*bw, ly=floor-N*bh;
-    const B=mk('div','belt'); B.style.cssText=`left:${lx}px;top:${ly}px;width:${W-lx}px`;
-    S.critter=mk('div','critter r',A[0]); S.cpos={x:sx/2+4,y:floor}; place(S.critter,S.cpos.x,S.cpos.y);
-    S.bubble=mk('div','bubble'); S.bubble.hidden=true;
-    S.info=mk('div','stairinfo'); S.info.style.cssText=`left:${lx}px;top:${ly-78}px;width:${W-lx}px`;
-    S.geo={bw,bh,floor,N,sx,lx,ly};
+    const B=mk('div','belt'+(S.dir<0?' l':''),null,S.world); B.style.cssText=S.dir>0?`left:${lx}px;top:${ly}px;width:${W-lx}px`:`left:0;top:${ly}px;width:${W-lx}px`;
+    if(!S.critter){ S.critter=mk('div','critter r',A[0],S.world); }
+    S.critter.classList.toggle('r',S.dir>0);
+    climb();
+    S.bubble=mk('div','bubble',null,S.world); S.bubble.hidden=true;
+    S.info=mk('div','stairinfo',null,S.world); S.info.style.cssText=`left:${S.dir>0?lx:0}px;top:${ly-78}px;width:${W-lx}px`;
     // le fromage traverse le tapis en un temps lié au nombre de briques (il accélère avec le jeu)
-    S.cheeseV=(W-lx)/Math.max(22,S.slots.length*4.5);
+    const need=S.slots.length;
+    S.cheeseV=(W-lx)/Math.max(22,need*4.5);
+    // l'eau : elle reste où elle était (elle ne redescend pas), au plus 2,5 marches sous la souris,
+    // et monte au rythme d'une brique toutes les TB secondes
+    if(WATER){
+      if(!S.water){ S.water=mk('div','water'); S.wy=base+bh*1.2; }
+      S.wy=Math.min(S.wy,base+bh*2.5); S.wv=N*bh/(need*TB); drawWater();
+    }
     newCheese();
     stairInfo();
   }
+  // l'animal se tient sur la dernière colonne complète de l'escalier (ou au départ)
+  function climb(){
+    const {bw,bh,base}=S.geo; let c=0; while((c+1)*(c+2)/2<=S.bricks.length) c++;
+    S.cpos = c ? {x:colX(c-1)+bw/2, y:base-c*bh} : {x:startX(), y:base};
+    place(S.critter,S.cpos.x,S.cpos.y);
+  }
+  function camStep(dt){
+    if(!S.world) return; const t=(H-52)-S.base;
+    S.cam+=(t-S.cam)*Math.min(1,dt*3); if(Math.abs(t-S.cam)<.5) S.cam=t;
+    S.world.style.transform=`translateY(${S.cam}px)`;
+    if(WATER) drawWater();
+  }
+  function drawWater(){ if(S.water) S.water.style.height=Math.max(0,H-(S.wy+S.cam))+'px'; }
+  function waterStep(dt,fz){
+    if(!fz) S.wy-=S.wv*dt;
+    if(S.wy<S.cpos.y-S.geo.bh*.3){
+      // l'eau rattrape la souris : elle emporte 2 briques et redescend un peu
+      const k=Math.min(2,S.bricks.length);
+      for(let i=0;i<k;i++){ const b=S.bricks.pop(); b.style.transition='top .6s ease-in, opacity .6s'; b.style.top=(S.geo.base+H)+'px'; b.style.opacity='0'; setTimeout(()=>b.remove(),650); }
+      climb(); S.floods=(S.floods||0)+1;
+      S.wy=S.cpos.y+S.geo.bh*1.2;
+      say('Glouglou !'); floatTxt(S.cpos.x+(S.dir>0?40:-40),S.cpos.y+S.cam-50,k?`l'eau emporte ${k} brique${k>1?'s':''}`:'plouf !','bad'); flash('bad');
+      stairInfo();
+    }
+  }
   function newCheese(){
     if(S.cheese) S.cheese.el.remove();
-    const el=mk('div','cheese','🧀'); S.cheese={ el, x:S.geo.lx+18 }; place(el,S.cheese.x,S.geo.ly);
+    const el=mk('div','cheese','🧀',S.world); S.cheese={ el, x:S.dir>0?S.geo.lx+18:W-S.geo.lx-18 }; place(el,S.cheese.x,S.geo.ly);
   }
   function say(t,good){ S.bubble.textContent=t; S.bubble.className='bubble'+(good?' good':''); S.bubble.hidden=false; S.bubT=1.8; }
-  function stairInfo(){ const A=ANIMALS[S.ri]; S.info.innerHTML=`Nourris ${A[1]} !<br><b>${S.bricks.length} / ${S.slots.length}</b> briques${S.missed?` · fromages partis : ${S.missed}`:''}`; }
+  function stairInfo(){ const A=ANIMALS[0]; S.info.innerHTML=`Passerelle ${S.seg+1} / ${SEGN.length} : nourris ${A[1]} !<br><b>${S.bricks.length} / ${S.slots.length}</b> briques${S.missed?` · fromages partis : ${S.missed}`:''}`; }
   function addBrick(x,y){
     if(!R || S.done) return;
     const sl=S.slots[S.bricks.length]; if(!sl) return;
-    const b=mk('div','brick'); b.style.cssText=`left:${x-S.geo.bw/2}px;top:${y}px;width:${S.geo.bw}px;height:${S.geo.bh}px`;
+    const b=mk('div','brick',null,S.world); b.style.cssText=`left:${x-S.geo.bw/2}px;top:${y-S.cam}px;width:${S.geo.bw}px;height:${S.geo.bh}px`;
     S.bricks.push(b); void b.offsetWidth; b.style.left=sl.x+'px'; b.style.top=sl.y+'px';
-    stairInfo();
+    stairInfo(); climb();
     if(S.bricks.length===S.slots.length) rescue();
   }
   // animation pilotée par update() : elle s'arrête proprement pendant la pause
   function rescue(){
-    S.done=true; const {bw,bh,floor,N,sx,lx,ly}=S.geo;
-    const path=[]; for(let k=0;k<N;k++) path.push({x:sx+k*bw+bw/2, y:floor-(k+1)*bh}); path.push({x:lx+8, y:ly});
+    S.done=true; const {bw,bh,N,lx,ly,base}=S.geo;
+    const c=Math.round((base-S.cpos.y)/bh);
+    const path=[]; for(let k=c;k<N;k++) path.push({x:colX(k)+bw/2, y:base-(k+1)*bh}); path.push({x:S.dir>0?lx+8:W-lx-8, y:ly});
     S.anim={ path, i:0, t:0 };
   }
   function cheeseStep(dt, fz){
     const c=S.cheese; if(!c) return;
-    if(!fz) c.x+=S.cheeseV*dt*S.rush;
+    if(!fz) c.x+=S.dir*S.cheeseV*dt*S.rush;
     place(c.el,c.x,S.geo.ly);
-    if(c.x>W+20){
-      S.missed++; floatTxt((S.geo.lx+W)/2,S.geo.ly-30,'parti !','bad');
+    if(S.dir>0?c.x>W+20:c.x<-20){
+      S.missed++; floatTxt(S.dir>0?(S.geo.lx+W)/2:(W-S.geo.lx)/2,S.geo.ly+S.cam-30,'parti !','bad');
       say('J\'ai faim !'); newCheese(); stairInfo();
     }
   }
@@ -972,18 +1024,18 @@ function L1(){
     const a=S.anim; a.t+=dt;
     if(a.i<a.path.length){ if(a.t>=.3){ a.t=0; const p=a.path[a.i++]; S.cpos={x:p.x,y:p.y}; place(S.critter,p.x,p.y); } return; }
     if(a.phase==null){ // course sur le tapis jusqu'au fromage
-      const c=S.cheese; S.cpos.x+=Math.min(280*dt, c.x-S.cpos.x); place(S.critter,S.cpos.x,S.geo.ly);
-      if(c.x-S.cpos.x<14){
+      const c=S.cheese, d=c.x-S.cpos.x; S.cpos.x+=Math.sign(d)*Math.min(280*dt,Math.abs(d)); place(S.critter,S.cpos.x,S.geo.ly);
+      if(Math.abs(c.x-S.cpos.x)<14){
         a.phase=1; a.t=0; c.el.remove(); S.cheese=null; say('Miam !',true);
-        const pts=Math.round(60*(S.ri+1)/(1+S.missed));
-        addScore(pts,W/2,H*.35); flash('good'); banner(`Bravo, ${ANIMALS[S.ri][1]} a mangé le fromage !`,'good');
+        const pts=Math.round(40*S.geo.N*(WATER?1.5:1)/(1+S.missed));
+        addScore(pts,W/2,H*.35); flash('good'); banner(`Bravo, ${ANIMALS[0][1]} a mangé le fromage !`,'good');
       }
       return;
     }
     if(a.phase===1 && a.t>=1.6){
       S.anim=null;
-      if(++S.ri>=ANIMALS.length){ banner('Tous les animaux sont rassasiés !','good'); S.endIn=1.2; }
-      else stairs();
+      if(++S.seg>=SEGN.length){ banner(WATER?'Tout en haut, hors de l\'eau : la souris est sauvée !':'Tout en haut : la souris est rassasiée !','good'); S.endIn=1.2; }
+      else { banner('La souris grimpe vers la passerelle suivante'+(WATER?'… et l\'eau monte toujours !':' !'),'good'); stairs(true); }
     }
   }
   function kill(o, good){
@@ -1038,12 +1090,15 @@ function L1(){
       Buf.allowed='0123456789'; Buf.max=8;
       setKeys('0123456789'.split('').map(c=>({label:c,k:c})).concat([{label:'⌫',k:'BACK',cls:'alt'},{label:'OK',k:'OK',cls:'ok'}]), 'Tape la conversion, puis OK');
       mk('div',R?'deadline ground':'deadline'); mk('div','rush');
-      if(R){ $('#lives').style.visibility='hidden'; S.ri=0; measure(); stairs(); }
+      if(R){ $('#lives').style.visibility='hidden'; S.ri=0; S.seg=0; measure(); stairs(); }
       S.wEl=mk('div','weights',[128,64,32,16,8,4,2,1].map(w=>`<span>${w}<small>0</small></span>`).join('')); S.aide=mk('div','aide'); S.lastV=null;
       banner(R ? 'Chaque bonne réponse donne une brique : construis l\'escalier jusqu\'au fromage !' : 'Convertis les nombres avant qu\'ils touchent la ligne rouge');
     },
     update(dt){
       if(R && S.cheese) cheeseStep(dt, S.freeze>0);
+      if(Buf.v!==S.lastV) aide();   // aide en direct : poids allumés + somme
+      if(R) camStep(dt);
+      if(WATER && !S.done && S.geo) waterStep(dt, S.freeze>0);
       if(R && S.bubT>0){ place(S.bubble,clamp(S.cpos.x,52,W-52),S.cpos.y-40); if((S.bubT-=dt)<=0) S.bubble.hidden=true; }
       if(S.anim) animStep(dt);
       if(S.endIn>0 && (S.endIn-=dt)<=0){ gameOver(); return; }
@@ -1690,8 +1745,8 @@ function L4(){
    pierres grises, que seul le souffle d'une explosion voisine peut briser.
    ========================================================= */
 function L6(){
-  const COLS=8, ROWS=14, BIN=G.mode==='b';   // 'd' : étoile en décimal, blocs en binaire · 'b' : l'inverse
-  const S={ B:[], p:null, next:null, ft:0, phase:'spawn', rt:0, chain:0, np:0, nb:0, cs:40, ox:0, oy:0, well:null, nextEl:null, ghost:null, over:false, maxT:15 };
+  const BIG=G.mode==='g', COLS=BIG?12:8, ROWS=BIG?20:14, BIN=G.mode==='b';   // 'd' : étoile en décimal, blocs en binaire · 'b' : l'inverse
+  const S={ B:[], p:null, next:null, ft:0, phase:'spawn', rt:0, chain:0, np:0, nb:0, cs:40, ox:0, oy:0, well:null, nextEl:null, ghost:null, over:false, maxT:BIG?31:15 };
   // formes possibles de chaque valeur (la touche ⟳ passe de l'une à l'autre)
   const SHAPES={1:[[1,1]],2:[[2,1],[1,2]],4:[[2,2]],8:[[4,2],[2,4]],16:[[4,4],[8,2],[2,8]]};
   const fuse=()=>Math.max(30,60-S.nb*1.2);
@@ -1712,14 +1767,31 @@ function L6(){
   function occ(skip){ const g=[...Array(ROWS)].map(()=>Array(COLS).fill(null)); for(const b of S.B){ if(b===skip) continue; for(let y=b.y;y<b.y+b.h;y++) for(let x=b.x;x<b.x+b.w;x++) if(y>=0) g[y][x]=b; } return g; }
   function fitsAt(b,x,y,w=b.w,h=b.h,g=occ(b)){ if(x<0||x+w>COLS||y+h>ROWS) return false; for(let yy=y;yy<y+h;yy++) for(let xx=x;xx<x+w;xx++) if(yy>=0&&g[yy][xx]) return false; return true; }
   function neigh(b,g){ const s=new Set(); for(let y=b.y;y<b.y+b.h;y++) for(let x=b.x;x<b.x+b.w;x++) for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){ const X=x+dx, Y=y+dy; if(X<0||X>=COLS||Y<0||Y>=ROWS) continue; const o=g[Y][X]; if(o&&o!==b) s.add(o); } return s; }
-  // vie d'une pierre : 1 pour un bloc 1, 2 pour un 2, 3 pour un 4, 4 pour un 8, 5 pour un 16
-  const hpOf=v=>1+Math.log2(v);
+    // une pierre a 1 point de vie ; le souffle enlève 1 à 1 case du groupe, 1/2 à 2 cases, 1/3 à 3 cases
+  const hpOf=()=>1;
+  const ring=(o,L)=>Math.min(...L.map(q=>Math.max(0,q.x-(o.x+o.w-1),o.x-(q.x+q.w-1),q.y-(o.y+o.h-1),o.y-(q.y+q.h-1))));
+  let SID=0;
   const stars=()=>S.B.filter(b=>b.star&&!b.stone);
   const starB=()=>stars()[0];
   // groupes : chaque étoile avec les blocs qui la touchent ; deux étoiles dans le même groupe additionnent leurs nombres
   function groups(){
     const g=occ(), out=[], done=new Set();
-    for(const sb of stars()){ if(done.has(sb)) continue; const cl=cluster(sb,g); const st=cl.L.filter(o=>o.star); st.forEach(o=>done.add(o)); out.push({ L:cl.L, sum:cl.sum, st, n:st.reduce((a,o)=>a+o.star.n,0) }); }
+    for(const sb of stars()){ if(done.has(sb)) continue; const cl=cluster(sb,g); const st=cl.L.filter(o=>o.star); st.forEach(o=>done.add(o)); out.push({ L:cl.L, sum:cl.sum, st, n:0 }); }
+    // constellation : les étoiles d'un même groupe partagent un seul nombre (la somme) ;
+    // si le groupe se coupe, chaque morceau garde sa part (deux étoiles qui se séparent : le nombre est divisé par deux)
+    for(const gr of out){
+      const key=gr.st.map(o=>o.star.id).sort((a,b)=>a-b).join('-');
+      if(gr.st.every(o=>o.star.gid===key)){ gr.n=gr.st[0].star.n; continue; }
+      const by={}; gr.st.forEach(o=>{ const k=o.star.gid||String(o.star.id); (by[k]=by[k]||{ n:o.star.n, size:o.star.gs||1, c:0 }).c++; });
+      const parts=Object.values(by); let n=0, cut=null;
+      for(const x of parts){ if(x.c>=x.size) n+=x.n; else { const h=Math.floor(x.n*x.c/x.size); cut=[x.n,h,x.size/x.c]; n+=h; } }
+      n=Math.max(1,n); const t=Math.max(...gr.st.map(o=>o.star.t));
+      gr.st.forEach(o=>Object.assign(o.star,{ n, gid:key, gs:gr.st.length, t }));
+      gr.n=n;
+      if(S.cs&&gr.st[0].el){ const o=gr.st[0], [x,y]=XY(o.x+.5,o.y);
+        if(parts.length>1) floatTxt(x,y,'⭐ '+parts.map(p=>nameOf(p.c<p.size?Math.floor(p.n*p.c/p.size):p.n)).join(' + ⭐ ')+' = '+nameOf(n),'good');
+        else if(cut) floatTxt(x,y,`⭐ ${nameOf(cut[0])} ÷ ${cut[2]} = ${nameOf(cut[1])}`,'bad'); }
+    }
     return out;
   }
   // le groupe de l'étoile : son bloc + tous les blocs qui le touchent, de proche en proche
@@ -1743,7 +1815,7 @@ function L6(){
       const pop=x=>x.toString(2).split('1').length-1, mp=S.nb<3?2:S.nb<8?3:4;
       const b=mkBlock(pick([1,1,2,4])); let n;
       do{ n=randi(b.v+1,S.maxT); }while(pop(n)>mp||pop(n)<2);
-      b.star={ n, t:fuse() }; return b;
+      b.star={ n, t:fuse(), id:++SID }; return b;
     }
     return weight();
   }
@@ -1800,7 +1872,7 @@ function L6(){
       let w=a.w, h=a.h;
       if(a.y===b.y && a.x+a.w===b.x) w*=2; else if(a.x===b.x && a.y+a.h===b.y) h*=2; else continue;
       const v=a.v*2; if(!SHAPES[v].some(([W,H])=>W===w&&H===h)) continue;
-      const eb=el(b); a.v=v; a.w=w; a.h=h; a.star=a.star&&b.star?{ n:a.star.n+b.star.n, t:Math.max(a.star.t,b.star.t) }:a.star||b.star; redraw(a); a.el.classList.add('merge'); place(a.el,...XY(a.x,a.y));
+      const eb=el(b); a.v=v; a.w=w; a.h=h; a.star=a.star&&b.star?{ n:a.star.gid&&a.star.gid===b.star.gid?a.star.n:a.star.n+b.star.n, t:Math.max(a.star.t,b.star.t), id:a.star.id, gid:String(a.star.id), gs:1 }:a.star||b.star; redraw(a); a.el.classList.add('merge'); place(a.el,...XY(a.x,a.y));
       eb.classList.add('pop'); setTimeout(()=>eb.remove(),320); S.B.splice(S.B.indexOf(b),1);
       const [x,y]=XY(a.x+a.w/2,a.y); floatTxt(x,y,BIN?`${v/2} + ${v/2} = ${v}`:`0b${(v/2).toString(2)} + 0b${(v/2).toString(2)} = 0b${v.toString(2)}`,'good'); addScore(2);
       return true;
@@ -1820,15 +1892,14 @@ function L6(){
       gr.L.forEach(o=>gone.add(o));
       const around=S.B.filter(o=>!gone.has(o)&&!(o.star&&!o.stone)&&near(o,gr.L,rad));
       // les pierres perdent des points de vie (plus le nombre est grand, plus le coup est fort) ; les blocs normaux sautent
-      const dmg=rad;
-      around.forEach(o=>{ if(!o.stone) return gone.add(o); o.hp-=dmg; if(o.hp<=0) gone.add(o); else { const e=el(o); e.querySelector('.hpb i').style.width=Math.round(o.hp/o.hpMax*100)+'%'; e.classList.remove('hit'); void e.offsetWidth; e.classList.add('hit'); } });
+      around.forEach(o=>{ if(!o.stone) return gone.add(o); o.hp-=1/Math.max(1,ring(o,gr.L)); if(o.hp<=1e-6) gone.add(o); else { const e=el(o); e.querySelector('.hpb i').style.width=Math.round(o.hp/o.hpMax*100)+'%'; e.classList.remove('hit'); void e.offsetWidth; e.classList.add('hit'); } });
       const xs=gr.L.map(o=>o.x), ys=gr.L.map(o=>o.y), x0=Math.min(...xs), y0=Math.min(...ys), x1=Math.max(...gr.L.map(o=>o.x+o.w)), y1=Math.max(...gr.L.map(o=>o.y+o.h));
       const [cx,cy]=XY((x0+x1)/2,(y0+y1)/2);
       const sh=mk('div','pu-shock'); sh.style.setProperty('--sz',((Math.max(x1-x0,y1-y0)+2*rad)*S.cs)+'px'); place(sh,cx,cy); setTimeout(()=>sh.remove(),460);
       const nst=around.filter(o=>o.stone&&gone.has(o)).length;
       addScore((15+gr.L.length*10+Math.round(Math.min(...gr.st.map(o=>o.star.t)))+around.length*4)*S.chain*gr.st.length,cx,cy);
-      banner(`${gr.st.length>1?gr.st.map(o=>nameOf(o.star.n)).join(' ⭐ ')+' → ':''}${nameOf(n)} = ${gr.L.map(o=>o.v).sort((a,b)=>b-a).map(nameOf).join(' + ')}${nst?` · ${nst} pierre${nst>1?'s':''} brisée${nst>1?'s':''}`:''}`,'good');
-      S.nb++; if(S.nb===6){ S.maxT=31; setTimeout(()=>banner('Nouveau : le bloc 16 et des étoiles jusqu\'à 31 !','good'),1700); }
+      banner(`${gr.st.length>1?gr.st.length+' étoiles liées ⭐ ':''}${nameOf(n)} = ${gr.L.map(o=>o.v).sort((a,b)=>b-a).map(nameOf).join(' + ')}${nst?` · ${nst} pierre${nst>1?'s':''} brisée${nst>1?'s':''}`:''}`,'good');
+      S.nb++; if(S.nb===6&&!BIG){ S.maxT=31; setTimeout(()=>banner('Nouveau : le bloc 16 et des étoiles jusqu\'à 31 !','good'),1700); }
     }
     gone.forEach(kill);
     flash('good'); return true;
@@ -1848,10 +1919,12 @@ function L6(){
     S.phase='resolve'; S.rt=.3; S.chain=0;
   }
   // ---- affichage ----
-  function starInfo(b,s){ const st=b.el.querySelector('.star'); if(!st) return; st.classList.toggle('hot',b.star.t<8); b.el.querySelector('.sn').classList.toggle('hot',b.star.t<8); const sg=b.el.querySelector('.sig'); sg.innerHTML=s==null?'':'Σ '+(BIN?binL(s[0]):s[0])+(s[2]>1?' / '+(BIN?binL(s[1]):s[1]):''); sg.hidden=s==null; b.el.querySelector('.fuse').textContent=Math.ceil(b.star.t); }
+  function starInfo(b,s){ const st=b.el.querySelector('.star'); if(!st) return; st.classList.toggle('hot',b.star.t<8); b.el.querySelector('.sn').classList.toggle('hot',b.star.t<8); b.el.querySelector('.sn').classList.toggle('big',!!(s&&s[2]>1)); { const sn=b.el.querySelector('.sn'), h=BIN?binL(b.star.n):String(b.star.n); if(sn.innerHTML!==h) sn.innerHTML=h; } const sg=b.el.querySelector('.sig'); sg.innerHTML=s==null?'':'Σ '+(BIN?binL(s[0]):s[0])+(s[2]>1?' 🔗':''); sg.hidden=s==null; b.el.querySelector('.fuse').textContent=Math.ceil(b.star.t); }
   function render(){
     for(const b of S.B) place(el(b),...XY(b.x,b.y));
-    for(const gr of groups()) gr.st.forEach(o=>starInfo(o,[gr.sum,gr.n,gr.st.length]));
+    const GR=groups(), cst=new Set(); GR.forEach(gr=>gr.L.forEach(o=>{ if(!o.star) cst.add(o); }));
+    for(const b of S.B) if(b.el) b.el.classList.toggle('const',cst.has(b));
+    for(const gr of GR) gr.st.forEach(o=>starInfo(o,[gr.sum,gr.n,gr.st.length]));
     if(S.ghost){ S.ghost.remove(); S.ghost=null; }
     const p=S.p;
     if(p){
@@ -1925,7 +1998,7 @@ const TUTOS = [
     { t:'<b>Les bonus</b> : certains nombres sont entourés de vert et portent une étiquette. Ils sont <b>plus difficiles</b> (plus de bits). Convertis-les pour gagner le bonus et des points en plus !',
       demo:()=>demoEl('enemy d2b carrier','<em>INDICE</em><b>203</b><small>→ en binaire</small>',W/2,H*.4) },
     { t:'<b>INDICE</b> affiche la réponse sous deux nombres. <b>GEL</b> arrête tout 4 secondes. <b>BOUM</b> détruit les deux nombres les plus proches de la ligne. <b>+1 ♥</b> rend une vie.' },
-    { t:'Enchaîne les bonnes réponses pour faire monter le <b>multiplicateur</b> de points (x2, x3…). Les poids des bits sont rappelés en bas : 128, 64, 32, 16, 8, 4, 2, 1.', el:'.weights' },
+    { t:'Enchaîne les bonnes réponses pour faire monter le <b>multiplicateur</b> de points (x2, x3…). Les poids des bits sont rappelés en bas : 128, 64, 32, 16, 8, 4, 2, 1. Quand tu tapes, les poids des bits à 1 <b>s\'allument</b> et la <b>somme</b> s\'affiche.', el:'.weights' },
     { t:'Toutes les '+20+' bonnes réponses, un <b>BOSS</b> arrive : un grand nombre protégé par des petits nombres qui tournent autour. De temps en temps, un satellite <b>fonce</b> vers la ligne ! Détruis les satellites pour briser le bouclier, puis convertis le boss : gros bonus.' },
     { t:'Atteins <b>'+UNLOCK[1]+' points</b> pour débloquer le niveau 3. Le bouton <b>?</b> relance ce tutoriel, <b>Pause</b> met le jeu en pause. C\'est parti !', el:'#helpbtn' }
   ],
@@ -1962,8 +2035,9 @@ TUTOS[5] = [
   { t:'Selon le mode, l\'étoile est écrite en décimal et les blocs en binaire (<b>0b</b>100 = 4), ou l\'inverse.' },
   { t:'Deux blocs <b>identiques</b> côte à côte (ou l\'un sur l\'autre) fusionnent : 1 + 1 = 2, 2 + 2 = 4… C\'est la <b>retenue</b> du binaire : 0b1 + 0b1 = 0b10.' },
   { t:'Tout tombe : un bloc posé <b>à moitié dans le vide</b> se casse en deux moitiés qui tombent : 4 = 2 + 2, 2 = 1 + 1.' },
+  { t:'Un bloc qui touche une étoile devient <b>constellé</b> ✨ : il fait partie de son groupe. Si <b>deux étoiles</b> touchent le même groupe, leurs nombres <b>s\'additionnent</b> (⭐ 5 + ⭐ 6 = 11) ; si le groupe se coupe en deux, chaque étoile repart avec <b>la moitié</b> (11 ÷ 2 = 5, en binaire on enlève le dernier chiffre).' },
   { t:'Dans l\'étoile, <b>Σ</b> compte les cases déjà réunies. Trop de cases ? Le groupe se <b>pétrifie</b> en <b>pierres grises</b> qui ne comptent plus. La pastille rouge est la <b>mèche</b> : à zéro, le groupe se pétrifie aussi et tu perds une vie.' },
-  { t:'L\'explosion détruit aussi les blocs <b>autour du groupe</b> : au moins 1 case, 2 cases à partir de 16, 3 cases à partir de 32. Chaque pierre a une <b>barre de vie</b> : chaque explosion proche l\'abîme (plus fort si le nombre est grand), et elle se brise quand sa barre est vide. Les grosses pierres résistent plus longtemps.' },
+  { t:'L\'explosion détruit aussi les blocs <b>autour du groupe</b> : au moins 1 case, 2 cases à partir de 16, 3 cases à partir de 32. Une pierre <b>collée</b> au groupe se brise tout de suite ; à <b>2 cases</b>, il faut 2 explosions ; à <b>3 cases</b>, il en faut 3 (sa barre de vie le montre).' },
   { t:'Deux étoiles dans le même groupe <b>additionnent leurs nombres</b> : une étoile 5 et une étoile 9 réunies demandent 14 cases. Plus difficile, mais beaucoup plus de points !' },
   { t:'◀ ▶ déplacent le bloc, ⟳ change sa forme, ▼ le descend, <b>Lâcher</b> le fait tomber. Au doigt : touche à côté du bloc pour le déplacer, touche le bloc pour le tourner, glisse vers le bas pour le lâcher. Si le puits déborde, la partie s\'arrête.', el:'#keys' }
 ];
@@ -1977,13 +2051,16 @@ TUTOS[0] = [
   { t:'Atteins <b>'+UNLOCK[0]+' points</b> pour débloquer le niveau 2, et <b>'+STAR[0]+'</b> pour l\'étoile ★. C\'est parti !', el:'#helpbtn' }
 ];
 TUTOS.l1s = [
-  { t:'<b>Mode sauvetage</b> : ce petit animal a faim ! Construis-lui un <b>escalier</b> pour qu\'il monte jusqu\'au fromage.', el:'.critter' },
+  { t:'<b>Mode récompense</b> : cette petite souris a faim ! Construis-lui un <b>escalier</b> pour qu\'il monte jusqu\'au fromage.', el:'.critter' },
   { t:'Mais le fromage est sur un <b>tapis roulant</b> qui l\'emporte ! S\'il sort de l\'écran avant que l\'animal arrive, un autre fromage revient, mais tu gagnes moins de points.', el:'.cheese' },
   { t:'Des nombres tombent. Ceux qui commencent par <b>0b</b> sont en binaire : écris-les en décimal. Les autres sont en décimal : écris-les en binaire.' },
   { t:'Chaque bonne réponse donne une <b>brique</b>. Ici, tu vois combien il en manque.', el:'.stairinfo' },
   { t:'Pas de vies à perdre : une erreur ne coûte rien, et un nombre qui tombe fait juste perdre une brique. En bas, les poids des bits sont rappelés : 128, 64, 32, 16, 8, 4, 2, 1.', el:'.weights' },
-  { t:'Nourris la souris, la chouette et le hérisson ! Les nombres verts donnent des bonus (le gel arrête aussi le tapis).' }
+  { t:'Quand la souris a mangé, elle repart de sa passerelle : construis l\'escalier suivant, <b>toujours plus haut</b>, jusqu\'à la passerelle '+8+'. Les nombres verts donnent des bonus (le gel arrête aussi le tapis).' }
 ];
+TUTOS.l1m = TUTOS.l1s.slice(0,4).concat([
+  { t:'<b>Attention, l\'eau monte !</b> La souris grimpe sur chaque marche terminée. Si l\'eau la rattrape, elle emporte 2 briques : réponds vite et juste.', el:'.water' },
+  { t:'Quand la souris a mangé, elle repart de sa passerelle et tu construis l\'escalier suivant, <b>toujours plus haut</b>. Le gel arrête l\'eau et le tapis.' }]);
 TUTOS.l2u = [
   { t:'<b>Mode unités</b> : ici chaque bille vaut <b>1</b>. Le récipient 16 contient exactement <b>16 billes</b>, le 8 en contient 8, etc. Leur taille montre leur volume.', el:'.vessel' },
   { t:'Un récipient <b>plein</b> = bit à 1, un récipient <b>vide</b> = bit à 0. À moitié rempli, il ne compte pas : il faut le remplir ou le vider.', el:'.l2-sum' },
