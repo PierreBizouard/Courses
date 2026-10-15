@@ -1,5 +1,7 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Binaire Attack</title>
+<!-- version affichée : à augmenter à chaque mise à jour -->
+<div id="version" style="position:fixed;top:1px;left:50%;transform:translateX(-50%);z-index:99999;font:600 10px/1.4 system-ui,sans-serif;color:#fffc;background:#000a;padding:0 7px;border-radius:0 0 6px 6px;pointer-events:none">v39 · 15/10/2026</div>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=JetBrains+Mono:wght@500;700&family=Atkinson+Hyperlegible:wght@400;700&family=Press+Start+2P&display=swap">
@@ -550,7 +552,11 @@ const ErrLog={
 };
 if(Store.tampered){ ErrLog.add(0,'records modifies a la main','modifies','remis a zero'); Store.save(); }
 function best(id){ return Store.data.best[id]||0; }
-function saveBest(id,v){ if(v>best(id)){ Store.data.best[id]=v; } Store.save(); }
+function saveBest(id,v){ if(v>best(id)){ Store.data.best[id]=v; }
+  // record par mode (affiché sur l'accueil ; jamais plus haut que le record général, qui est scellé)
+  if(MODES[id] && G.mode){ const bm=Store.data.bm||(Store.data.bm={}), k=id+G.mode; if(v>(bm[k]||0)) bm[k]=v; }
+  Store.save(); }
+function modeBests(id){ const M=MODES[id]; if(!M) return ''; const bm=Store.data.bm||{}; return '<br>Par mode : '+M.list.map(([k])=>`<span style="white-space:nowrap">${M.short[k]} : ${Math.min(bm[id+k]||0,best(id))}</span>`).join(' · '); }
 function hasStar(i){ return best(i)>=STAR[i]; }
 function nStars(){ return STAR.filter((x,i)=>hasStar(i)).length; }
 function unlocked(i){ return i===0 || Store.data.prof || (i===SECRET ? nStars()===NL : best(i-1)>=UNLOCK[i-1]); }
@@ -631,17 +637,17 @@ function hideOverlay(){ $('#over').hidden=true; }
 // niveaux qui proposent deux façons de jouer (le record est commun)
 const MODES={
   1:{ list:[['a','Pression : 3 vies, ça accélère'],['s','Récompense : un escalier jusqu\'au fromage, de passerelle en passerelle, sans perdre de vie'],['m','Pression + Récompense : les passerelles, et l\'eau monte']],
-      note:'En mode récompense, chaque bonne réponse donne une brique. Construis l\'escalier jusqu\'au fromage avant que le tapis roulant ne l\'emporte, puis le suivant, plus haut !', tag:{s:'[récompense] ',m:'[pression + récompense] '}, tuto:{s:'l1s',m:'l1m'} },
+      note:'En mode récompense, chaque bonne réponse donne une brique. Construis l\'escalier jusqu\'au fromage avant que le tapis roulant ne l\'emporte, puis le suivant, plus haut !', short:{a:'Pression',s:'Récompense',m:'Pression + Récompense'}, tag:{s:'[récompense] ',m:'[pression + récompense] '}, tuto:{s:'l1s',m:'l1m'} },
   2:{ list:[['b','Boules : une boule = un bit'],['u','Unités : chaque bille vaut 1']],
-      note:'En mode unités, le récipient 16 contient exactement 16 billes, le 8 en contient 8…', tag:{u:'[unités] '}, tuto:{u:'l2u'} },
+      note:'En mode unités, le récipient 16 contient exactement 16 billes, le 8 en contient 8…', short:{b:'Boules',u:'Unités'}, tag:{u:'[unités] '}, tuto:{u:'l2u'} },
   5:{ list:[['d','Étoile en décimal, blocs en binaire'],['b','Étoile en binaire, blocs en décimal'],['g','Grand puits : bloc 16 et étoiles jusqu\'à 31 dès le début, petites cases']],
-      note:'Exemple : une étoile 13 sur un bloc 4 explose quand on lui colle un 8 et un 1.', tag:{b:'[binaire] ',g:'[grand puits] '}, tuto:{} }
+      note:'Exemple : une étoile 13 sur un bloc 4 explose quand on lui colle un 8 et un 1.', short:{d:'Décimal',b:'Binaire',g:'Grand puits'}, tag:{b:'[binaire] ',g:'[grand puits] '}, tuto:{} }
 };
 function chooseMode(id){
   const M=MODES[id];
   showOverlay(`<h2>${LEVELS[id].name}</h2><p>Choisis ton mode de jeu.</p>
     <div class="row">${M.list.map(([k,t])=>`<button class="btn ok" data-m="${k}">${t}</button>`).join('')}</div>
-    <p class="dim">${M.note} Le record est commun à tous les modes.</p>
+    <p class="dim">${M.note} Le record général compte tous les modes ; chaque mode a aussi son propre record.</p>
     <div class="row"><button class="btn" id="o-menu">Menu</button></div>`);
   $('#overcard').querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>startLevel(id,b.dataset.m));
   $('#o-menu').onclick=()=>{ hideOverlay(); toMenu(); };
@@ -709,7 +715,7 @@ function gameOver(){
     Store.save();
   }
   showOverlay(`<h2>Partie terminée</h2><div class="big">${digits(G.score)}</div>
-    <p>${rec ? 'Nouveau record !' : 'Record : '+top}</p><p>${msg}</p>${tmsg}
+    <p>${rec ? 'Nouveau record !' : 'Record : '+top}${MODES[id]&&G.mode?` · record du mode ${MODES[id].short[G.mode]} : ${Math.min((Store.data.bm||{})[id+G.mode]||0,top)}`:''}</p><p>${msg}</p>${tmsg}
     <div class="row"><button class="btn ok" id="o-again">Rejouer</button>
     ${id<NL-1 && unlocked(id+1) ? '<button class="btn" id="o-next">Niveau suivant</button>' : ''}
     ${id!==SECRET && unlocked(SECRET) && nStars()===NL ? '<button class="btn" id="o-secret">Jeu secret</button>' : ''}
@@ -2140,10 +2146,10 @@ function renderMenu(){
   $('#levels').innerHTML=`<button class="lvcard learn${seen?'':' fresh'}" id="lw-open"><span class="n">0</span><span class="t">Comprendre le binaire</span><span class="d">Tutoriel de démarrage : des billes rangées en paquets de 10, puis de 5, puis de 2. Pourquoi les tas valent 1, 2, 4, 8, 16, et pourquoi l'électronique compte en binaire.</span><span class="b">${seen?'Tutoriel terminé ✓ · à revoir quand tu veux':'Commence par ici !'}</span></button>`+LEVELS.map((l,i)=>{
     const open=unlocked(i), sec=i===SECRET;
     if(sec){
-      return `<button class="lvcard secret${open?'':' locked'}" data-i="${i}" ${open?'':'aria-disabled="true"'}><span class="n">${open?'★':'?'}</span><span class="t">${open?l.name:'Jeu secret'}</span><span class="d">${open?l.desc:'Gagne une étoile ★ dans chacun des '+NL+' niveaux pour le découvrir.'}</span><span class="b">${open?'Record : '+best(i):'Étoiles : '+ns+' / '+NL}</span></button>`;
+      return `<button class="lvcard secret${open?'':' locked'}" data-i="${i}" ${open?'':'aria-disabled="true"'}><span class="n">${open?'★':'?'}</span><span class="t">${open?l.name:'Jeu secret'}</span><span class="d">${open?l.desc:'Gagne une étoile ★ dans chacun des '+NL+' niveaux pour le découvrir.'}</span><span class="b">${open?'Record : '+best(i)+modeBests(i):'Étoiles : '+ns+' / '+NL}</span></button>`;
     }
     const p1=best(i)>=UNLOCK[i], p2=hasStar(i);
-    const info = open ? `Record : ${best(i)} · palier 1 : ${UNLOCK[i]} ${p1?'✓':''} · palier 2 : ${STAR[i]} ${p2?'★':''}` : `Verrouillé : fais ${UNLOCK[i-1]} points au niveau ${i} (record ${best(i-1)})`;
+    const info = open ? `Record : ${best(i)}${modeBests(i)}<br>palier 1 : ${UNLOCK[i]} ${p1?'✓':''} · palier 2 : ${STAR[i]} ${p2?'★':''}` : `Verrouillé : fais ${UNLOCK[i-1]} points au niveau ${i} (record ${best(i-1)})`;
     return `<button class="lvcard${open?'':' locked'}" data-i="${i}" ${open?'':'aria-disabled="true"'}><span class="n">${open?i+1:'🔒'}</span><span class="t">${l.name}${open?`<span class="medal ${p2?'on':''}" aria-label="${p2?'Étoile gagnée':'Étoile à gagner'}">${p2?'★':'☆'}</span>`:''}</span><span class="d">${l.desc}</span><span class="b">${info}</span></button>`;
   }).join('');
   $('#levels').querySelectorAll('.lvcard[data-i]').forEach(b=>b.addEventListener('click',()=>{ const i=+b.dataset.i; if(unlocked(i)) startLevel(i); else { b.classList.remove('nope'); void b.offsetWidth; b.classList.add('nope'); } }));
