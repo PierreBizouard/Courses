@@ -1,7 +1,8 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
 <title>S1 · Techno Survivor</title>
 <!-- version affichée : à augmenter à chaque mise à jour -->
-<div id="version" style="position:fixed;top:1px;left:50%;transform:translateX(-50%);z-index:99999;font:600 10px/1.4 system-ui,sans-serif;color:#fffc;background:#000a;padding:0 7px;border-radius:0 0 6px 6px;pointer-events:none">v18 · 15/10/2026</div>
+<div id="version" style="position:fixed;top:1px;left:50%;transform:translateX(-50%);z-index:99999;font:600 10px/1.4 system-ui,sans-serif;color:#fffc;background:#000a;padding:0 7px;border-radius:0 0 6px 6px;pointer-events:none">v20 · 10/11/2026</div>
 <!-- plein écran (si le navigateur ou ÉLÉA l'autorise) -->
 <button id="fsbtn" type="button" title="Plein écran" aria-label="Plein écran" style="position:fixed;top:1px;left:calc(50% + 62px);z-index:99999;font:600 10px/1.4 system-ui,sans-serif;color:#fffc;background:#000a;border:0;padding:0 7px;border-radius:0 0 6px 6px;cursor:pointer" hidden>⛶ plein écran</button>
 <script>(function(){ var b=document.getElementById('fsbtn'), d=document, e=d.documentElement;
@@ -436,6 +437,46 @@ textarea{width:100%;min-height:64px;padding:10px;background:var(--deep);color:va
 .notes .q{color:var(--muted);font-size:14px}
 @media (max-width:640px){ .lkwrap{grid-template-columns:1fr} .phone{height:300px} .feedwrap{grid-template-columns:1fr} .bb{grid-template-columns:1fr;justify-items:center} }
 @media (prefers-reduced-motion:reduce){ .blood i::after,.wrench,.pk.wait{animation:none!important} }
+
+/* boucle de dopamine : définition, chasse à la boucle, mission maison, fiche */
+.bcdef{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:center}
+.bcdef ul{margin:6px 0;padding-left:20px} .bcdef li{margin:3px 0}
+.bcring{display:grid;grid-template-columns:1fr 24px 1fr;grid-template-rows:auto 24px auto;gap:2px;align-items:center;text-align:center}
+.bcring .st{background:var(--deep);border:2px solid var(--line);border-radius:10px;padding:6px;font-size:12.5px;line-height:1.25}
+.bcring .st b{display:block;font-size:14px}
+.bcring .ar{font:700 18px var(--f-mono);color:var(--muted)} .bcring .mid{font-size:20px}
+.st.k0,.btn.k0,.bcres .k0{border-color:var(--cyan)} .st.k1,.btn.k1,.bcres .k1{border-color:var(--amber)} .st.k2,.btn.k2,.bcres .k2{border-color:var(--good)} .st.k3,.btn.k3,.bcres .k3{border-color:var(--pink)} .btn.k4,.bcres .k4{border-color:#c9c4ff}
+.bctime{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin:6px 0 8px}
+.bctime i{display:block;height:100%;background:var(--amber);width:100%}
+.bcard{min-height:160px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;background:var(--deep);border:2px solid var(--line);border-radius:14px;padding:14px;transition:background .2s,border-color .2s}
+.bcard .app{font:700 12px var(--f-mono);color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.bcard .em{font-size:46px;line-height:1} .bcard .tx{font-size:18px;font-weight:700;max-width:34ch}
+.bcard.good{border-color:var(--good);background:#123326} .bcard.bad{border-color:var(--bad);background:#3a1220}
+.bcbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.bcbtns .btn{min-height:58px;font-size:15px;border-width:2px 2px 4px}
+.bcbtns .btn:last-child{grid-column:span 2}
+.bcbtns .btn.right{background:var(--good);color:var(--ink);opacity:1} .bcbtns .btn.wrongk{background:var(--bad);color:#fff;opacity:1}
+.bcbtns .ke{font-size:20px}
+.bccombo{color:var(--amber)}
+.bcres{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;margin:8px 0}
+.bcres span{border:2px solid var(--line);border-radius:10px;padding:6px;text-align:center;font-size:13px} .bcres b{display:block;font:700 16px var(--f-mono)}
+.bcform h3{margin:0 0 6px}
+.bcform label{display:block;font-weight:700;margin:10px 0 4px}
+.bcform input:not([type=checkbox]),.bcform textarea{width:100%;padding:9px;border-radius:8px;border:1px solid var(--line);background:var(--deep);color:var(--fg);font:15px var(--f-body)}
+.bcform input[type=range]{padding:0;accent-color:var(--amber)}
+.bcform textarea{min-height:60px;resize:vertical}
+.bcnum{display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:6px;align-items:center;font-size:14px}
+.bcpills{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0}
+.bcpills button{padding:6px 10px;border-radius:16px;border:1px solid var(--line);background:var(--deep);color:var(--fg);font:600 13px var(--f-body);cursor:pointer}
+.bcpills button.on{background:var(--amber);color:var(--ink);border-color:var(--amber)}
+.bcchk label{font-weight:400;display:flex;gap:8px;align-items:flex-start;margin:6px 0} .bcchk input{width:20px;height:20px;flex:none;accent-color:var(--amber)}
+.bcbad{display:flex;flex-wrap:wrap;gap:6px} .bcbad span{padding:5px 10px;border-radius:16px;border:1px dashed var(--line);color:var(--muted);font:700 13px var(--f-body)}
+.bcbad span.on{border:1px solid var(--good);color:var(--ink);background:var(--good)}
+.bcprev{background:#fff;color:#000;border-radius:10px;padding:14px;margin-top:12px;overflow-x:auto}
+.bcpre{white-space:pre-wrap;font:13px/1.4 var(--f-body);background:var(--deep);border:1px solid var(--line);border-radius:10px;padding:10px}
+#printzone{display:none}
+@media print{ body>*{display:none!important} body>#printzone{display:block!important} html,body{background:#fff!important;color:#000!important} }
+@media (max-width:640px){ .bcdef{grid-template-columns:1fr} .bcnum{grid-template-columns:1.3fr 1fr 1fr;font-size:13px} .bcard .tx{font-size:16px} .bcprev{padding:8px} }
 </style>
 
 <div id="wrap">
@@ -475,6 +516,7 @@ function save(){
     if(SCORM){
       // la question n'est pas gardée (elle est dans le jeu) : suspend_data reste petit
       const slim={ pts:D.pts, best:D.best, prof:D.prof, disc:{} };
+      if(D.mission){ slim.mission={}; for(const k in D.mission) slim.mission[k]=Array.isArray(D.mission[k])?D.mission[k]:String(D.mission[k]).slice(0,160); }
       for(const k in D.disc){ const d=D.disc[k]; slim.disc[k]={ pick:String(d.pick||'').slice(0,120), got:d.got, ok:d.ok, txt:String(d.txt||'').slice(0,300) }; }
       SCORM.LMSSetValue('cmi.suspend_data',JSON.stringify(slim));
       const n=GAMES.filter(g=>D.disc[g[0]]).length, pct=Math.round(n*100/GAMES.length);
@@ -2258,14 +2300,14 @@ const DOPA={
   top:[['🔥','Une vidéo INCROYABLE'],['💘','Ton crush a liké ta photo !'],['🏆','Badge rare débloqué !'],['🤯','Le secret du prochain épisode'],['🎟️','Places de concert gagnées !'],['🎓','Parcoursup : un « oui » !']]
 };
 const DRV={ bof:0, bien:1, top:3 };
-function gDopa(){
-  head('🧠','La boucle de dopamine','Fais défiler ton fil. À côté, un cerveau simulé montre ta <b>dopamine</b>, la molécule de l\'envie. Observe quand elle monte… et quand elle chute.');
+function dopaFeed(){
+  head('🧪','L\'expérience du fil','Fais défiler ton fil. À côté, un cerveau simulé montre ta <b>dopamine</b>, la molécule de l\'envie. Observe quand elle monte… et quand elle chute.');
   mk('div','hud','<span id="dp-ph"></span><span id="dp-n"></span>',main);
   mk('div','dpwrap',`<div><div class="dpphone"><div class="dpnotif" id="dp-not" hidden>🔔 <b>3</b></div><div class="dppost" id="dp-post"></div></div>
       <div class="row" style="margin-top:8px"><button class="btn ok dpgo" id="dp-go">Suivant ▶</button><button class="btn" id="dp-stop" hidden>J'arrête</button></div></div>
     <div class="dpbrain"><div class="dpt">🧠 Dopamine</div><svg id="dp-c" viewBox="0 0 300 120" aria-label="Courbe de dopamine"></svg>
       <div class="dpt" style="margin-top:6px">🤤 Envie de continuer</div><div class="dpg"><i id="dp-e"></i></div>
-      <div class="dploop" id="dp-loop"><span data-k="0">🔔 Déclencheur</span><span data-k="1">👆 Action</span><span data-k="2">🎁 Récompense</span><span data-k="3">🤤 Envie</span></div>
+      <div class="dploop" id="dp-loop"><span data-k="0">🔔 Déclencheur</span><span data-k="1">👆 Action</span><span data-k="2">🎁 Récompense</span><span data-k="3">🔁 Relance</span></div>
       <p class="lead" id="dp-m" style="margin:6px 0 0;font-size:13px"></p></div>`,main);
   const z=mk('div',null,null,main);
   // phase 1 : récompense prévisible (bof, bof, SUPER…) ; phase 2 : récompense imprévisible
@@ -2327,19 +2369,21 @@ function gDopa(){
       <ul><li>Fil prévisible : surprise moyenne à la fin <b>${a1.toFixed(1)}</b>. Fil imprévisible : <b>${a2.toFixed(1)}</b>, ${a2>a1*1.5?'beaucoup plus':'plus'} : le cerveau n'arrive jamais à prévoir, donc il reste en alerte.</li>
       <li>Tu as fait défiler <b>${S.n2} posts</b> dans la phase 2${S.nots?`, et tu as touché <b>${S.nots} notification${S.nots>1?'s':''}</b> 🔔`:''}.</li>
       <li>Après chaque post décevant, la dopamine tombait <b>sous la normale</b> : un petit manque, qui donne envie… du post suivant.</li></ul>
-      <div class="dploop big"><span>🔔 <b>Déclencheur</b><br>notification, ennui, pouce sur l'écran</span><span>👆 <b>Action</b><br>faire défiler, ouvrir l'appli</span><span>🎁 <b>Récompense imprévisible</b><br>parfois super, souvent bof</span><span>🤤 <b>Envie</b><br>la dopamine pousse à recommencer</span></div>
+      ${bcRing(true)}
       <h3 style="margin:12px 0 6px">Ce que disent les chercheurs</h3>
       <ul><li>Wolfram Schultz (1997) a mesuré les neurones à dopamine de singes : ils s'activent pour une récompense <b>inattendue</b>, puis, une fois qu'elle est prévisible, pour le <b>signal</b> qui l'annonce. Si la récompense attendue ne vient pas, leur activité chute. C'est l'« erreur de prédiction ».</li>
       <li>La dopamine n'est pas la molécule du plaisir mais celle de l'<b>envie</b> et de l'apprentissage : elle pousse à chercher.</li>
       <li>Les récompenses imprévisibles (machines à sous, défilement infini, likes) sont celles qui font le plus recommencer (Skinner, voir l'épreuve des likes).</li>
       <li>Nuance : parler d'« addiction » aux écrans fait débat. L'effet moyen des écrans sur le bien-être des ados mesuré par les études est faible (Orben et Przybylski, 2019) ; tout dépend de l'usage.</li></ul>
       <p><b>Casser la boucle</b> : couper le déclencheur (notifications), rendre l'action moins facile (se déconnecter, appli hors de l'écran d'accueil), mettre une fin (minuteur, pas de défilement infini).</p>
-      <div class="row"><button class="btn ok" id="dp-d">Noter ma découverte</button></div>`,z);
+      <p>🎯 Ensuite, dans le menu de l'épreuve : la <b>chasse à la boucle</b>, puis la <b>mission maison</b> pour la repérer dans tes applis.</p>
+      <div class="row"><button class="btn ok" id="dp-d">Noter ma découverte</button><button class="btn" id="dp-h">🧠 Menu de l'épreuve</button></div>`,z);
+    $('#dp-h').onclick=gDopa;
     $('#dp-d').onclick=()=>{ $('#dp-d').parentNode.remove(); discovery('dopa','Pourquoi a-t-on du mal à arrêter de faire défiler un fil ?',[
       'Parce que les récompenses imprévisibles entretiennent l\'envie : la dopamine pousse à chercher la prochaine',
       'Parce que chaque post fait toujours autant plaisir',
       'Parce que le téléphone nous empêche physiquement d\'arrêter'],0,
-      'La dopamine réagit à la <b>surprise</b> : quand on ne peut pas prévoir si le prochain post sera super, chaque post décevant crée un petit manque et chaque bon post un pic. Déclencheur → action → récompense imprévisible → envie : c\'est une boucle.'); };
+      'La dopamine réagit à la <b>surprise</b> : quand on ne peut pas prévoir si le prochain post sera super, chaque post décevant crée un petit manque et chaque bon post un pic. Déclencheur → action → récompense imprévisible → relance : c\'est une boucle.'); };
   }
   $('#dp-go').onclick=()=>next(false);
   $('#dp-stop').onclick=finish;
@@ -2630,14 +2674,14 @@ const FLV=[
     tags:{fr:['🇫🇷 France'],kg:['⚖️ lourd','⚖️ léger'],he:['🌍 hors Europe'],fg:['🥚 fragile'],rg:['🟥 rouge']},
     it:[['📦','Lyon, 2 kg',{fr:1},1],['📦','Lille, 12 kg',{fr:1,kg:1},0],['📦','Berlin, 3 kg',{},3],['📦','Tokyo, 8 kg',{he:1,kg:1},2],['📦','Madrid, 20 kg',{kg:1,rg:1},3],['📦','Brest, 1 kg',{fr:1,fg:1},1],
       ['📦','Nantes, 7 kg',{fr:1,kg:1,fg:1},0],['📦','New York, 1 kg',{he:1,rg:1},2],['📦','Rome, 4 kg',{fg:1},3],['📦','Dakar, 6 kg',{he:1,kg:1,fg:1},2],['📦','Paris, 3 kg',{fr:1,rg:1},1],['📦','Montréal, 2 kg',{he:1},2]] },
-  { e:'🕵️', t:'Le détecteur de fausses infos', story:'Dernier défi : 12 infos circulent. Trie-les en Fiable, Fausse info ou À vérifier. Peut-on tout trier avec des filtres ?',
-    tree:{g:0,yes:{leaf:0},no:{g:1,yes:{leaf:1},no:{leaf:2}}}, goal:8,
+  { e:'🕵️', t:'Le détecteur de fausses infos', story:'Dernier défi : 12 infos circulent. Trie-les en Fiable, Fausse info ou À vérifier. Peut-on tout trier avec des filtres ? Attention aux indices trompeurs.',
+    tree:{g:0,yes:{leaf:0},no:{g:1,yes:{leaf:1},no:{leaf:2}}}, goal:9,
     bins:[['✅','Fiable'],['❌','Fausse info'],['🔎','À vérifier par un humain']],
-    conds:[['src','📰 Source connue ?'],['maj','🔠 Titre en MAJUSCULES ?'],['img','🖼️ Avec une image ?'],['vir','🔥 Très partagée ?']],
-    tags:{src:['📰 source connue','❔ source inconnue'],maj:['🔠 MAJUSCULES'],img:['🖼️ image'],vir:['🔥 virale']},
-    it:[['🌡️','Météo : canicule annoncée',{src:1,img:1},0],['👽','DES ALIENS À MARSEILLE',{maj:1,img:1,vir:1},1],['🎓','Parcoursup : dates officielles',{src:1},0],['🦈','REQUIN DANS LA SEINE',{maj:1,vir:1},1],
-      ['🧪','Une étude dit que le chocolat rend intelligent',{vir:1},2],['📺','Compte d\'un média piraté : fausse annonce',{src:1,vir:1},1],['🎭','Article parodique d\'un site connu',{src:1,img:1},1],['📸','Témoin : incendie dans mon quartier',{img:1},2],
-      ['🏟️','Le stade rouvre lundi',{src:1},0],['🤖','Photo d\'un pape en doudoune (IA)',{img:1,vir:1},1],['📱','Nouvelle loi sur les portables au lycée',{vir:1},2],['⚠️','ALERTE : COUPURE D\'EAU DEMAIN',{maj:1},2]] }
+    conds:[['src','📰 Source connue ?'],['dem','🚫 Démentie par un fact-check ?'],['maj','🔠 Titre en MAJUSCULES ?'],['img','🖼️ Avec une image ?'],['vir','🔥 Très partagée ?']],
+    tags:{src:['📰 source connue','❔ source inconnue'],dem:['🚫 démentie'],maj:['🔠 MAJUSCULES'],img:['🖼️ image'],vir:['🔥 virale']},
+    it:[['🌡️','Météo : canicule annoncée',{src:1,img:1,vir:1},0],['👽','DES ALIENS À MARSEILLE',{maj:1,img:1,vir:1,dem:1},1],['🎓','Parcoursup : dates officielles',{src:1,vir:1},0],['🦈','REQUIN DANS LA SEINE',{maj:1,vir:1,dem:1},1],
+      ['🧪','Une étude dit que le chocolat rend intelligent',{vir:1},2],['📺','Compte d\'un média piraté : fausse annonce',{src:1,vir:1},1],['🎭','Article parodique d\'un site connu',{src:1,img:1},1],['📸','INCENDIE DANS MON QUARTIER (témoin)',{maj:1,img:1},2],
+      ['🏟️','Le stade rouvre lundi',{src:1},0],['🤖','Photo d\'un pape en doudoune (IA)',{img:1,vir:1,dem:1},1],['📱','Nouvelle loi sur les portables au lycée',{vir:1},2],['⚠️','ALERTE MÉTÉO : ORAGES CE SOIR',{maj:1,src:1,vir:1},0]] }
 ];
 function gUsineMenu(){
   stopGame();
@@ -2732,7 +2776,7 @@ function gFiltre(lv){
     out.innerHTML='';
     mk('div','card',`<h3 style="margin:0 0 6px">${S.ok} / 12 bien triés ${win?'🎉':''}</h3>
       ${S.errs.length?`<ul class="ferr">${S.errs.map(o=>`<li>${o.e} ${esc(o.t)} → arrivé dans ${L.bins[o.r.leaf.bin].join(' ')}, il fallait ${L.bins[o.good].join(' ')}<br><small>${o.r.ans.map((a,i)=>`${esc(condOf(pathGates(o)[i]).at(1))} ${a?'OUI':'NON'}`).join(' → ')}</small></li>`).join('')}</ul>`:'<p>Aucune erreur : ta machine trie parfaitement.</p>'}
-      ${lv===FLV.length-1?`<p><b>Impossible d'avoir 12 / 12 ici.</b> Un compte connu peut être piraté, un site sérieux peut publier une parodie, une info vraie peut venir d'un inconnu. Les filtres ne regardent que des <b>indices</b>, pas le <b>sens</b>. D'où la sortie « à vérifier par un humain ».</p>`:''}
+      ${lv===FLV.length-1?`<p><b>Impossible d'avoir 12 / 12 ici.</b> Un compte connu peut être piraté, un site sérieux peut publier une parodie, une info vraie peut venir d'un inconnu. Les filtres ne regardent que des <b>indices</b>, pas le <b>sens</b>. D'où la sortie « à vérifier par un humain ». La meilleure machine fait 10 / 12 : elle s'appuie sur la <b>source</b> et sur les <b>vérifications</b> (fact-check).</p>${gates.some(o=>['vir','maj','img'].includes(o.cond))?`<p class="fb bad">⚠️ « Très partagée », « en MAJUSCULES » ou « avec une image » ne prouvent rien : la canicule, Parcoursup ou l'alerte orages sont très partagées et vraies.</p>`:''}`:''}
       <div class="row">${win&&!last?`<button class="btn ok" id="fl-nx">Niveau suivant ▶</button>`:''}${win&&last?`<button class="btn ok" id="fl-dd">Noter ma découverte</button>`:''}<button class="btn" id="fl-re">${win?'Rejouer ce niveau':'Modifier mes filtres'}</button></div>`,out).scrollIntoView({behavior:'smooth'});
     if($('#fl-nx')) $('#fl-nx').onclick=()=>gFiltre(lv+1);
     $('#fl-re').onclick=()=>{ out.innerHTML=''; scrollTo(0,0); };
@@ -2862,11 +2906,281 @@ function usineEnd(hist){
 }
 
 /* ---------- menu ---------- */
+
+/* =========================================================
+   8 bis · LA BOUCLE EXPLIQUÉE : définition, chasse à la boucle, mission maison, fiche à imprimer
+   ========================================================= */
+const bcRing=big=>`<div class="bcring${big?' big':''}"><div class="st k0">🔔<b>Déclencheur</b>${big?'un signal lance l\'envie : notification, pastille rouge, ennui':''}</div><div class="ar">→</div><div class="st k1">👆<b>Action</b>${big?'un geste rapide et facile : ouvrir, faire défiler, jouer':''}</div><div class="ar">↑</div><div class="mid">🧠</div><div class="ar">↓</div><div class="st k3">🔁<b>Relance</b>${big?'l\'envie de recommencer… et l\'appli prépare déjà le déclencheur suivant':''}</div><div class="ar">←</div><div class="st k2">🎁<b>Récompense</b>${big?'parfois super, souvent bof : impossible à prévoir':''}</div></div>`;
+const bcDef=()=>`<div class="bcdef"><div><h3 style="margin:0 0 4px">📖 C'est quoi, la dopamine ?</h3>
+  <ul><li>Un <b>neurotransmetteur</b> : une molécule qui passe un message d'un neurone à l'autre.</li>
+  <li>Ce n'est pas « l'hormone du plaisir » : c'est la molécule de l'<b>anticipation</b> et de l'<b>envie</b>. Le cerveau en libère quand il <i>s'attend</i> à une récompense.</li>
+  <li>Elle monte encore plus quand la récompense est <b>meilleure ou plus imprévisible</b> que prévu. Quand ça déçoit, elle baisse sous la normale : un petit manque… qui pousse à recommencer.</li></ul>
+  <p style="margin:6px 0 0"><b>La boucle de dopamine</b> (les créateurs de jeux vidéo disent <i>core loop</i>) tourne en 4 temps, encore et encore.</p></div>
+  <div>${bcRing(true)}<p class="lead" style="font-size:13px;margin:6px 0 0">Les applis sont construites autour de cette boucle : ton attention, c'est ce qu'elles vendent aux annonceurs. Ce n'est donc pas seulement une question de volonté. Et Techno Survivor ? Lui aussi utilise la boucle (épreuves floutées, points, nouvelles épreuves qui s'ouvrent)… pour te faire apprendre.</p></div></div>`;
+const BCK=[['🔔','Déclencheur','ce qui lance l\'envie'],['👆','Action','le geste rapide'],['🎁','Récompense','ce qu\'on gagne, souvent imprévisible'],['🔁','Relance','ce qui fait revenir'],['✂️','Casse la boucle','une astuce pour reprendre la main']];
+// [appli, emoji, situation, temps de la boucle (0-4), explication facultative]
+const BCH=[
+  ['TikTok','🚌','Tu t\'ennuies dans le bus, le pouce sur l\'écran',0,'L\'ennui est le déclencheur le plus fréquent : pas besoin de notification.'],
+  ['TikTok','👆','Tu fais glisser vers le haut',1],
+  ['TikTok','😂','Une vidéo hilarante… après trois vidéos bof',2,'C\'est une récompense variable : on ne sait jamais quand la bonne arrive.'],
+  ['TikTok','♾️','La vidéo suivante démarre déjà toute seule',3,'Défilement infini : la boucle n\'a pas de fin prévue.'],
+  ['TikTok','⏲️','Tu actives le rappel « fais une pause » après 30 min',4],
+  ['Snapchat','🔔','« Léa t\'a envoyé un snap »',0],
+  ['Snapchat','📸','Tu ouvres le snap et tu réponds',1],
+  ['Snapchat','😍','Une photo drôle de Léa… ou juste un mur',2],
+  ['Snapchat','🔥','Ta flamme avec Léa va s\'éteindre dans 2 h ⏳',3,'La série (flamme) oblige à revenir chaque jour : c\'est une relance.'],
+  ['Snapchat','🔕','Tu coupes les notifications de Snap pendant les devoirs',4,'Sans déclencheur, la boucle ne démarre pas.'],
+  ['Instagram','🔴','Pastille rouge : 5 nouvelles mentions J\'aime',0],
+  ['Instagram','📲','Tu ouvres l\'appli pour voir qui a liké',1],
+  ['Instagram','❤️','42 likes… ou seulement 3 : impossible à prévoir',2],
+  ['Instagram','📊','Tu publies une autre photo pour battre ton record de likes',3],
+  ['Instagram','📁','Tu ranges l\'appli dans un dossier, loin de l\'écran d\'accueil',4,'L\'action devient moins facile : la boucle ralentit.'],
+  ['YouTube','🖼️','Une miniature choc dans les recommandations',0],
+  ['YouTube','▶️','Tu cliques sur la vidéo',1],
+  ['YouTube','🤯','La révélation finale… ou une vidéo nulle',2],
+  ['Série','⏭️','« Épisode suivant dans 5 secondes »',3,'La lecture automatique relance avant même que tu décides.'],
+  ['Série','🛑','Tu désactives la lecture automatique',4],
+  ['Jeu mobile','🎁','« Ton coffre gratuit est prêt ! »',0],
+  ['Jeu mobile','🎮','Tu lances une partie de 3 minutes',1],
+  ['Jeu mobile','💎','Le coffre contient un skin légendaire (1 chance sur 50)',2,'Comme une machine à sous : la récompense rare et imprévisible accroche le plus.'],
+  ['Jeu mobile','📅','« Connecte-toi demain pour la récompense du jour 7 ! »',3],
+  ['Jeu mobile','⏰','Tu décides avant de commencer : 2 parties, puis je pose le téléphone',4,'Mettre une fin à l\'avance casse la relance.'],
+  ['Messagerie','📳','Le téléphone vibre dans ta poche',0],
+  ['Messagerie','👀','Tu regardes « juste pour voir »',1],
+  ['Messagerie','💬','Parfois un message important, souvent un autocollant',2],
+  ['Messagerie','✍️','« Sam est en train d\'écrire… » : tu restes sur la conversation',3],
+  ['Messagerie','🌙','Mode « Ne pas déranger » de 21 h à 7 h',4],
+  ['Duolingo','🦉','Notification : « Ça fait un moment… 🥺 »',0],
+  ['Duolingo','🏆','Série de 45 jours : impossible de la casser maintenant !',3],
+  ['Shopping','🏷️','« -70 % : plus que 2 h ! »',0,'L\'urgence (compte à rebours) est un déclencheur classique.'],
+  ['Shopping','🎡','La roue de la chance pour gagner un bon de réduction',2],
+  ['Téléphone','⚫','Tu passes l\'écran en noir et blanc',4,'Les couleurs vives rendent la récompense plus attirante : sans elles, l\'envie baisse.'],
+  ['Téléphone','🛏️','Le téléphone charge dans une autre pièce la nuit',4],
+  ['Techno Survivor','🔒','Une épreuve floutée t\'attend dans le menu',0],
+  ['Techno Survivor','🧟','Tu tires sur les zombies',1],
+  ['Techno Survivor','⭐','+20 points et une découverte notée',2],
+  ['Techno Survivor','🔓','Deux nouvelles épreuves s\'ouvrent',3]
+];
+function gChasse(){
+  stopGame();
+  head('🎯','Chasse à la boucle','Une appli, une situation : à quel temps de la boucle appartient-elle ? Réponds vite pour enchaîner les combos. Attention : certaines cartes <b>cassent</b> la boucle.');
+  mk('div','hud','<span class="lives" id="bc-l"></span><span id="bc-n"></span><span id="bc-s"></span>',main);
+  const z=mk('div',null,`<div class="bctime"><i id="bc-t"></i></div><div class="bcard" id="bc-c"></div><div class="bcbtns" id="bc-b">${BCK.map((k,i)=>`<button class="btn k${i}" data-k="${i}"><span class="ke">${k[0]}</span> ${k[1]}</button>`).join('')}</div><p class="fb" id="bc-f"></p>`,main);
+  // au moins deux cartes de chaque temps, puis du hasard
+  const by=[0,1,2,3,4].map(k=>shuffle(BCH.filter(c=>c[3]===k)));
+  const deck=shuffle(by.flatMap(a=>a.slice(0,2)).concat(shuffle(by.flatMap(a=>a.slice(2))).slice(0,10)));
+  const S={ i:-1, lives:3, score:0, combo:0, bestCombo:0, t:0, T:8, lock:true, per:[0,0,0,0,0], tot:[0,0,0,0,0], tm:null };
+  const key=e=>{ const n=+e.key; if(n>=1&&n<=5){ e.preventDefault(); answer(n-1); } };
+  const g={ over:false, update(dt){ if(S.lock||g.over) return; S.t-=dt; $('#bc-t').style.width=Math.max(0,S.t/S.T*100)+'%'; if(S.t<=0) answer(-1); }, stop(){ g.over=true; clearTimeout(S.tm); removeEventListener('keydown',key); } };
+  startGame(g); addEventListener('keydown',key);
+  const hud=()=>{ $('#bc-l').textContent='❤️'.repeat(Math.max(0,S.lives))+'🖤'.repeat(3-Math.max(0,S.lives)); $('#bc-n').textContent=`Carte ${Math.max(1,S.i+1)} / ${deck.length}`; $('#bc-s').innerHTML=`${S.score} pts${S.combo>1?` <span class="bccombo">combo x${Math.min(5,S.combo)}</span>`:''}`; };
+  z.querySelectorAll('#bc-b .btn').forEach(b=>b.onclick=()=>answer(+b.dataset.k));
+  function next(){
+    if(g.over) return; S.i++;
+    if(S.lives<=0 || S.i>=deck.length) return end();
+    const c=deck[S.i]; S.T=Math.max(4.5,8-S.i*.18); S.t=S.T;
+    const el=$('#bc-c'); el.className='bcard'; el.innerHTML=`<span class="app">${c[0]}</span><span class="em">${c[1]}</span><span class="tx">${c[2]}</span>`;
+    z.querySelectorAll('#bc-b .btn').forEach(b=>{ b.classList.remove('right','wrongk'); b.disabled=false; });
+    $('#bc-f').className='fb'; $('#bc-f').textContent=''; S.lock=false; hud();
+  }
+  function answer(k){
+    if(S.lock || g.over) return; S.lock=true;
+    const c=deck[S.i], good=k===c[3], el=$('#bc-c'); S.tot[c[3]]++;
+    z.querySelectorAll('#bc-b .btn').forEach(b=>{ b.disabled=true; if(+b.dataset.k===c[3]) b.classList.add('right'); else if(+b.dataset.k===k) b.classList.add('wrongk'); });
+    if(good){ S.per[c[3]]++; S.combo++; S.bestCombo=Math.max(S.bestCombo,S.combo); const p=10*Math.min(5,S.combo)+Math.round(S.t*2); S.score+=p; el.classList.add('good'); $('#bc-f').className='fb good'; $('#bc-f').innerHTML=`+${p} ! ${BCK[c[3]][0]} ${BCK[c[3]][1]}${c[4]?` <span style="color:var(--fg);font-weight:400">${c[4]}</span>`:''}`; }
+    else { S.combo=0; S.lives--; el.classList.add('bad'); shake(el); $('#bc-f').className='fb bad'; $('#bc-f').innerHTML=`${k<0?'Trop lent ! ':''}C'était : ${BCK[c[3]][0]} ${BCK[c[3]][1]} (${BCK[c[3]][2]}).${c[4]?` <span style="color:var(--fg);font-weight:400">${c[4]}</span>`:''}`; }
+    hud(); S.tm=setTimeout(next, good?(c[4]?1500:700):2300);
+  }
+  function end(){
+    g.over=true; removeEventListener('keydown',key); $('#pausebtn').hidden=true;
+    const played=S.tot.reduce((a,b)=>a+b,0), nb=S.per.reduce((a,b)=>a+b,0), first=!D.best.chasse;
+    addPts(Math.round(S.score/10)); D.best.chasse=Math.max(D.best.chasse||0,S.score); save();
+    const weak=[0,1,2,3,4].filter(k=>S.tot[k]).sort((a,b)=>S.per[a]/S.tot[a]-S.per[b]/S.tot[b])[0];
+    z.innerHTML='';
+    mk('div','card',`<h3 style="margin:0 0 6px">${S.lives>0?'🏁 Toutes les cartes jouées !':'💀 Plus de vies !'}</h3>
+      <p><b>${nb}</b> bonnes réponses sur ${played} · <b>${S.score} points</b>${S.bestCombo>1?` · meilleur combo x${Math.min(5,S.bestCombo)}`:''}${first?'':` · record ${D.best.chasse}`}</p>
+      <div class="bcres">${BCK.map((k,i)=>`<span class="k${i}">${k[0]} ${k[1]}<b>${S.per[i]} / ${S.tot[i]}</b></span>`).join('')}</div>
+      ${weak!=null&&S.per[weak]<S.tot[weak]?`<p>À revoir : <b>${BCK[weak][0]} ${BCK[weak][1]}</b>, ${BCK[weak][2]}.</p>`:'<p>Tu repères tous les temps de la boucle. 🕵️</p>'}
+      <p>Maintenant, la vraie chasse : repère la boucle dans <b>tes</b> applis, chez toi.</p>
+      <div class="row"><button class="btn ok" id="bc-m">🏠 Mission maison</button><button class="btn" id="bc-a">Rejouer</button><button class="btn" id="bc-h">🧠 Retour</button></div>`,z);
+    $('#bc-m').onclick=gMission; $('#bc-a').onclick=gChasse; $('#bc-h').onclick=gDopa;
+  }
+  hud(); $('#bc-c').innerHTML='<span class="em">🎯</span><span class="tx">Prêt ? Touche un bouton… ou les touches 1 à 5.</span>';
+  S.tm=setTimeout(next,1200);
+}
+
+/* ---- mission maison : le carnet d'enquête (gardé avec la progression) ---- */
+const BCASSE=['Couper les notifications de l\'appli (🔔 pas de déclencheur)','Ranger l\'appli dans un dossier, loin de l\'écran d\'accueil (👆 action moins facile)','Écran en noir et blanc (🎁 récompense moins attirante)','Minuteur ou limite de temps dans l\'appli (🔁 mettre une fin)','Téléphone dans une autre pièce le soir','Autre astuce (je l\'explique)'];
+const BIDEE=[
+  ['notification','pastille rouge','ennui','habitude (en me levant, dans le bus…)','un ami m\'en parle'],
+  ['ouvrir l\'appli','faire défiler','lancer une partie','répondre','regarder une vidéo'],
+  ['une vidéo drôle','des likes','un message','un objet rare','une info'],
+  ['vidéo suivante automatique','défilement infini','série / flamme','récompense du jour','« quelqu\'un a réagi »']
+];
+const BBAD=[
+  ['🕵️','Espion',m=>!!(m.app && (m.et||m.eu||m.en||m.rt||m.ru||m.rn))],
+  ['🔁','Boucle repérée',m=>[0,1,2,3].every(i=>String(m['l'+i]||'').trim().length>=3)],
+  ['✂️','Briseur de boucle',m=>(m.casse||[]).length>0 && String(m.change||'').trim().length>=3],
+  ['🤝','Enquêteur',m=>!!(m.oapp && (m.od||m.orl))],
+  ['🎓','Bilan',m=>String(m.why||'').trim().length>=5]
+];
+function missionTxt(m){
+  const v=k=>String(m[k]||'').trim()||'-';
+  return `Mission maison : chasse à la boucle de dopamine
+Appli espionnée : ${v('app')}
+Temps par jour : estimé ${v('et')} min, réel ${v('rt')} min · déverrouillages : estimé ${v('eu')}, réel ${v('ru')} · notifications : estimé ${v('en')}, réel ${v('rn')}
+🔔 Déclencheur : ${v('l0')}
+👆 Action : ${v('l1')}
+🎁 Récompense : ${v('l2')} (vraiment bien ${v('bien')} fois sur 10)
+🔁 Relance : ${v('l3')}
+✂️ Maillon cassé : ${(m.casse||[]).map(i=>BCASSE[i].replace(/ \(.*\)$/,'')).join(', ')||'-'}${m.autre?' ('+m.autre+')':''} · temps après 24 h : ${v('after')} min
+Ce qui a changé : ${v('change')}
+Chez quelqu'un d'autre : ${v('oapp')} · déclencheur : ${v('od')} · relance : ${v('orl')}
+Pourquoi l'appli veut que je revienne : ${v('why')}
+Mon astuce : ${v('astuce')}`;
+}
+function gMission(){
+  stopGame();
+  const m=D.mission=D.mission||{};
+  head('🏠','Mission maison','Pendant <b>3 jours</b>, espionne une appli ou un jeu que tu utilises souvent. Remplis ce carnet petit à petit : il est enregistré au fur et à mesure. Tu n\'as pas à montrer tes chiffres si tu ne veux pas : ce qui compte, c\'est ce que tu remarques.');
+  const badges=()=>`<div class="bcbad">${BBAD.map(([e,t,f])=>`<span class="${f(m)?'on':''}">${e} ${t}</span>`).join('')}</div>`;
+  const f=(k,ph,ta)=>ta?`<textarea data-f="${k}" placeholder="${ph}">${esc(m[k]||'')}</textarea>`:`<input data-f="${k}" placeholder="${ph}" value="${esc(m[k]||'')}">`;
+  const n=k=>`<input data-f="${k}" type="number" min="0" inputmode="numeric" value="${esc(m[k]||'')}">`;
+  const box=mk('div','bcform',`<div class="card" id="bm-bad">${badges()}</div>
+    <div class="card"><h3>🕵️ 1 · Mon appli espionnée</h3>
+      <div class="bcpills" id="bm-apps">${['TikTok','Snapchat','Instagram','YouTube','WhatsApp','Un jeu','Une série'].map(a=>`<button type="button" class="${m.app===a?'on':''}">${a}</button>`).join('')}</div>
+      <label>Laquelle exactement ?</label>${f('app','Le nom de l\'appli ou du jeu')}</div>
+    <div class="card"><h3>📊 2 · Mes chiffres</h3><p class="lead" style="font-size:14px">D'abord j'<b>estime</b>, ensuite je <b>vérifie</b>. iPhone : Réglages › Temps d'écran. Android : Paramètres › Bien-être numérique.</p>
+      <div class="bcnum"><span></span><b>J'estime</b><b>Le vrai chiffre</b>
+        <span>⏱️ Minutes par jour dans cette appli</span>${n('et')}${n('rt')}
+        <span>🔓 Déverrouillages du téléphone par jour</span>${n('eu')}${n('ru')}
+        <span>🔔 Notifications de cette appli par jour</span>${n('en')}${n('rn')}</div><p class="fb" id="bm-gap"></p></div>
+    <div class="card"><h3>🔁 3 · Ma boucle</h3><p class="lead" style="font-size:14px">Observe-toi pendant 3 jours. Touche une idée pour l'ajouter, puis précise avec tes mots.</p>
+      ${BCK.slice(0,4).map((k,i)=>`<label>${k[0]} ${k[1]} : ${['qu\'est-ce qui me fait ouvrir l\'appli ?','quel geste ? combien de temps ?','qu\'est-ce que je gagne ? est-ce prévisible ?','qu\'est-ce que l\'appli fait pour que je revienne ?'][i]}</label><div class="bcpills" data-idea="${i}">${BIDEE[i].map(t=>`<button type="button">${t}</button>`).join('')}</div>${f('l'+i,'',true)}`).join('')}
+      <label>🎲 Sur 10 ouvertures, combien de fois c'était <i>vraiment</i> bien ?</label><input data-f="bien" type="range" min="0" max="10" step="1" value="${m.bien!=null&&m.bien!==''?m.bien:5}"><p class="fb" id="bm-bien"></p></div>
+    <div class="card"><h3>✂️ 4 · Je casse un maillon pendant 24 h</h3>
+      <div class="bcchk">${BCASSE.map((t,i)=>`<label><input type="checkbox" data-c="${i}"${(m.casse||[]).includes(i)?' checked':''}> ${t}</label>`).join('')}</div>
+      ${f('autre','Mon autre astuce')}
+      <label>⏱️ Minutes dans l'appli pendant ces 24 h</label>${n('after')}
+      <label>Ce qui a changé, ce que j'ai ressenti</label>${f('change','Au début… puis…',true)}</div>
+    <div class="card"><h3>🤝 5 · La boucle chez quelqu'un d'autre</h3><p class="lead" style="font-size:14px">Un parent, un frère, une sœur, un ami : demande-lui la permission et ne note pas son nom.</p>
+      <label>Son appli ou son jeu</label>${f('oapp','Par exemple : Facebook, Candy Crush, les mails…')}
+      <label>🔔 Son déclencheur</label>${f('od','')}<label>🔁 Sa relance</label>${f('orl','')}</div>
+    <div class="card"><h3>🎓 6 · Bilan</h3>
+      <label>Pourquoi l'appli a-t-elle intérêt à ce que je revienne souvent ?</label>${f('why','Indice : qui paie l\'appli si elle est gratuite ?',true)}
+      <label>Une astuce que je garde</label>${f('astuce','')}</div>
+    <div class="row" style="margin-top:12px"><button class="btn ok" id="bm-s">${SCORM?'📤 Envoyer à mon prof':'📋 Copier mon carnet'}</button><button class="btn" id="bm-p">🖨️ Imprimer / voir la fiche</button><button class="btn" id="bm-h">🧠 Retour</button></div><p class="fb" id="bm-f"></p>`,main);
+  let tm=null;
+  const gap=()=>{ const r=[];
+    [['t','minutes'],['u','déverrouillages'],['n','notifications']].forEach(([k,w])=>{ const e=+m['e'+k], v=+m['r'+k]; if(m['e'+k]!==''&&m['r'+k]!==''&&m['e'+k]!=null&&m['r'+k]!=null&&v>0) r.push(`${w} : ${v>e?'+':''}${v-e}`); });
+    $('#bm-gap').className='fb'+(r.length?' good':''); $('#bm-gap').textContent=r.length?'Écart entre ton estimation et la réalité → '+r.join(' · '):''; 
+    const b=+(m.bien!=null&&m.bien!==''?m.bien:5); $('#bm-bien').textContent=`${b} / 10 : ${b<=3?'récompense rare et imprévisible, la plus accrocheuse (comme une machine à sous)':b<=7?'récompense variable : parfois oui, parfois non, c\'est ce qui fait revenir':'presque toujours bien… vraiment ? Observe encore un jour'}`; };
+  const upd=()=>{ $('#bm-bad').innerHTML=badges(); gap(); clearTimeout(tm); tm=setTimeout(()=>{
+      const got=String(D.best.mb||''); let add='';
+      BBAD.forEach(([e,t,fn],i)=>{ if(fn(m) && !got.includes(String(i))) add+=i; });
+      if(add){ D.best.mb=got+add; addPts(15*add.length); $('#bm-f').className='fb good'; $('#bm-f').textContent=`Badge gagné : ${[...add].map(i=>BBAD[i][0]+' '+BBAD[i][1]).join(', ')} (+${15*add.length} pts)`; }
+      save(); },400); };
+  box.querySelectorAll('[data-f]').forEach(el=>el.addEventListener('input',()=>{ m[el.dataset.f]=String(el.value).slice(0,400); upd(); }));
+  box.querySelectorAll('#bm-apps button').forEach(b=>b.onclick=()=>{ m.app=b.textContent; box.querySelector('[data-f="app"]').value=m.app; box.querySelectorAll('#bm-apps button').forEach(x=>x.classList.toggle('on',x===b)); upd(); });
+  box.querySelectorAll('[data-idea]').forEach(p=>p.querySelectorAll('button').forEach(b=>b.onclick=()=>{ const k='l'+p.dataset.idea, ta=box.querySelector(`[data-f="${k}"]`); const cur=ta.value.trim(); if(!cur.includes(b.textContent)) ta.value=(cur?cur+', ':'')+b.textContent; m[k]=ta.value; b.classList.add('on'); upd(); }));
+  box.querySelectorAll('[data-c]').forEach(c=>c.onchange=()=>{ m.casse=[...box.querySelectorAll('[data-c]:checked')].map(x=>+x.dataset.c); upd(); });
+  $('#bm-s').onclick=async()=>{
+    save();
+    if(SCORM){ const t=missionTxt(m).split('\n'); const parts=[['mission_appli',t.slice(1,3)],['mission_boucle',t.slice(3,7)],['mission_casse',t.slice(7,9)],['mission_bilan',t.slice(9)]];
+      parts.forEach(([id,l])=>sendDisc(id,null,'',false,l.join(' | ')));
+      $('#bm-f').className='fb good'; $('#bm-f').textContent='Envoyé sur ÉLÉA ✅ (tu peux encore compléter et renvoyer).'; return; }
+    try{ await navigator.clipboard.writeText(missionTxt(m)); $('#bm-f').className='fb good'; $('#bm-f').textContent='Carnet copié ! Colle-le dans un message à ton professeur.'; }
+    catch(e){ $('#bm-f').className='fb bad'; $('#bm-f').textContent='Copie impossible ici : utilise « Mes découvertes » ou la fiche.'; }
+  };
+  $('#bm-p').onclick=()=>gFiche(true); $('#bm-h').onclick=gDopa;
+  gap();
+}
+
+/* ---- fiche à imprimer (2 pages A4) : vierge ou remplie avec le carnet ---- */
+const FICHE_CSS=`.fiche{font:11pt/1.35 'Atkinson Hyperlegible',Arial,sans-serif;color:#000;background:#fff;max-width:190mm;margin:0 auto;text-align:left}
+.fiche h1,.fiche h2,.fiche h3{font-family:'Atkinson Hyperlegible',Arial,sans-serif;letter-spacing:0;text-transform:none;color:#000}
+.fiche b,.fiche i,.fiche strong,.fiche li,.fiche p,.fiche td,.fiche th{color:#000}
+.fiche h1{font-size:17pt;margin:0 0 1mm;line-height:1.15} .fiche .sub{margin:0 0 2mm;color:#333}
+.fiche h2{font-size:12.5pt;margin:3mm 0 1.2mm;border-bottom:1.5px solid #000;padding-bottom:.8mm}
+.fiche p{margin:1mm 0} .fiche ul{margin:1mm 0;padding-left:5mm} .fiche li{margin:.6mm 0}
+.fiche .id{display:flex;gap:5mm;margin:1mm 0 2mm} .fiche .id span{flex:1;border-bottom:1px dotted #000;padding-top:4mm;font-size:10pt}
+.fiche .box{border:1.5px solid #000;border-radius:3mm;padding:2mm 3.5mm;margin:2mm 0}
+.fiche .two{display:grid;grid-template-columns:1.25fr 1fr;gap:4mm;align-items:center}
+.fiche .ring{display:grid;grid-template-columns:1fr 7mm 1fr;grid-template-rows:auto 6mm auto;align-items:center;text-align:center;gap:.5mm}
+.fiche .ring .st{border:1.5px solid #000;border-radius:2.5mm;padding:1.2mm;font-size:9pt;line-height:1.2} .fiche .ring .st b{display:block;font-size:10.5pt}
+.fiche .ring .ar{font-size:13pt} .fiche .ring .mid{font-size:14pt}
+.fiche table{width:100%;border-collapse:collapse;margin:1.5mm 0} .fiche td,.fiche th{border:1px solid #000;padding:1.2mm 2mm;vertical-align:top;text-align:left;font-size:10pt}
+.fiche th{background:#e8e8e8} .fiche td.w{width:38mm} .fiche td.h{height:12mm}
+.fiche .ln{border-bottom:1px dotted #000;min-height:6.5mm}
+.fiche .fill{font-family:'Comic Sans MS','Segoe Print',cursive;color:#14368a}
+.fiche .ck{display:inline-block;width:3.4mm;height:3.4mm;border:1px solid #000;margin-right:1.5mm;vertical-align:-.4mm;text-align:center;line-height:3.2mm;font-size:9pt}
+.fiche .pb{break-before:page;page-break-before:always}
+.fiche small{color:#333;font-size:9pt}
+@page{size:A4;margin:11mm}`;
+function ficheHTML(m){
+  m=m||{};
+  const v=k=>String(m[k]==null?'':m[k]).trim();
+  const ln=(k,n)=>v(k)?`<div class="ln fill">${esc(v(k))}</div>`:'<div class="ln"></div>'.repeat(n||1);
+  const cell=k=>v(k)?`<span class="fill">${esc(v(k))}</span>`:'';
+  const ring=`<div class="ring"><div class="st">🔔<b>Déclencheur</b>un signal lance l'envie</div><div class="ar">→</div><div class="st">👆<b>Action</b>un geste rapide, facile</div><div class="ar">↑</div><div class="mid">🧠</div><div class="ar">↓</div><div class="st">🔁<b>Relance</b>l'envie de recommencer, l'appli prépare la suite</div><div class="ar">←</div><div class="st">🎁<b>Récompense</b>variable : parfois super, souvent bof</div></div>`;
+  const hint=['Qu\'est-ce qui me fait ouvrir l\'appli ? (notification, pastille rouge, ennui, habitude à un moment précis…)','Quel geste ? Combien de temps ça prend ?','Qu\'est-ce que je gagne ? Est-ce prévisible ?','Qu\'est-ce que l\'appli fait pour que je revienne ? (série, vidéo suivante automatique, défilement infini, récompense du jour…)'];
+  return `<div class="fiche">
+  <h1>🕵️ Chasse à la boucle de dopamine</h1><p class="sub">SNT · Techno Survivor · mission à faire chez soi, sur 3 jours</p>
+  <div class="id"><span>Nom :</span><span>Classe :</span><span>Date :</span></div>
+  <div class="box"><b>À retenir</b><div class="two"><div><ul>
+    <li><b>La dopamine</b> est un <b>neurotransmetteur</b> : une molécule qui passe un message d'un neurone à l'autre.</li>
+    <li>Ce n'est pas « l'hormone du plaisir » : c'est la molécule de l'<b>anticipation</b> et de l'<b>envie</b>. Le cerveau en libère quand il <i>s'attend</i> à une récompense, et encore plus quand elle est meilleure ou plus imprévisible que prévu.</li>
+    <li>Quand la récompense déçoit, la dopamine baisse : un petit manque, qui pousse à recommencer.</li>
+    <li>La <b>boucle de dopamine</b> (<i>core loop</i> en jeu vidéo) tourne en 4 temps. Les applis sont construites autour d'elle : ton attention est ce qu'elles vendent aux annonceurs.</li></ul></div>${ring}</div></div>
+  <p><b>Exemple</b> : 🔔 « Léa t'a envoyé un snap » → 👆 j'ouvre et je réponds → 🎁 parfois une photo drôle, parfois rien → 🔁 la flamme 🔥 va s'éteindre si je ne réponds pas demain.</p>
+  <h2>1 · Mon appli espionnée</h2><p>L'appli ou le jeu que j'utilise le plus :</p>${ln('app')}
+  <h2>2 · Mes chiffres</h2><p>D'abord j'<b>estime</b>, ensuite je <b>vérifie</b>. <small>iPhone : Réglages › Temps d'écran. Android : Paramètres › Bien-être numérique.</small></p>
+  <table><tr><th></th><th>J'estime</th><th>Le vrai chiffre</th></tr>
+    <tr><td>⏱️ Minutes par jour dans cette appli</td><td>${cell('et')}</td><td>${cell('rt')}</td></tr>
+    <tr><td>🔓 Déverrouillages du téléphone par jour</td><td>${cell('eu')}</td><td>${cell('ru')}</td></tr>
+    <tr><td>🔔 Notifications de cette appli par jour</td><td>${cell('en')}</td><td>${cell('rn')}</td></tr></table>
+  <p><small>Tu n'as pas à montrer tes chiffres si tu ne veux pas : ce qui compte, c'est l'écart entre ton estimation et la réalité.</small></p>
+  <h2 class="pb">3 · Je repère la boucle (pendant 3 jours)</h2>
+  <table>${BCK.slice(0,4).map((k,i)=>`<tr><td class="w"><b>${k[0]} ${k[1]}</b><br><small>${hint[i]}</small></td><td class="h">${cell('l'+i)}</td></tr>`).join('')}</table>
+  <p>🎲 Sur 10 ouvertures, combien de fois c'était <i>vraiment</i> bien ? ${v('bien')?`<span class="fill">${esc(v('bien'))}</span>`:'……'} / 10. La récompense est-elle prévisible ou variable ?</p>
+  <h2>4 · Je casse un maillon pendant 24 h</h2>
+  <p>${BCASSE.map((t,i)=>`<span style="display:inline-block;width:49%;margin:.4mm 0"><span class="ck">${(m.casse||[]).includes(i)?'✗':''}</span>${t}</span>`).join('')}</p>
+  ${v('autre')?`<p>Mon autre astuce : <span class="fill">${esc(v('autre'))}</span></p>`:''}
+  <p>Minutes dans l'appli pendant ces 24 h : ${v('after')?`<span class="fill">${esc(v('after'))}</span>`:'……'} min. Ce qui a changé, ce que j'ai ressenti :</p>${ln('change',2)}
+  <h2>5 · La boucle chez quelqu'un d'autre</h2><p><small>Un parent, un frère, une sœur, un ami : demande-lui la permission et ne note pas son nom.</small></p>
+  <table><tr><td class="w">Son appli ou son jeu</td><td>${cell('oapp')}</td></tr><tr><td class="w">🔔 Son déclencheur</td><td>${cell('od')}</td></tr><tr><td class="w">🔁 Sa relance</td><td>${cell('orl')}</td></tr></table>
+  <h2>6 · Bilan</h2><p>Pourquoi l'appli a-t-elle intérêt à ce que je revienne souvent ? <small>(Indice : qui paie l'appli si elle est gratuite ?)</small></p>${ln('why',2)}
+  <p>Une astuce que je garde :</p>${ln('astuce')}
+  </div>`;
+}
+function gFiche(mine){
+  stopGame();
+  const m=mine?(D.mission||{}):{};
+  head('🖨️','Fiche à imprimer','La mission maison sur papier : 2 pages A4, à imprimer ou à enregistrer en PDF. Si l\'impression ne s\'ouvre pas (sur téléphone ou dans ÉLÉA), demande la fiche papier à ton professeur.');
+  mk('div','row',`<button class="btn ok" id="fi-p">🖨️ Imprimer ${mine?'mon carnet':'la fiche vierge'}</button><button class="btn" id="fi-o">${mine?'Voir la fiche vierge':'Voir mon carnet rempli'}</button><button class="btn" id="fi-h">🧠 Retour</button>`,main);
+  mk('div','bcprev',`<style>${FICHE_CSS}</style>${ficheHTML(m)}`,main);
+  $('#fi-o').onclick=()=>gFiche(!mine); $('#fi-h').onclick=gDopa;
+  $('#fi-p').onclick=()=>{ let z=$('#printzone'); if(!z){ z=mk('div',null,null,document.body); z.id='printzone'; } z.innerHTML=`<style>${FICHE_CSS}</style>${ficheHTML(m)}`; try{ window.print(); }catch(e){} };
+}
+
+/* ---- l'épreuve : un petit menu en 4 activités ---- */
+function gDopa(){
+  stopGame();
+  const M=D.mission||{}, nb=BBAD.filter(b=>b[2](M)).length;
+  head('🧠','La boucle de dopamine','Pourquoi est-ce si dur de lâcher son téléphone ? Fais d\'abord l\'expérience, entraîne-toi à repérer la boucle… puis pars la chasser chez toi.');
+  mk('div','card',bcDef(),main);
+  mk('div','games',`<button class="gcard${D.disc.dopa?' done':''}" id="bh-x"><span class="e">🧪</span><span class="t">1 · L'expérience du fil</span><span class="d">Fais défiler un fil et regarde ta dopamine en direct : d'abord prévisible, puis imprévisible.</span><span class="s">${D.disc.dopa?'✓ découverte notée':''}</span></button>
+    <button class="gcard" id="bh-c"><span class="e">🎯</span><span class="t">2 · Chasse à la boucle</span><span class="d">TikTok, Snap, jeux, séries… À toute vitesse : déclencheur, action, récompense, relance ? Ou astuce qui casse la boucle ?</span><span class="s">${D.best.chasse?'record '+D.best.chasse+' pts':''}</span></button>
+    <button class="gcard" id="bh-m"><span class="e">🏠</span><span class="t">3 · Mission maison</span><span class="d">Pendant 3 jours, espionne une appli que tu utilises : tes chiffres, ta boucle, un maillon à casser, et la boucle d'un proche.</span><span class="s">${nb?`${nb} / ${BBAD.length} badges`:''}</span></button>
+    <button class="gcard" id="bh-p"><span class="e">🖨️</span><span class="t">4 · Fiche à imprimer</span><span class="d">La mission maison sur papier (2 pages A4), vierge ou remplie avec ton carnet.</span><span class="s"></span></button>`,main);
+  $('#bh-x').onclick=dopaFeed; $('#bh-c').onclick=gChasse; $('#bh-m').onclick=gMission; $('#bh-p').onclick=()=>gFiche(nb>0);
+}
+
 const GAMES=[
   ['inv','🕰️','Les inventions','Remets chaque famille d\'inventions dans l\'ordre (écrire, électricité, images, sons…), retrouve les familles cachées dans un smartphone, puis construis la grande frise.',gInv],
   ['scribe','✍️','CyberSpeedScribe','Recopie des symboles, en tracé puis en pixels, à toute vitesse… puis recopie tes propres copies. Lesquels s\'abîment ?',gScribe],
   ['feed','📱','Le fil d\'actu','Republier ou pas ? Regarde les émotions se propager et le monde changer.',gFeed],
-  ['dopa','🧠','La boucle de dopamine','Fais défiler un fil et regarde ta dopamine en direct : pourquoi est-ce si dur d\'arrêter ?',gDopa],
+  ['dopa','🧠','La boucle de dopamine','C\'est quoi, la dopamine ? Regarde-la en direct, chasse la boucle à toute vitesse… puis repère-la chez toi, dans tes applis.',gDopa],
   ['usine','🔀','L\'usine à filtres','Des filtres OUI / NON envoient chaque objet sur un chemin : spams, modération, colis, fausses infos. Bonus : l\'usine à tâches.',gUsineMenu],
   ['box','⬛','La boîte noire','Des nombres entrent, d\'autres sortent. Trouve la règle cachée et prouve-la.',()=>gBox(0)],
   ['zombie','🧟','Zombies QCM','IA, Google, TikTok… ce que tu crois savoir. Tire sur la bonne réponse, gère tes balles et tes vies !',gZombie],
@@ -2902,10 +3216,11 @@ function notes(){
   const L=GAMES.map(([id,e,t])=>({e,t,d:D.disc[id]}));
   main.innerHTML=`<h2>📒 Mes découvertes</h2><p class="lead">Recopie-les dans ton cahier, ou copie-les pour ton professeur.</p>
     <ol class="notes">${L.map(({e,t,d})=>`<li><b>${e} ${t}</b><br>${d?`${d.q?`<span class="q">${esc(d.q)}</span><br>`:''}${esc(d.pick||'(pas de réponse)')}${d.txt?`<br>« ${esc(d.txt)} »`:''}`:'<span class="q">Pas encore fait.</span>'}</li>`).join('')}</ol>
+    ${D.mission&&Object.keys(D.mission).length?`<h3>🏠 Mission maison</h3><pre class="bcpre">${esc(missionTxt(D.mission))}</pre>`:''}
     <p>Total : <b>${D.pts} points</b></p><div class="row"><button class="btn ok" id="cpy">Copier le texte</button><button class="btn" id="back">Menu</button><button class="btn" id="rs">Tout effacer</button></div><p class="fb" id="nf"></p>
     <div class="row" style="margin-top:10px"><input id="pc" placeholder="Code prof" style="padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--deep);color:var(--fg);width:150px"><button class="btn" id="pcb">Tout ouvrir</button></div>`;
   $('#pcb').onclick=()=>{ if($('#pc').value.trim().toUpperCase()==='SNT-PROF'){ D.prof=true; save(); $('#nf').className='fb good'; $('#nf').textContent='Toutes les épreuves sont ouvertes.'; } else { $('#nf').className='fb bad'; $('#nf').textContent='Code incorrect.'; } };
-  const txt='Mes découvertes (SNT S1)\n\n'+L.map(({e,t,d})=>`${e} ${t}\n${d?`${d.q?d.q+'\n':''}→ ${d.pick||'-'}${d.txt?`\n« ${d.txt} »`:''}`:'(pas fait)'}`).join('\n\n');
+  const txt='Mes découvertes (SNT S1)\n\n'+L.map(({e,t,d})=>`${e} ${t}\n${d?`${d.q?d.q+'\n':''}→ ${d.pick||'-'}${d.txt?`\n« ${d.txt} »`:''}`:'(pas fait)'}`).join('\n\n')+(D.mission&&Object.keys(D.mission).length?'\n\n🏠 '+missionTxt(D.mission):'');
   $('#cpy').onclick=async()=>{ try{ await navigator.clipboard.writeText(txt); $('#nf').className='fb good'; $('#nf').textContent='Copié !'; }catch(e){ $('#nf').className='fb bad'; $('#nf').textContent='Copie impossible ici : sélectionne le texte à la main.'; } };
   $('#back').onclick=menu;
   $('#rs').onclick=()=>{ if(confirm('Effacer tes découvertes, records et points ?')){ D={pts:0,best:{},disc:{}}; save(); menu(); } };
