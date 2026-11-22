@@ -1,0 +1,30 @@
+Pyperasse & Cie : version à héberger (GitHub Pages ou tout hébergeur de pages web)
+
+Ce dossier contient tout le jeu. Il n'a besoin d'aucun serveur spécial :
+n'importe quel hébergeur de pages statiques convient.
+
+Mettre le jeu sur GitHub Pages
+1. Sur github.com, créer un nouveau dépôt PUBLIC (par exemple « pyperasse »).
+   Sur un compte gratuit, GitHub Pages ne marche qu'avec un dépôt public.
+2. Dans le dépôt : « Add file » puis « Upload files ».
+   Glisser TOUT le contenu de ce dossier (index.html, le dossier assets,
+   .nojekyll), pas le dossier lui-même. Valider avec « Commit changes ».
+   Le fichier .nojekyll est caché sous Windows : s'il n'est pas envoyé,
+   le jeu marche quand même.
+3. Dans le dépôt : Settings, puis Pages. Source : « Deploy from a branch »,
+   branche « main », dossier « / (root) ». Enregistrer.
+4. Après une ou deux minutes, le jeu est en ligne à l'adresse
+   https://VOTRE-NOM.github.io/pyperasse/
+
+Adresses utiles
+- ?prof à la fin de l'adresse : tous les niveaux ouverts et les codes visa
+  de n'importe quel badge (à garder pour vous).
+- ?raz : efface la progression enregistrée sur ce poste.
+
+Progression des élèves
+Elle est gardée dans le navigateur du poste. Pour reprendre sur un autre
+poste, l'élève tape son badge puis le dernier code visa de sa fiche
+dans la case « Code de niveau ».
+
+Les polices viennent de Google Fonts : sans internet, le jeu marche avec
+des polices de secours.

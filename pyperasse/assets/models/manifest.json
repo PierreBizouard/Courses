@@ -1,0 +1,26 @@
+{
+  "models": {
+    "stagiaire": { "file": "blocky/character-b.glb" },
+    "lambda": { "file": "blocky/character-e.glb" },
+    "kevin": { "file": "blocky/character-c.glb" },
+    "client": { "file": "blocky/character-r.glb" },
+    "tapis": { "file": "factory/conveyor-stripe.glb" },
+    "tremie": { "file": "factory/hopper-square.glb" },
+    "machine": { "file": "factory/machine.glb" },
+    "ecran": { "file": "factory/screen-small.glb" },
+    "colis": { "file": "factory/box-small.glb" },
+    "porte": { "file": "factory/door-wide-open.glb" },
+    "cone": { "file": "factory/cone.glb" },
+    "levier": { "file": "factory/lever-single.glb" },
+    "table": { "file": "furniture/table.glb" },
+    "bureau": { "file": "furniture/desk.glb" },
+    "chaise": { "file": "furniture/chairDesk.glb" },
+    "ordi": { "file": "furniture/computerScreen.glb" },
+    "plante": { "file": "furniture/pottedPlant.glb" },
+    "bibliotheque": { "file": "furniture/bookcaseOpen.glb" },
+    "poubelle": { "file": "furniture/trashcan.glb" },
+    "tapis-sol": { "file": "furniture/rugRectangle.glb" },
+    "cafe": { "file": "furniture/kitchenCoffeeMachine.glb" },
+    "carton": { "file": "furniture/cardboardBoxClosed.glb" }
+  }
+}
