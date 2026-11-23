@@ -1,0 +1,17 @@
+PâtéMaker 3000 : une activité SNT sur la liaison série
+
+Jouer : ouvrir index.html depuis GitHub Pages (ou depuis un serveur web).
+Le jeu se joue à la souris, sur un ordinateur.
+Dès l'écran de départ, des liens ouvrent les fiches.
+
+Fiches élèves (dossier fiches), en PDF pour imprimer et en Word pour modifier
+- Fiche-eleve-sur-PC : la fiche à remplir pendant le jeu, un visa par niveau.
+- Liaison-serie-COURS : le cours (convention 1 / 0, chronogramme, vitesse
+  en bits par seconde, trame avec start et stop, table des codes).
+- Liaison-serie-EXERCICES-eleve : les exercices pour les élèves sans écran.
+Le corrigé n'est pas dans ce dossier : il est destiné aux élèves.
+
+Adresses utiles (à ajouter à la fin de l'adresse du jeu)
+- ?prof : tous les niveaux ouverts.
+- ?raz : efface la progression enregistrée sur ce poste.
+- ?sanspub : passe la publicité de 1977.
