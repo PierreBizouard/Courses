@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pyperasse & Cie</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Patrick+Hand&family=Special+Elite&family=Oswald:wght@600&display=swap">
+  <script src="./fichiers.js"></script>
+  <script defer src="./assets/index-DSIpPFpJ.js"></script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="crayon"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="4"/><feDisplacementMap in="SourceGraphic" scale="3.2"/></filter>
+  <filter id="crayon-fort"><feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="9"/><feDisplacementMap in="SourceGraphic" scale="5"/></filter>
+</svg>
+<div id="jeu">
+  <header id="barre">
+    <button id="niveaux">Niveaux</button>
+    <div id="titre"></div>
+    <div id="mission"></div>
+    <div id="gags"></div>
+    <div id="degats"></div>
+  </header>
+  <div id="vue">
+    <canvas id="scene"></canvas>
+    <div id="calque"></div>
+    <div id="phase"></div>
+    <div id="tete" class="cache"></div>
+    <button id="suite" class="cache">Suite ▸</button>
+    <div id="carte" class="cache"></div>
+    <div id="chargement"></div>
+  </div>
+  <div id="atelier">
+    <section id="col-palette">
+      <h3>Tampons</h3>
+      <div id="palette"></div>
+      <p class="astuce">Glisse un tampon dans le programme. Attrape les lettres sur le tapis ou sur la table.</p>
+    </section>
+    <section id="col-programme">
+      <h3>Programme <span id="compte"></span> <button id="vue-python" class="petit">Texte Python</button></h3>
+      <div id="programme"></div>
+      <pre id="python" class="cache"></pre>
+    </section>
+    <section id="col-commandes">
+      <div class="ligne-btn"><button id="lancer" class="gros">▶ Lancer</button><button id="stop">■ Stop</button><button id="raz" title="Remettre le niveau à zéro">↺</button><button id="son" title="Musique du mode turbo">♪</button></div>
+      <div id="vitesses"></div>
+      <button id="aide">Demander à Monique</button>
+      <div id="aide-info"></div>
+      <div class="legende"><b>La lampe :</b> <span class="l-nom">nom</span> <span class="l-texte">texte</span> <span class="l-nombre">nombre</span> <span class="l-symbole">symbole</span></div>
+    </section>
+  </div>
+</div>
+<div id="menu" class="cache">
+  <div class="menu-boite">
+    <h1>Pyperasse &amp; Cie</h1>
+    <p>Stage de programmation. Premier étage : l'accueil.</p>
+    <div id="badge"></div>
+    <div id="cartes"></div>
+    <p class="credit">Modèles 3D : Kenney (kenney.nl), licence CC0.</p>
+  </div>
+</div>
+</body>
+</html>

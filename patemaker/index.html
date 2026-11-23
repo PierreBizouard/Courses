@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PâtéMaker 3000</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Special+Elite&display=swap">
+  <script type="module" crossorigin src="./assets/index-BtCIGRi3.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-CgTz51GD.css">
+</head>
+<body>
+<div id="pub">
+  <div class="tv">
+    <div class="antennes"><i></i><i></i><b></b></div>
+    <div class="tvEcran">
+      <canvas id="pubCanvas"></canvas>
+      <div class="calque"><div id="pubLegende"></div><div id="pubVoix"></div></div>
+      <div id="pubEtoile"></div><div id="pubChrono"></div><ul id="pubListe"></ul><div id="pubPrix"></div>
+      <div class="neigeBruit"></div>
+      <div class="flashSpecial"><b>FLASH SPÉCIAL</b><span>Nous interrompons cette publicité.</span></div>
+      <div class="invite"><button class="primary" id="pubAllumer">▶ Allumer la télé</button><span>Une publicité de 1977 va passer. Le son est coupé : bouton « Son » en dessous pour l'entendre.</span></div>
+    </div>
+    <div class="tvPanneau"><div class="marque">TÉLÉCOLOR</div><div class="bouton"></div><div class="bouton"></div><div class="grille"></div></div>
+  </div>
+  <div class="pubBoutons"><button id="pubSon"></button><button id="pubPasser" style="display:none">Passer la pub ⏭</button></div>
+</div>
+
+
+<div id="ending" style="display:none">
+  <div class="card">
+    <h2>ARRÊT COMPLET</h2>
+    <div id="endingText"></div>
+    <button class="primary" id="endingGo">Fermer</button>
+  </div>
+</div>
+
+<div id="intro">
+  <div class="card">
+    <h2>FLASH SPÉCIAL</h2>
+    <div id="introText"></div>
+    <button class="primary" id="introGo">Brancher le fil JTAG</button>
+    <button id="introPub">Revoir la pub</button>
+  </div>
+</div>
+
+<header>
+  <h1>PÂTÉMAKER 3000</h1>
+  <div class="levels" id="levels"></div>
+  <div class="sound"><button id="soundBtn"></button><button id="musicBtn"></button></div>
+</header>
+
+<div class="wrap">
+
+  <!-- Scène -->
+  <section class="panel stage3d">
+    <canvas id="scene" aria-label="Toi, pirate, à gauche ; le fil de debug ; le PâtéMaker 3000 à droite"></canvas>
+    <div class="bubbleRow"><div class="bubble" id="bubble"></div></div>
+  </section>
+
+  <!-- Journal en direct -->
+  <section class="panel journal" id="journal">
+    <div class="jhead"><span class="live">● EN DIRECT</span><b>Flash info</b><span id="jtotal">Le PâtéMaker 3000 a quitté l'usine. Il avance vers la ville.</span></div>
+    <ul id="jlist"></ul>
+  </section>
+
+  <!-- Ticket -->
+  <section class="report" id="report">
+    <h4>Ce que le port de debug te renvoie</h4>
+    <div class="ticket" id="ticket"></div>
+  </section>
+
+  <!-- Travail -->
+  <div class="work">
+    <section class="panel">
+      <div class="mission">
+        <div class="tag" id="mTag"></div>
+        <h2 id="mTitle"></h2>
+        <p id="mText"></p>
+      </div>
+      <div id="bravo" style="display:none"></div>
+      <div id="tools"></div>
+
+      <div class="chronoBox">
+        <h4>Ton chronogramme</h4>
+        <div id="chrono"></div>
+        <div class="legend">Clique dans une case pour passer le signal en haut (1) ou en bas (0). Le temps avance de gauche à droite.</div>
+      </div>
+
+      <div class="controls">
+        <button class="primary" id="send">Envoyer ▶</button>
+        <button id="skip" style="display:none">Passer ⏭</button>
+        <button id="clear">Effacer</button>
+        <button id="addL">+ lettre</button>
+        <button id="delL">− lettre</button>
+        <button id="addFin" style="display:none">+ FIN</button>
+        <button id="next">Niveau suivant ▶</button>
+      </div>
+    </section>
+    <aside class="side">
+      <section class="panel clues"><h3>Mémoire de debug</h3><div id="clues"></div></section>
+      <section class="panel" id="codes"></section>
+    </aside>
+  </div>
+</div>
+
+</body>
+</html>
