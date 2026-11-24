@@ -6,9 +6,9 @@
 <title>PâtéMaker 3000</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Special+Elite&display=swap">
-  <script type="module" crossorigin src="./assets/index-64FE9QVj.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-B2Fo69Vx.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Special+Elite&family=Old+Standard+TT:wght@400;700&family=UnifrakturMaguntia&display=swap">
+  <script type="module" crossorigin src="./assets/index-6ydLRPJz.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-B0vMOEYi.css">
 </head>
 <body>
 <div id="pub">
@@ -71,12 +71,6 @@
     <div class="bubbleRow"><div class="bubble" id="bubble"></div></div>
   </section>
 
-  <!-- Journal en direct -->
-  <section class="panel journal" id="journal">
-    <div class="jhead"><span class="live">● EN DIRECT</span><b>Flash info</b><span id="jtotal">Le PâtéMaker 3000 a quitté l'usine. Il avance vers la ville.</span></div>
-    <ul id="jlist"></ul>
-  </section>
-
   <!-- Travail -->
   <div class="work">
     <section class="panel">
@@ -115,6 +109,13 @@
       <section class="panel" id="codes"></section>
     </aside>
   </div>
+</div>
+
+<!-- Bandeau des nouvelles, en bas de l'écran, façon chaîne d'info -->
+<div class="bandeau" id="journal" aria-live="polite">
+  <div class="bandeauTag"><span class="live">● EN DIRECT</span><b>FLASH INFO</b></div>
+  <div class="bandeauDefile"><div class="bandeauPiste" id="jlist"><span>Le PâtéMaker 3000 a quitté l'usine. Il avance vers la ville.</span></div></div>
+  <div class="bandeauTotal" id="jtotal">Aspirations : 0</div>
 </div>
 
 </body>
