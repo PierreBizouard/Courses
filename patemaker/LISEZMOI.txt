@@ -15,3 +15,5 @@ Adresses utiles (à ajouter à la fin de l'adresse du jeu)
 - ?prof : tous les niveaux ouverts.
 - ?raz : efface la progression enregistrée sur ce poste.
 - ?sanspub : passe la publicité de 1977.
+- ?stop : variante du niveau 3 avec deux lettres à la suite,
+  pour découvrir le bit de stop (à essayer).
