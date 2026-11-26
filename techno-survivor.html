@@ -2,7 +2,9 @@
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
 <title>S1 · Techno Survivor</title>
 <!-- version affichée : à augmenter à chaque mise à jour -->
-<div id="version" style="position:fixed;top:1px;left:50%;transform:translateX(-50%);z-index:99999;font:600 10px/1.4 system-ui,sans-serif;color:#fffc;background:#000a;padding:0 7px;border-radius:0 0 6px 6px;pointer-events:none">v20 · 10/11/2026</div>
+<div id="version" style="position:fixed;top:1px;left:50%;transform:translateX(-50%);z-index:99999;font:600 10px/1.4 system-ui,sans-serif;color:#fffc;background:#000a;padding:0 7px;border-radius:0 0 6px 6px;pointer-events:none">v21 · 26/11/2026</div>
+<!-- suivi en temps réel par le professeur (lien ?t= seulement) ; absent hors GitHub Pages : le jeu marche sans -->
+<script src="suivi/suivi.js"></script>
 <!-- plein écran (si le navigateur ou ÉLÉA l'autorise) -->
 <button id="fsbtn" type="button" title="Plein écran" aria-label="Plein écran" style="position:fixed;top:1px;left:calc(50% + 62px);z-index:99999;font:600 10px/1.4 system-ui,sans-serif;color:#fffc;background:#000a;border:0;padding:0 7px;border-radius:0 0 6px 6px;cursor:pointer" hidden>⛶ plein écran</button>
 <script>(function(){ var b=document.getElementById('fsbtn'), d=document, e=d.documentElement;
@@ -515,7 +517,7 @@ function save(){
   try{
     if(SCORM){
       // la question n'est pas gardée (elle est dans le jeu) : suspend_data reste petit
-      const slim={ pts:D.pts, best:D.best, prof:D.prof, disc:{} };
+      const slim={ pts:D.pts, best:D.best, prof:D.prof, ouv:D.ouv, disc:{} };
       if(D.mission){ slim.mission={}; for(const k in D.mission) slim.mission[k]=Array.isArray(D.mission[k])?D.mission[k]:String(D.mission[k]).slice(0,160); }
       for(const k in D.disc){ const d=D.disc[k]; slim.disc[k]={ pick:String(d.pick||'').slice(0,120), got:d.got, ok:d.ok, txt:String(d.txt||'').slice(0,300) }; }
       SCORM.LMSSetValue('cmi.suspend_data',JSON.stringify(slim));
@@ -564,7 +566,7 @@ function overlay(html){ $('#ovc').innerHTML=html; $('#ov').hidden=false; }
 
 /* ---------- découverte de fin de jeu ---------- */
 function discovery(id,q,opts,goodIdx,explain){
-  const box=mk('div','card disc',null,main); const prev=D.disc[id]||{}; let pickI=null;
+  const box=mk('div','card disc',null,main); const prev=D.disc[id]||{}; let pickI=null; svPos(id,'découverte');
   box.innerHTML=`<h3>Ta découverte</h3><p>${q}</p><div class="opts">${opts.map((o,i)=>`<button class="opt" data-i="${i}">${o}</button>`).join('')}</div><div class="fb"></div>
     <p class="lead">Avec tes mots, en une phrase :</p><textarea placeholder="J'ai découvert que…">${esc(prev.txt||'')}</textarea>
     <div class="row" style="margin-top:10px"><button class="btn ok" data-ok>Enregistrer et revenir au menu</button></div>`;
@@ -572,14 +574,15 @@ function discovery(id,q,opts,goodIdx,explain){
     pickI=+b.dataset.i;
     box.querySelectorAll('.opt').forEach((x,i)=>{ x.classList.toggle('right',i===goodIdx); x.classList.toggle('wrong',i===pickI && i!==goodIdx); x.disabled=true; });
     const fb=box.querySelector('.fb'); fb.className='fb '+(pickI===goodIdx?'good':'bad'); fb.innerHTML=(pickI===goodIdx?'Oui ! ':'Pas tout à fait. ')+`<span style="color:var(--fg);font-weight:400">${explain}</span>`;
+    svEv(pickI===goodIdx?'reussite':'echec',{ niveau:id, quoi:'découverte', choix:sansBalises(opts[pickI]).slice(0,120) });
     if(pickI===goodIdx && !prev.got){ prev.got=1; addPts(20); }
   });
-  box.querySelector('[data-ok]').onclick=()=>{ const d={ q, pick:pickI!=null?opts[pickI]:(prev.pick||''), got:prev.got, ok:pickI!=null?pickI===goodIdx:prev.ok, txt:box.querySelector('textarea').value.trim() }; D.disc[id]=d; save(); sendDisc(id,q,pickI!=null?d.pick:'',d.ok,d.txt!==(prev.txt||'')?d.txt:''); menu(); };
+  box.querySelector('[data-ok]').onclick=()=>{ const d={ q, pick:pickI!=null?opts[pickI]:(prev.pick||''), got:prev.got, ok:pickI!=null?pickI===goodIdx:prev.ok, txt:box.querySelector('textarea').value.trim() }; D.disc[id]=d; save(); if(SV && d.txt && d.txt!==(prev.txt||'')) SV.repondre({ id:id+'-decouverte', niveau:id, enonce:sansBalises(q).slice(0,300) }, d.txt.slice(0,500)); sendDisc(id,q,pickI!=null?d.pick:'',d.ok,d.txt!==(prev.txt||'')?d.txt:''); menu(); };
   box.scrollIntoView({behavior:'smooth',block:'start'});
 }
 function head(e,t,lead){ main.innerHTML=`<h2>${e} ${t}</h2>${lead?`<p class="lead">${lead}</p>`:''}`; scrollTo(0,0); }
 function endCard(title,body,again,disc){
-  stopGame();
+  stopGame(); svEv('fin-partie',{ niveau:svIci, titre:sansBalises(title).slice(0,80) }); svPos(null,'fin de partie');
   overlay(`<h2>${title}</h2><p>${body}</p><div class="row c"><button class="btn ok" id="o-a">Rejouer</button><button class="btn" id="o-d">${disc?'Ma découverte':'Menu'}</button></div>`);
   $('#o-a').onclick=()=>{ $('#ov').hidden=true; again(); };
   $('#o-d').onclick=()=>{ $('#ov').hidden=true; if(disc){ main.querySelectorAll('.stage,.hud,.qbar').forEach(e=>e.remove()); disc(); } else menu(); };
@@ -3193,13 +3196,13 @@ const GAMES=[
 // les épreuves s'ouvrent deux par deux : une paire s'ouvre quand les deux épreuves d'avant sont terminées
 // (découverte notée) ; les points varient trop d'une épreuve à l'autre pour servir de seuil. Code prof : tout ouvert.
 const prevPair=i=>{ const p=Math.floor(i/2); return p?[GAMES[2*p-2],GAMES[2*p-1]]:[]; };
-const isOpen=i=>D.prof||prevPair(i).every(g=>D.disc[g[0]]);
+const isOpen=i=>D.prof||!!(D.ouv&&D.ouv[GAMES[i][0]])||prevPair(i).every(g=>D.disc[g[0]]);
 function menu(){
-  stopGame();
+  stopGame(); svPos(null,'menu');
   main.innerHTML=`<h2>Techno Survivor</h2>${D.prof?'<p class="fb good" style="margin:0 0 8px">🔑 Mode enseignant : toutes les épreuves sont ouvertes.</p>':''}<p class="lead">Douze épreuves pour découvrir comment marche la technologie. À la fin de chacune, note ta découverte : on la reprendra ensemble en cours.</p>
     <div class="games">${GAMES.map(([id,e,t,d],i)=>!isOpen(i)?`<button class="gcard locked" data-i="${i}" aria-disabled="true"><span class="e">${e}</span><span class="t">${i+1} · ${t}</span><span class="d">${d}</span><span class="s lk">🔒 Termine d'abord ${prevPair(i).filter(g=>!D.disc[g[0]]).map(g=>g[1]+' '+g[2]).join(' et ')}</span></button>`:`<button class="gcard${D.disc[id]?' done':''}" data-i="${i}"><span class="e">${e}</span><span class="t">${i+1} · ${t}</span><span class="d">${d}</span><span class="s">${D.disc[id]?'✓ découverte notée':''}${D.best[id]?` · record ${D.best[id].toLocaleString('fr-FR')}`:''}</span></button>`).join('')}</div>
     <div class="row"><button class="btn" id="notes">📒 Mes découvertes</button><button class="btn" id="profb">${D.prof?'🔓 Quitter le mode enseignant':'🔑 Mode enseignant'}</button></div>${SCORM?'<p class="lead" style="font-size:13px">✅ Ta progression et tes découvertes sont enregistrées sur ÉLÉA.</p>':''}`;
-  main.querySelectorAll('.gcard').forEach(b=>b.onclick=()=>{ const i=+b.dataset.i; if(isOpen(i)) GAMES[i][4](); else { b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); } });
+  main.querySelectorAll('.gcard').forEach(b=>b.onclick=()=>{ const i=+b.dataset.i; if(isOpen(i)){ svPos(GAMES[i][0]); GAMES[i][4](); } else { b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); } });
   $('#notes').onclick=notes; $('#profb').onclick=profMode; scrollTo(0,0);
 }
 // mode enseignant : ouvre toutes les épreuves, protégé par un mot de passe
@@ -3212,7 +3215,7 @@ function profMode(){
   setTimeout(()=>$('#pw').focus(),50);
 }
 function notes(){
-  stopGame();
+  stopGame(); svPos(null,'mes découvertes');
   const L=GAMES.map(([id,e,t])=>({e,t,d:D.disc[id]}));
   main.innerHTML=`<h2>📒 Mes découvertes</h2><p class="lead">Recopie-les dans ton cahier, ou copie-les pour ton professeur.</p>
     <ol class="notes">${L.map(({e,t,d})=>`<li><b>${e} ${t}</b><br>${d?`${d.q?`<span class="q">${esc(d.q)}</span><br>`:''}${esc(d.pick||'(pas de réponse)')}${d.txt?`<br>« ${esc(d.txt)} »`:''}`:'<span class="q">Pas encore fait.</span>'}</li>`).join('')}</ol>
@@ -3225,6 +3228,21 @@ function notes(){
   $('#back').onclick=menu;
   $('#rs').onclick=()=>{ if(confirm('Effacer tes découvertes, records et points ?')){ D={pts:0,best:{},disc:{}}; save(); menu(); } };
 }
+/* ---------- suivi en temps réel par le professeur ----------
+   Seulement avec le lien ?t= donné par le prof (Pronote) et suivi/suivi.js présent à côté du jeu.
+   Sinon SV vaut null et rien ne change. Le prof voit l'épreuve en cours, les découvertes (QCM et phrase,
+   qu'il peut juger), et peut ouvrir une épreuve à distance. Jamais de visa qui bloque. */
+var SV=window.DlmSuivi?DlmSuivi.suivi.connecter({ jeu:'techno-survivor', version:'v21', niveaux:GAMES.map(([id,e,t])=>({ id, titre:t })), visa:false }):null;
+var svIci=GAMES[0][0];
+function sansBalises(t){ return String(t==null?'':t).replace(/<[^>]*>/g,'').replace(/\s+/g,' ').trim(); }
+function svPos(niveau,etape){ if(!SV) return; if(niveau) svIci=niveau; SV.position(etape?{ niveau:svIci, etape }:{ niveau:svIci }); }
+function svEv(nom,donnees){ if(SV) SV.evenement(nom,donnees); }
+if(SV) SV.surDeblocage(id=>{
+  const g=GAMES.find(x=>x[0]===id); if(!g) return;
+  (D.ouv||(D.ouv={}))[id]=1; save();
+  toast('🔓 Le professeur a ouvert : '+g[2]);
+  if(!G.cur && main.querySelector('.games')) menu();
+});
 $('#home').onclick=menu;
 save(); menu();
 </script>

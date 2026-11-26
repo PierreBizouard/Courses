@@ -1,7 +1,9 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Binaire Attack</title>
 <!-- version affichée : à augmenter à chaque mise à jour -->
-<div id="version" style="position:fixed;top:1px;left:50%;transform:translateX(-50%);z-index:99999;font:600 10px/1.4 system-ui,sans-serif;color:#fffc;background:#000a;padding:0 7px;border-radius:0 0 6px 6px;pointer-events:none">v39 · 15/10/2026</div>
+<div id="version" style="position:fixed;top:1px;left:50%;transform:translateX(-50%);z-index:99999;font:600 10px/1.4 system-ui,sans-serif;color:#fffc;background:#000a;padding:0 7px;border-radius:0 0 6px 6px;pointer-events:none">v40 · 26/11/2026</div>
+<!-- suivi en temps réel par le professeur (lien ?t= seulement) ; absent hors GitHub Pages : le jeu marche sans -->
+<script src="suivi/suivi.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=JetBrains+Mono:wght@500;700&family=Atkinson+Hyperlegible:wght@400;700&family=Press+Start+2P&display=swap">
@@ -559,7 +561,7 @@ function saveBest(id,v){ if(v>best(id)){ Store.data.best[id]=v; }
 function modeBests(id){ const M=MODES[id]; if(!M) return ''; const bm=Store.data.bm||{}; return '<br>Par mode : '+M.list.map(([k])=>`<span style="white-space:nowrap">${M.short[k]} : ${Math.min(bm[id+k]||0,best(id))}</span>`).join(' · '); }
 function hasStar(i){ return best(i)>=STAR[i]; }
 function nStars(){ return STAR.filter((x,i)=>hasStar(i)).length; }
-function unlocked(i){ return i===0 || Store.data.prof || (i===SECRET ? nStars()===NL : best(i-1)>=UNLOCK[i-1]); }
+function unlocked(i){ return i===0 || Store.data.prof || !!(Store.data.ouv&&Store.data.ouv[i]) || (i===SECRET ? nStars()===NL : best(i-1)>=UNLOCK[i-1]); }
 
 /* ---------- game state & shared helpers ---------- */
 const G = { lv:null, id:0, score:0, lives:3, run:false, pause:false };
@@ -666,14 +668,14 @@ function startLevel(id,mode){
   $('#lvname').textContent = ((MODES[id] && MODES[id].tag[G.mode]) || '') + (id===SECRET ? 'Jeu secret · '+LEVELS[id].name : (id+1)+' · '+LEVELS[id].name+' · palier '+UNLOCK[id]+' · ★ '+STAR[id]);
   hud(); setCombo(0); Buf.clear(); $('#bufrow').hidden=false;
   G.lv = LEVELS[id].make();
-  G.lv.start(); measure(); G.lv.layout && G.lv.layout(); G.lv.update(0);
+  svPos(id,svMode(id)); G.lv.start(); measure(); G.lv.layout && G.lv.layout(); G.lv.update(0);
   if(!tutoSeen(tkey(id))) Tuto.run(tkey(id));
 }
 function toMenu(){
   document.body.classList.remove('paused');
   if(G.tuto) Tuto.end();
   G.run=false; G.lv=null; hideOverlay(); stage.innerHTML=''; stage.onpointerdown=stage.onpointermove=stage.onpointerup=stage.onpointercancel=stage.onpointerleave=null;
-  $('#app').hidden=true; $('#menu').hidden=false; renderMenu();
+  $('#app').hidden=true; $('#menu').hidden=false; renderMenu(); svPos(null,'menu');
 }
 function togglePause(){
   if(!G.run) return;
@@ -690,6 +692,7 @@ function gameOver(){
   if(!Seal.ok(G.score)){ ErrLog.add(id,'score modifie a la main',G.score,'score non enregistre'); G.score=0; hud(); }
   saveBest(id,G.score);
   const top=Math.max(prev,G.score), rec=G.score>prev && G.score>0;
+  svEv(id<NL && G.score<UNLOCK[id] ? 'echec' : 'reussite', { niveau:String(id+1), score:G.score, record:top, mode:svMode(id) });
   let msg='';
   if(id<NL){
     const goal=UNLOCK[id], star=STAR[id], lastLvl=id===NL-1;
@@ -2375,7 +2378,7 @@ const Learn=(()=>{
   }
 
   function go(i){
-    step=clamp(i,0,STEPS.length-1); const S=STEPS[step];
+    step=clamp(i,0,STEPS.length-1); const S=STEPS[step]; svPos(-1,'étape '+(step+1)+' / '+STEPS.length);
     st={ N:S.N, B:S.B, packed:S.packed, hide:S.hide, min:S.min, ctl:S.ctl, nobin:S.nobin };
     $('#lw-title').textContent=(step+1)+'. '+S.t;
     $('#lw-text').innerHTML=S.x; $('#lw-text').hidden=!S.x;
@@ -2407,8 +2410,25 @@ const Learn=(()=>{
   return { open, close, key, go, get step(){ return step; }, get st(){ return st; } };
 })();
 addEventListener('resize',()=>{ if(G.lv && G.lv.layout) G.lv.layout(); });
+/* ---------- suivi en temps réel par le professeur ----------
+   Seulement avec le lien ?t= donné par le prof (Pronote) et suivi/suivi.js présent à côté du jeu.
+   Sinon SV vaut null et rien ne change. Le prof voit le niveau et le mode en cours, chaque partie
+   (score, record ; « échec » sous le palier 1) et peut ouvrir un niveau à distance. Jamais de visa qui bloque. */
+var SV=window.DlmSuivi?DlmSuivi.suivi.connecter({ jeu:'binaire-attack', version:'v40',
+  niveaux:[{ id:'0', titre:'Comprendre le binaire' }].concat(LEVELS.map((l,i)=>({ id:String(i+1), titre:(i===SECRET?'Jeu secret · ':'')+l.name }))), visa:false }):null;
+var svIci='0';
+// id : numéro du niveau dans le jeu (0 = premier niveau), -1 = tutoriel « Comprendre le binaire », null = ne change pas
+function svPos(id,etape){ if(!SV) return; if(id!=null) svIci=String(id+1); SV.position(etape?{ niveau:svIci, etape:String(etape) }:{ niveau:svIci }); }
+function svMode(id){ return MODES[id]&&G.mode ? 'mode '+(MODES[id].short[G.mode]||G.mode) : ''; }
+function svEv(nom,donnees){ if(SV) SV.evenement(nom,donnees); }
+if(SV) SV.surDeblocage(n=>{
+  const i=+n-1; if(!(i>=0 && i<LEVELS.length)) return;
+  (Store.data.ouv||(Store.data.ouv={}))[i]=1; Store.save();
+  if(!$('#menu').hidden) renderMenu();
+  if(window.DlmSuivi) DlmSuivi.afficherBulle('Message du professeur','Le niveau « '+LEVELS[i].name+' » est ouvert.',()=>{});
+});
 $('#profbtn').addEventListener('click',teacherDialog);
-renderMenu();
+renderMenu(); svPos(null,'menu');
 </script>
 
 </body></html>
