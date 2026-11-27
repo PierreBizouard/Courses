@@ -6,9 +6,9 @@
 <title>PâtéMaker 3000</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Special+Elite&family=Old+Standard+TT:wght@400;700&family=UnifrakturMaguntia&display=swap">
-  <script type="module" crossorigin src="./assets/index-ChWZ8rpZ.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-BD16RxZW.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Special+Elite&family=Old+Standard+TT:wght@400;700&family=UnifrakturMaguntia&display=swap">
+  <script type="module" crossorigin src="./assets/index-Dbk_bte5.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-CwVNYB2W.css">
 </head>
 <body>
 <div id="pub">
@@ -19,8 +19,8 @@
       <div class="calque"><div id="pubLegende"></div><div id="pubVoix"></div></div>
       <div id="pubEtoile"></div><div id="pubChrono"></div><ul id="pubListe"></ul><div id="pubPrix"></div>
       <div class="neigeBruit"></div>
-      <div class="flashSpecial"><b>FLASH SPÉCIAL</b><span>Nous interrompons cette publicité.</span></div>
-      <div class="invite"><button class="primary" id="pubAllumer">▶ Allumer la télé</button><span>Une publicité de 1977 va passer. Le son est coupé : bouton « Son » en dessous pour l'entendre.</span></div>
+      <div class="flashSpecial"><b>FLASH SPÉCIAL</b><span data-tx="pub.interruption" data-txou="Pub de 1977, avant le jeu">Nous interrompons cette publicité.</span></div>
+      <div class="invite"><button class="primary" id="pubAllumer" data-tx="pub.allumer" data-txou="Pub de 1977, avant le jeu">▶ Allumer la télé</button><span data-tx="pub.invite" data-txou="Pub de 1977, avant le jeu">Une publicité de 1977 va passer. Le son est coupé : bouton « Son » en dessous pour l'entendre.</span></div>
     </div>
     <div class="tvPanneau"><div class="marque">TÉLÉCOLOR</div><div class="bouton"></div><div class="bouton"></div><div class="grille"></div></div>
   </div>
@@ -36,18 +36,18 @@
 
 <div id="ending" style="display:none">
   <div class="card">
-    <h2>ARRÊT COMPLET</h2>
+    <h2 data-tx="fin.titre" data-txou="Écran de fin ARRÊT COMPLET">ARRÊT COMPLET</h2>
     <div id="endingText"></div>
-    <button class="primary" id="endingGo">Fermer</button>
+    <button class="primary" id="endingGo" data-tx="fin.fermer" data-txou="Écran de fin ARRÊT COMPLET">Fermer</button>
   </div>
 </div>
 
 <div id="intro">
   <div class="card">
-    <h2>FLASH SPÉCIAL</h2>
+    <h2 data-tx="intro.titre" data-txou="Écran d'accueil FLASH SPÉCIAL, après la pub">FLASH SPÉCIAL</h2>
     <div id="introText"></div>
-    <button class="primary" id="introGo">Brancher le fil JTAG</button>
-    <button id="introPub">Revoir la pub</button>
+    <button class="primary" id="introGo" data-tx="intro.brancher" data-txou="Écran d'accueil FLASH SPÉCIAL, après la pub">Brancher le fil JTAG</button>
+    <button id="introPub" data-tx="intro.pub" data-txou="Écran d'accueil FLASH SPÉCIAL, après la pub">Revoir la pub</button>
     <div class="fichesLiens"><b>Les fiches :</b>
     <a href="fiches/Fiche-de-seance.pdf" target="_blank">La séance (PDF)</a>
     <a href="fiches/Fiche-eleve-sur-PC.pdf" target="_blank">Fiche élève (PDF)</a>
@@ -89,18 +89,18 @@
       </div>
 
       <div class="controls">
-        <button class="primary" id="send">Envoyer ▶</button>
-        <button id="skip" style="display:none">Passer ⏭</button>
-        <button id="clear">Effacer</button>
-        <button id="addL">+ lettre</button>
-        <button id="delL">− lettre</button>
+        <button class="primary" id="send" data-tx="bouton.envoyer" data-txou="Boutons sous le chronogramme">Envoyer ▶</button>
+        <button id="skip" style="display:none" data-tx="bouton.passer" data-txou="Boutons sous le chronogramme">Passer ⏭</button>
+        <button id="clear" data-tx="bouton.effacer" data-txou="Boutons sous le chronogramme">Effacer</button>
+        <button id="addL" data-tx="bouton.plus" data-txou="Boutons sous le chronogramme">+ lettre</button>
+        <button id="delL" data-tx="bouton.moins" data-txou="Boutons sous le chronogramme">− lettre</button>
         <button id="addFin" style="display:none">+ FIN</button>
-        <button id="next">Niveau suivant ▶</button>
+        <button id="next" data-tx="bouton.suivant" data-txou="Boutons sous le chronogramme">Niveau suivant ▶</button>
       </div>
 
       <!-- Sortie : la réponse du port de debug, juste sous ce qu'on envoie (l'entrée en haut, la sortie en bas) -->
       <section class="report" id="report">
-        <h4>Ce que le port de debug te renvoie</h4>
+        <h4 data-tx="ticket.titre" data-txou="Ticket du port de debug">Ce que le port de debug te renvoie</h4>
         <div class="ticket" id="ticket"></div>
       </section>
     </section>
@@ -114,9 +114,9 @@
 <!-- Bandeau des nouvelles, en bas de l'écran, façon chaîne d'info -->
 <div class="bandeau" id="journal" aria-live="polite">
   <div class="bandeauTag"><span class="live">● EN DIRECT</span><b>FLASH INFO</b></div>
-  <div class="bandeauDefile"><div class="bandeauPiste" id="jlist"><span>Le PâtéMaker 3000 a quitté l'usine. Il avance vers la ville.</span></div></div>
+  <div class="bandeauDefile"><div class="bandeauPiste" id="jlist"><span data-tx="flash.depart" data-txou="Bandeau FLASH INFO, en bas de l'écran">Le PâtéMaker 3000 a quitté l'usine. Il avance vers la ville.</span></div></div>
   <div class="bandeauTotal" id="jtotal">Aspirations : 0</div>
 </div>
-
+
 </body>
 </html>

@@ -12,7 +12,7 @@ Fiches élèves (dossier fiches), en PDF pour imprimer et en Word pour modifier
 Le corrigé n'est pas dans ce dossier : il est destiné aux élèves.
 
 Adresses utiles (à ajouter à la fin de l'adresse du jeu)
-- ?prof : tous les niveaux ouverts.
+- ?prof : tous les niveaux ouverts, et le crayon « Corriger les textes » (en bas à droite) pour corriger les textes du jeu puis exporter le fichier de corrections.
 - ?qcm : le QCM à chaque niveau réussi, même avec ?prof (pour tester).
 - ?raz : efface la progression enregistrée sur ce poste.
 - ?sanspub : passe la publicité de 1977.
